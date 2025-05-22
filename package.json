@@ -1,0 +1,33 @@
+{
+    "name": "tailwind-laravel-starter",
+    "version": "1.0.0",
+    "description": "A free and open-source starter project to help you get started with the core Flowbite Library components and Laravel",
+    "license": "MIT",
+    "repository": "https://github.com/themesberg/tailwind-laravel-starter",
+    "homepage": "https://flowbite.com/docs/getting-started/laravel/",
+    "contributors": [
+        "Zoltán Szőgyényi (https://x.com/zoltanszogyenyi)"
+    ],
+    "author": "Bergside Inc.",
+    "type": "module",
+    "scripts": {
+        "build": "vite build",
+        "dev": "vite"
+    },
+    "dependencies": {
+        "@tailwindcss/vite": "^4.0.7",
+        "autoprefixer": "^10.4.20",
+        "axios": "^1.7.4",
+        "concurrently": "^9.0.1",
+        "flowbite": "^3.1.2",
+        "laravel-vite-plugin": "^1.0",
+        "tailwind-laravel-starter": "file:",
+        "tailwindcss": "^4.0.7",
+        "vite": "^6.0"
+    },
+    "optionalDependencies": {
+        "@rollup/rollup-linux-x64-gnu": "4.9.5",
+        "@tailwindcss/oxide-linux-x64-gnu": "^4.0.1",
+        "lightningcss-linux-x64-gnu": "^1.29.1"
+    }
+}
