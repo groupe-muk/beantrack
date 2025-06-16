@@ -7,14 +7,12 @@
 
         <title>{{ config('app.name', 'Flowbite and Laravel Starter') }}</title>
 
-        <!-- Fonts -->
-        <link rel="preconnect" href="https://fonts.bunny.net">
+       <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600" rel="stylesheet" />
-            <link rel="preconnect" href="https://fonts.googleapis.com">
-            <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-            <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
-            
-        <!-- Styles / Scripts -->
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Work+Sans:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+       <!-- Styles / Scripts -->
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
 
@@ -58,15 +56,18 @@
     <!-- Features Section -->
     <section class="px-8 py-10 grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
         <!-- Admin Card -->
-        <div class="  cursor-pointer transition hover:scale-110 bg-white shadow rounded-lg overflow-hidden text-center">
+       <a href="#"> <!--handle routing here-->
+       <div class="  cursor-pointer transition hover:scale-110 bg-white shadow rounded-lg overflow-hidden text-center">
             <img src="/images/landing-page-image-1.jpg" alt="Admin" class="w-full h-48 object-cover"> <!-- Replace path -->
             <div class="p-4">
                 <h3 class="font-semibold text-lg">Admin</h3>
                 <p class="text-sm text-gray-600 mt-2">Manage users, roles, and system settings.</p>
             </div>
         </div>
+        </a>
 
         <!-- Supplier Card -->
+        <a href="#"> <!--handle routing here-->
         <div class="cursor-pointer transition hover:scale-110 shadow rounded-lg overflow-hidden text-center ">
             <img src="/images/landing-page-image-2.jpg" alt="Supplier" class="w-full h-48 object-cover"> <!-- Replace path -->
             <div class="p-4">
@@ -74,8 +75,10 @@
                 <p class="text-sm text-gray-600 mt-2">Track bean shipments, update inventory, and manage orders.</p>
             </div>
         </div>
+        </a>
 
         <!-- Vendor Card -->
+        <a href="#"> <!--handle routing here-->
         <div class=" cursor-pointer transition hover:scale-110 bg-white shadow rounded-lg overflow-hidden text-center">
             <img src="/images/landing-page-image-3.jpg" alt="Vendor" class="w-full h-48 object-cover"> <!-- Replace path -->
             <div class="p-4">
@@ -83,7 +86,12 @@
                 <p class="text-sm text-gray-600 mt-2">View inventory, place orders, and track deliveries.</p>
             </div>
         </div>
+        </a>
     </section>
+
+
+
+        <script src="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.js"></script>
 
  </body>
  </html>   
