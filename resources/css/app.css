@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&family=Roboto:wght@400;700&display=swap');
 @import 'tailwindcss';
 @import '../../vendor/livewire/flux/dist/flux.css';
 
@@ -17,23 +18,21 @@
 
 
 @theme {
-    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+    --font-sans: 'Roboto', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+    --font-serif: 'Merriweather', ui-sans-serif, serif;
 
-    --color-zinc-50: #fafafa;
-    --color-zinc-100: #f5f5f5;
-    --color-zinc-200: #e5e5e5;
-    --color-zinc-300: #d4d4d4;
-    --color-zinc-400: #a3a3a3;
-    --color-zinc-500: #737373;
-    --color-zinc-600: #525252;
-    --color-zinc-700: #404040;
-    --color-zinc-800: #262626;
-    --color-zinc-900: #171717;
-    --color-zinc-950: #0a0a0a;
+    --color-white: #ffffff; /*for some backgrounds, cards, headings and major text in dark mode*/
+    --color-light-brown: #854B10; /*for light brown buttons and some headings in light mode*/
+    --color-soft-gray: #e5e8eb; /*for nav bar partition and borders*/
+    --color-mild-gray: #B0A6A6; /*for minor text in dark mode*/
+    --color-warm-gray: #332E2E; /*for grey buttons in dark mode*/
+    --color-dark-background: #171717; /*background color for dark mode, and text color in light mode*/
+    --color-coffee-brown: #4A2924; /*dark brown for some buttons and some button text in light mode*/
+    --color-light-gray: #F5F2F0; /*for grey buttons in light mode*/
+    --color-brown: #47301f; /*for brown subtext in the light mode*/
 
-    --color-accent: var(--color-neutral-800);
-    --color-accent-content: var(--color-neutral-800);
-    --color-accent-foreground: var(--color-white);
+  
+
 }
 
 @layer theme {
@@ -52,6 +51,10 @@
     ::backdrop,
     ::file-selector-button {
         border-color: var(--color-gray-200, currentColor);
+    }
+
+    h1, h2, h3, h4, h5, h6{
+        font-family: theme('fontFamily.sans');
     }
 }
 
