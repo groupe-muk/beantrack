@@ -13,6 +13,9 @@
         <flux:heading>{{ $heading ?? '' }}</flux:heading>
         <flux:subheading>{{ $subheading ?? '' }}</flux:subheading>
 
+        <a href="{{ route('login') }}" class ="btn">login</a>
+        <a href="{{ route('register') }}" class ="btn">register</a>
+
         <div class="mt-5 w-full max-w-lg">
             {{ $slot }}
         </div>
