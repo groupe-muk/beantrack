@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AuthController;
 use App\Livewire\Settings\Appearance;
 use App\Livewire\Settings\Password;
 use App\Livewire\Settings\Profile;
@@ -7,7 +8,15 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
     return view('welcome');
-})->name('home');
+})->name("web");
+
+Route::get('/create',[AuthController::class, 'showcreate'])->name('show.create');
+Route::get('/login',[AuthController::class, 'showlogin'])->name('show.login');
+Route::post('/create',[AuthController::class, 'create'])->name('create');
+Route::post('/login',[AuthController::class, 'login'])->name('login');
+Route::post('/logout',[AuthController::class, 'logout'])->name('logout');
+
+
 
 Route::get('/accordion', function () {
     return view('accordion');
@@ -65,8 +74,9 @@ Route::view('dashboard', 'dashboard')
     ->middleware(['auth', 'verified'])
     ->name('dashboard');
 
-Route::middleware(['auth'])->group(function () {
-    Route::redirect('settings', 'settings/profile');
+// Route::middleware(['auth'])->group(function () {
+//     Route::redirect('settings', 'settings/profile');
+
 
     Route::get('settings/profile', Profile::class)->name('settings.profile');
     Route::get('settings/password', Password::class)->name('settings.password');
