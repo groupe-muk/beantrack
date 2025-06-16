@@ -72,5 +72,8 @@ Route::middleware(['auth'])->group(function () {
     Route::get('settings/password', Password::class)->name('settings.password');
     Route::get('settings/appearance', Appearance::class)->name('settings.appearance');
 });
+Route::get('/', function(){
+    return view('landing');
+});
 
 require __DIR__.'/auth.php';
