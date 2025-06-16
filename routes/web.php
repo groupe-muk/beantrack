@@ -86,4 +86,8 @@ Route::get('/', function(){
     return view('onboarding');
 });
 
+    Route::get('/sample', function(){
+    return view('sample');
+});
+
 require __DIR__.'/auth.php';
