@@ -1,0 +1,33 @@
+@extends('layouts.app')
+
+@section('content')
+<div class="bg-soft-gray min-h-screen p-8 dark:bg-dark-background">
+    <div class="max-w-7xl mx-auto space-y-8">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <x-stats-card
+                title="Active Orders"
+                value="5"
+                iconClass="fa-cube"
+                unit="kgs"
+                changeText="5.2% from last period"
+                changeIconClass="fa-arrow-up"
+            />
+        </div>
+
+        <h1 class="text-3xl font-bold text-center text-gray-900 dark:text-white">Reusable Chart Cards Example</h1>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <x-column-graph-card
+                title="Daily Sales Overview"
+                column-chart-i-d="dailySalesChart"
+                :chart-data="$salesData"
+                :chart-data2="$salesData2"
+                :chart-categories="$salesCategories"
+                seriesName="Revenue (UGX)"
+                seriesName2="Cost (UGX)"
+            />
+
+        </div>
+    </div>
+</div>
+@endsection

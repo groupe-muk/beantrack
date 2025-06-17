@@ -5,6 +5,9 @@ use App\Livewire\Settings\Appearance;
 use App\Livewire\Settings\Password;
 use App\Livewire\Settings\Profile;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\ChartTestController; // IMPORTANT: Add this use statement
+
+Route::get('/sample', [ChartTestController::class, 'showColumnChart'])->name('column.chart');
 
 Route::get('/', function () {
     return view('welcome');
@@ -85,5 +88,6 @@ Route::view('dashboard', 'dashboard')
 Route::get('/', function(){
     return view('layouts.main-view');
 });
+
 
 require __DIR__.'/auth.php';
