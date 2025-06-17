@@ -18,6 +18,10 @@ class AuthController extends Controller
     {
     return view('auths.login');
     }
+
+    public function showApp() {
+        return view('layouts.main-view');
+    }
      public function create(request $request){
         $Validated = $request->validate([
             'name' => 'required|string|max:255',
