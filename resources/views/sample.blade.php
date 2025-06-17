@@ -43,7 +43,16 @@
                 />
             </div> 
         </div> 
-                 
+        
+        <div class="space-y-6">
+             
+                <x-progress-card
+                    title="Inventory Status"
+                    :items="$inventoryItems"
+                />
+
+        </div>
+        
     </div>
 </div>
 @endsection
