@@ -8,6 +8,7 @@ export default {
     theme: {
         extend: {
             colors: {
+                
                 'white' : '#FFFFFF',
                 'light-brown': '#854B10',
                 'soft-gray': '#e5e8eb',
@@ -18,6 +19,8 @@ export default {
                 'light-gray': '#F5F2F0',
                 'brown': '#47301f',
                 'soft-brown': '#8F6E56',
+                'cream-brown': '#D3BEAC',
+                'off-white': '#F1ECE7',
 
             },
             fontFamily: {
