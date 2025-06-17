@@ -1,5 +1,3 @@
-{{-- resources/views/components/dashboard-stat-card.blade.php --}}
-
 @props([
     'title',            // e.g., "Active Orders"
     'value',            // e.g., "8", "4,250 kg", "$342,850"
