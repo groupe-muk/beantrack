@@ -10,7 +10,7 @@ use App\Http\Controllers\ChartTestController; // IMPORTANT: Add this use stateme
 Route::get('/sample', [ChartTestController::class, 'showColumnChart'])->name('column.chart');
 
 Route::get('/', function () {
-    return view('welcome');
+    return view('auth.welcome');
 })->name("web");
 
 Route::get('/create',[AuthController::class, 'showcreate'])->name('show.create');
@@ -18,60 +18,9 @@ Route::get('/login',[AuthController::class, 'showlogin'])->name('show.login');
 Route::post('/create',[AuthController::class, 'create'])->name('create');
 Route::post('/login',[AuthController::class, 'login'])->name('login');
 Route::post('/logout',[AuthController::class, 'logout'])->name('logout');
+Route::get('/app', [AuthController::class, 'showApp'])->name('show.app'); //Add middleware to this path
 
 
-
-Route::get('/accordion', function () {
-    return view('accordion');
-})->name('accordion');
-
-Route::get('/carousel', function () {
-    return view('carousel');
-})->name('carousel');
-
-Route::get('/modal', function () {
-    return view('modal');
-})->name('modal');
-
-Route::get('/collapse', function () {
-    return view('collapse');
-})->name('collapse');
-
-Route::get('/dial', function () {
-    return view('dial');
-})->name('dial');
-
-Route::get('/dismiss', function () {
-    return view('dismiss');
-})->name('dismiss');
-
-Route::get('/drawer', function () {
-    return view('drawer');
-})->name('drawer');
-
-Route::get('/dropdown', function () {
-    return view('dropdown');
-})->name('dropdown');
-
-Route::get('/popover', function () {
-    return view('popover');
-})->name('popover');
-
-Route::get('/tooltip', function () {
-    return view('tooltip');
-})->name('tooltip');
-
-Route::get('/input-counter', function () {
-    return view('input-counter');
-})->name('input-counter');
-
-Route::get('/tabs', function () {
-    return view('tabs');
-})->name('tabs');
-
-Route::get('/datepicker', function () {
-    return view('datepicker');
-})->name('datepicker');
 
 Route::view('dashboard', 'dashboard')
     ->middleware(['auth', 'verified'])
@@ -81,13 +30,6 @@ Route::view('dashboard', 'dashboard')
 //     Route::redirect('settings', 'settings/profile');
 
 
-    Route::get('settings/profile', Profile::class)->name('settings.profile');
-    Route::get('settings/password', Password::class)->name('settings.password');
-    Route::get('settings/appearance', Appearance::class)->name('settings.appearance');
-
-Route::get('/', function(){
-    return view('onboarding');
-});
 
 
 require __DIR__.'/auth.php';
