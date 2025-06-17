@@ -10,15 +10,20 @@ Route::get('/', function () {
     return view('welcome');
 })->name("web");
 
-Route::get('/create',[AuthController::class, 'showcreate'])->name('show.create');
-Route::get('/login',[AuthController::class, 'showlogin'])->name('show.login');
-Route::post('/create',[AuthController::class, 'create'])->name('create');
-Route::post('/login',[AuthController::class, 'login'])->name('login');
 Route::post('/logout',[AuthController::class, 'logout'])->name('logout');
+Route::middleware(['guest'])->controller(AuthController::class)->group(function () {
+        
+Route::get('/create', 'showcreate')->name('show.create');
+Route::get('/login', 'showlogin')->name('show.login');
+Route::post('/create', 'create')->name('create');
+Route::post('/login', 'login')->name('login');
+});
 
 
 
-Route::get('/accordion', function () {
+
+route::middleware(['auth'])->group(function () {
+    Route::get('/accordion', function () {
     return view('accordion');
 })->name('accordion');
 
@@ -74,6 +79,8 @@ Route::view('dashboard', 'dashboard')
     ->middleware(['auth', 'verified'])
     ->name('dashboard');
 
+   
+
 // Route::middleware(['auth'])->group(function () {
 //     Route::redirect('settings', 'settings/profile');
 
@@ -83,3 +90,6 @@ Route::view('dashboard', 'dashboard')
 // });
 
 require __DIR__.'/auth.php';
+ });
+
+
