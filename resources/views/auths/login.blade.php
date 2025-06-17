@@ -10,7 +10,7 @@
                 <h1 class = "text-coffee-brown text-3xl font-semibold ml-2">BeanTrack</h1>
             </div>
             <div class = "m-10">
-            <h1 class = "w-full text-left text-5xl mb-5 text-light-brown font-semibold">Login</h1>
+            <h1 class = "w-full text-left text-5xl mt-15 mb-5 text-light-brown font-semibold">Login</h1>
             <p class ="w-full mb-10 text-brown">Log in with the data entered during registration</p>
         <form method="POST" action="{{ route('login') }}" class = "w-full">
         
