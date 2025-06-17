@@ -5,9 +5,11 @@ use App\Livewire\Settings\Appearance;
 use App\Livewire\Settings\Password;
 use App\Livewire\Settings\Profile;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\ChartTestController; // IMPORTANT: Add this use statement
+use App\Http\Controllers\columnChartController;
+use App\Http\Controllers\tableCardController;
 
-Route::get('/sample', [ChartTestController::class, 'showColumnChart'])->name('column.chart');
+Route::get('/sample', [columnChartController::class, 'showColumnChart'])->name('column.chart');
+
 
 Route::get('/', function () {
     return view('auth.welcome');
@@ -18,8 +20,7 @@ Route::get('/login',[AuthController::class, 'showlogin'])->name('show.login');
 Route::post('/create',[AuthController::class, 'create'])->name('create');
 Route::post('/login',[AuthController::class, 'login'])->name('login');
 Route::post('/logout',[AuthController::class, 'logout'])->name('logout');
-Route::get('/app', [AuthController::class, 'showApp'])->name('show.app'); //Add middleware to this path
-
+Route::get('/app', [AuthController::class, 'showApp'])->name('show.app'); 
 
 
 Route::view('dashboard', 'dashboard')
