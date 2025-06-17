@@ -34,6 +34,10 @@ export default {
                 'status-background-blue': '#D8EAFE',
                 'status-text-gray': '#1F2937',
                 'status-background-gray': '#F3F4F6',
+                'progress-bar-green': '#22C55E',
+                'progress-bar-orange': '#F59E08',
+                'progress-bar-red': '#EF4444',
+                'pale-brown': '#EFEBE7',
 
 
             },

@@ -12,11 +12,11 @@ class AuthController extends Controller
 {
    public function showcreate() 
    {
-   return view('auths.create');
+   return view('auth.create');
    }
     public function showlogin() 
     {
-    return view('auths.login');
+    return view('auth.login');
     }
 
     public function showApp() {

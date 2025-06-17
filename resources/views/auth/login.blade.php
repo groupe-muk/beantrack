@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="flex min-h-screen">
+<div class="flex min-h-screen bg-white">
     <img src="{{ asset('/images/Login-page-image.jpg') }}" alt = "coffee" class = "w-1/2 h-full object-cover sticky top-0 left-0" >
         <div class ="w-1/2 flex items-start justify-center">
         <div class="w-full p flex flex-col items-left">
