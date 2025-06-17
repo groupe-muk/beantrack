@@ -30,6 +30,11 @@
     --color-coffee-brown: #4A2924; /*dark brown for some buttons and some button text in light mode*/
     --color-light-gray: #F5F2F0; /*for grey buttons in light mode*/
     --color-brown: #47301f; /*for brown subtext in the light mode*/
+    --color-light-background: #EDECEC; /*  for body background in light mode */
+    --color-dashboard-text-light: #ECE6DF;
+    --color-dashboard-light: #47301F;
+    --color-hover-brown: #5A3D29;
+
 
   
 
@@ -65,7 +70,9 @@
 [data-flux-label] {
     @apply  !mb-0 !leading-tight;
 }
-
+body {
+    @apply bg-light-background;
+}
 input:focus[data-flux-control],
 textarea:focus[data-flux-control],
 select:focus[data-flux-control] {

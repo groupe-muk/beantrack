@@ -83,7 +83,7 @@ Route::view('dashboard', 'dashboard')
     Route::get('settings/appearance', Appearance::class)->name('settings.appearance');
 
 Route::get('/', function(){
-    return view('onboarding');
+    return view('layouts.main-view');
 });
 
 require __DIR__.'/auth.php';

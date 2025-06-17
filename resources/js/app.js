@@ -10,6 +10,31 @@ if (localStorage.getItem('color-theme') === 'dark' || (!('color-theme' in localS
 
 var themeToggleBtn = document.getElementById('theme-toggle');
 
+// Mobile Sidebar Toggle Functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const toggleSidebarMobileEl = document.getElementById('toggleSidebarMobile');
+    const sidebarEl = document.getElementById('sidebar');
+    const toggleSidebarMobileHamburger = document.getElementById('toggleSidebarMobileHamburger');
+    const toggleSidebarMobileClose = document.getElementById('toggleSidebarMobileClose');
+
+    if (toggleSidebarMobileEl) {
+        toggleSidebarMobileEl.addEventListener('click', function() {
+            // Toggle sidebar
+            if (sidebarEl.classList.contains('hidden')) {
+                sidebarEl.classList.remove('hidden');
+                sidebarEl.classList.add('flex');
+            } else {
+                sidebarEl.classList.remove('flex');
+                sidebarEl.classList.add('hidden');
+            }
+
+            // Toggle hamburger/close icons
+            toggleSidebarMobileHamburger.classList.toggle('hidden');
+            toggleSidebarMobileClose.classList.toggle('hidden');
+        });
+    }
+});
+
 themeToggleBtn.addEventListener('click', function() {
 
     // toggle icons inside button
