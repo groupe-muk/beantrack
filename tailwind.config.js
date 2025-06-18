@@ -8,6 +8,7 @@ export default {
     theme: {
         extend: {
             colors: {
+                
                 'white' : '#FFFFFF',
                 'light-brown': '#854B10',
                 'soft-gray': '#e5e8eb',
@@ -18,6 +19,22 @@ export default {
                 'light-gray': '#F5F2F0',
                 'brown': '#47301f',
                 'soft-brown': '#8F6E56',
+                'cream-brown': '#D3BEAC',
+                'off-white': '#F1ECE7',
+                'dashboard-text-light': '#ECE6DF',
+                'dashboard-light': '#47301F',
+                'hover-brown': '#5A3D29',
+                'status-text-red': '#991B1B',
+                'status-background-red': '#FEE2E2',
+                'status-text-green': '#166534',
+                'status-background-green': '#DCFCE7',
+                'status-text-orange': '#92400E',
+                'status-background-orange': '#FEF3C7',
+                'status-text-blue': '#1E40AF',
+                'status-background-blue': '#D8EAFE',
+                'status-text-gray': '#1F2937',
+                'status-background-gray': '#F3F4F6',
+
 
             },
             fontFamily: {
