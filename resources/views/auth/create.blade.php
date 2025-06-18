@@ -1,36 +1,44 @@
 @extends('layouts.app')
     @section('content')
-
+<div class="flex min-h-screen">
+    <img src="{{ asset('/images/Register-page-image.jpg') }}" alt = "coffee" class = "w-1/2 h-full object-cover sticky top-0 left-0" >
+        <div class ="w-1/2 flex items-start justify-center">
+        <div class="w-full  flex flex-col items-left">
+            <div class = "flex items-center justify-end border-b h-17 pr-3">
+                <img src="{{ asset('/images/logo/beantrack-color-logo.png') }}" alt="BeanTrack Logo" class="w-7 h-7">
+                <h1 class = "text-coffee-brown text-3xl font-semibold ml-2">BeanTrack</h1>
+            </div>
         
     <form action = "{{ route('create') }}" method = "POST" >
         @csrf
         <div style="max-width: 400px; margin: 0 auto;">
-            <h2 style="text-align: center; margin-bottom: 1.5rem;">Create  your Account</h2>
+            <h2 class = "w-full text-center text-5xl mb-5 text-light-brown font-semibold">Register</h2>
+            <p class="w-full text-center mb-5 text-brown">provide your name, email and a strong password</p>
     <div style="margin-bottom: 1rem;">
-        <label for="name" style="display: block; margin-bottom: 0.5rem;">Name</label>
-        <input type="text" id="name" name="name" required style="width: 100%; padding: 0.5rem;"  value="{{ old('name') }}">
+        <label for="name" class="w-full text-coffee-brown font-semibold">Full name</label>
+        <input type="text" id="name" name="name" required class="w-full h-10 rounded border-0.5"  value="{{ old('name') }}">
     </div>
     <div style="margin-bottom: 1rem;">
-        <label for="email" style="display: block; margin-bottom: 0.5rem;">Email</label>
-        <input type="email" id="email" name="email" required style="width: 100%; padding: 0.5rem;" value="{{ old('email') }}">
+        <label for="email" class="w-full text-coffee-brown font-semibold">Email</label>
+        <input type="email" id="email" name="email" required class="w-full h-10 rounded border-0.5" value="{{ old('email') }}">
     </div>
     <div style="margin-bottom: 1rem;">
-        <label for="password" style="display: block; margin-bottom: 0.5rem;">Password</label>
-        <input type="password" id="password" name="password" required style="width: 100%; padding: 0.5rem;">
+        <label for="password" class="w-full text-coffee-brown font-semibold">Password</label>
+        <input type="password" id="password" name="password" required class="w-full h-10 rounded border-0.5;">
     </div>
-    <div style="margin-bottom: 1rem;">
-        <label for="password_confirmation" style="display: block; margin-bottom: 0.5rem;">Confirm Password</label>
-        <input type="password" id="password_confirmation" name="password_confirmation" required style="width: 100%; padding: 0.5rem;">
+    <div style="margin-bottom: 2rem;">
+        <label for="password_confirmation" class="w-full text-coffee-brown font-semibold">Confirm Password</label>
+        <input type="password" id="password_confirmation" name="password_confirmation" required class="w-full h-10 rounded border-0.5">
     </div>
-    <button type="submit" style="padding: 0.5rem 1rem;">Create Account</button>
+    <button type="submit" class="w-full font-semibold bg-coffee-brown text-white hover:bg-light-brown rounded p-3">Create account</button>
 
     
 </div>
     </form>
 
-    <div style="text-align: center; margin-top: 1rem;">
-        <a href="{{ route('login') }}" style="margin-right: 1rem;">Already have an account? Login</a>
-        <a href="{{ route('create') }}">Create</a>
+    <div class="w-full p-10  flex justify-center mt-auto  ">
+        <a href="{{ route('login') }}" class="w-full text-center text-brown  ">Already have an account? Login</a>
+       
     </div>
     @if($errors->any())
         <ul class ="px-4 py-2 bg-red-100 ">
@@ -39,4 +47,8 @@
             @endforeach
         </ul>
     @endif
+        </div>
+        </div>
+
+</div>
 @endsection
