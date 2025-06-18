@@ -3,7 +3,26 @@
 use App\Livewire\Settings\Appearance;
 use App\Livewire\Settings\Password;
 use App\Livewire\Settings\Profile;
+use App\Livewire\Onboarding\Wizard;
 use Illuminate\Support\Facades\Route;
+
+// Dashboard routes
+Route::middleware(['auth'])->group(function () {
+    Route::get('/admin/dashboard', function () {
+        return view('admin.dashboard');
+    })->name('admin.dashboard');
+
+    Route::get('/supplier/dashboard', function () {
+        return view('supplier.dashboard');
+    })->name('supplier.dashboard');
+
+    Route::get('/vendor/dashboard', function () {
+        return view('vendor.dashboard');
+    })->name('vendor.dashboard');
+
+    // Onboarding wizard route
+    Route::get('/onboarding', Wizard::class)->name('onboarding');
+});
 
 Route::get('/', function () {
     return view('welcome');
@@ -74,3 +93,7 @@ Route::middleware(['auth'])->group(function () {
 });
 
 require __DIR__.'/auth.php';
+
+
+
+
