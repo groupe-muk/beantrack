@@ -30,7 +30,7 @@
         <label for="password_confirmation" class="w-full text-coffee-brown font-semibold">Confirm Password</label>
         <input type="password" id="password_confirmation" name="password_confirmation" required class="w-full h-10 rounded border-0.5">
     </div>
-    <button type="submit" class="w-full font-semibold bg-coffee-brown text-white  rounded p-3">Create account</button>
+    <button type="submit" class="w-full font-semibold bg-coffee-brown text-white hover:bg-light-brown rounded p-3">Create account</button>
 
     
 </div>

@@ -23,7 +23,7 @@
                 <label for="password" class = "block mb-2 text-coffee-brown font-semibold">Password</label>
                 <input type="password" id="password" name="password" required class = "w-full border-soft-gray rounded border-2 h-12">
             </div>
-            <button type="submit" class = "bg-coffee-brown text-white w-full rounded p-3 font-semibold mt-5">
+            <button type="submit" class = " text-white w-full rounded p-3 font-semibold mt-5 bg-coffee-brown hover:bg-light-brown transition-colors duration-300">
                 Login
             </button>
         </form>

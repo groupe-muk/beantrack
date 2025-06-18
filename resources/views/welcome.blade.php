@@ -10,7 +10,7 @@
         
     
     <div class="absolute top-6 right-8 flex gap-4">
-        <a href="{{ route('show.create') }}" class="btn text-coffee-brown font-semibold hover:text-light-brown">Register</a>
+        <a href="{{ route('show.create') }}" class=" text-coffee-brown font-bold hover:text-light-brown">Register</a>
         <a href="{{ route('show.login') }}" class="btn text-white bg-light-brown px-8 py-1.5 rounded-full hover:bg-coffee-brown font-medium">Login</a>
         @endguest
         @auth
@@ -39,8 +39,8 @@
             <a href="{{ route('show.create') }}" class="text-white bg-coffee-brown font-semibold hover:bg-light-brown px-6 py-2.5 rounded-full">Get Started</a>
         </div>
         
-        <div class="w-1/2 h-screen">
-            <img src="{{ asset('/images/Landing-page-image-3.jpg') }}" alt="coffee" class="w-full h-full object-cover" />
+        <div class="w-1/2 h-screen pt-24">
+            <img src="{{ asset('/images/Welcome-page-image.png') }}" alt="coffee" class="w-full h-full object-cover" />
         </div>
     </div>
 @endsection
