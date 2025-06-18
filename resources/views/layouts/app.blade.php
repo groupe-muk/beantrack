@@ -5,7 +5,8 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="csrf-token" content="{{ csrf_token() }}">
 
-        <title>{{ config('app.name', 'Flowbite and Laravel Starter') }}</title>
+        <title>{{ config('app.name') }}</title>
+        <link rel="icon" href="{{ asset('images/logo/beantrack-color-logo.png') }}" type="image/png">
 
         <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.bunny.net">
@@ -32,7 +33,7 @@
 
         <script src="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
-
+        <script src="https://cdn.jsdelivr.net/npm/simple-datatables@9.0.3"></script>
         @stack('scripts')
     </body>
 </html>

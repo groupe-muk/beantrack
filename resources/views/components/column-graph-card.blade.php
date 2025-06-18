@@ -13,7 +13,7 @@
 
 <div class="bg-white p-6 w-full rounded-2xl shadow-md flex flex-col justify-between h-full {{ $class }}">
    @isset($title)
-        <h5 class="text-xl font-bold leading-none text-gray-900 dark:text-white pb-2">{{ $title }}</h5>
+        <h5 class="text-xl font-bold leading-none text-coffee-brown dark:text-white pb-2">{{ $title }}</h5>
     @endisset
   <div id="{{ $columnChartID }}" class="w-full"></div>
 
@@ -29,7 +29,7 @@
             const creamBrown = getComputedStyle(document.documentElement).getPropertyValue('--color-cream-brown').trim() || '#D3BEAC';
             const warmGray = getComputedStyle(document.documentElement).getPropertyValue('--color-warm-gray').trim() || '#332E2E';
             const offWhite = getComputedStyle(document.documentElement).getPropertyValue('--color-off-white').trim() || '#F1ECE7'; // for grid lines
-            const grayText = isDark ? '#9ca3af' : '#6b7280'; // For axis labels
+            const grayText = getComputedStyle(document.documentElement).getPropertyValue('--color-warm-grey').trim() || '#332E2E';
 
             const options = {
                 series: [{
@@ -115,7 +115,7 @@
                         style: {
                             fontFamily: 'Inter, sans-serif',
                             cssClass: 'text-xs font-normal',
-                            colors: grayText // Consistent text color
+                            colors: grayText
                         }
                     },
                     axisBorder: {

@@ -5,7 +5,8 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="csrf-token" content="{{ csrf_token() }}">
 
-        <title>{{ config('app.name', 'Flowbite and Laravel Starter') }}</title>
+        <title>{{ config('app.name') }}</title>
+        <link rel="icon" href="{{ asset('images/logo/beantrack-color-logo.png') }}" type="image/png">
 
        <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600" rel="stylesheet" />
@@ -56,43 +57,53 @@
     <!-- Features Section -->
     <section class="px-8 py-10 grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
         <!-- Admin Card -->
-       <a href="#"> <!--handle routing here-->
-       <div class="  cursor-pointer transition hover:scale-110 bg-white shadow rounded-lg overflow-hidden text-center">
-            <img src="/images/landing-page-image-1.jpg" alt="Admin" class="w-full h-48 object-cover"> <!-- Replace path -->
-            <div class="p-4">
-                <h3 class="font-semibold text-lg">Admin</h3>
-                <p class="text-sm text-gray-600 mt-2">Manage users, roles, and system settings.</p>
-            </div>
-        </div>
-        </a>
+        <form action="{{ route('role.select') }}" method="POST">
+            @csrf
+            <input type="hidden" name="role" value="admin">
+            <button type="submit" class="w-full">
+                <div class="cursor-pointer transition hover:scale-110 bg-white shadow rounded-lg overflow-hidden text-center">
+                    <img src="/images/landing-page-image-1.jpg" alt="Admin" class="w-full h-48 object-cover">
+                    <div class="p-4">
+                        <h3 class="font-semibold text-lg">Admin</h3>
+                        <p class="text-sm text-gray-600 mt-2">Manage users, roles, and system settings.</p>
+                    </div>
+                </div>
+            </button>
+        </form>
 
         <!-- Supplier Card -->
-        <a href="#"> <!--handle routing here-->
-        <div class="cursor-pointer transition hover:scale-110 shadow rounded-lg overflow-hidden text-center ">
-            <img src="/images/landing-page-image-2.jpg" alt="Supplier" class="w-full h-48 object-cover"> <!-- Replace path -->
-            <div class="p-4">
-                <h3 class="font-semibold text-lg">Supplier</h3>
-                <p class="text-sm text-gray-600 mt-2">Track bean shipments, update inventory, and manage orders.</p>
-            </div>
-        </div>
-        </a>
+        <form action="{{ route('role.select') }}" method="POST">
+            @csrf
+            <input type="hidden" name="role" value="supplier">
+            <button type="submit" class="w-full">
+                <div class="cursor-pointer transition hover:scale-110 bg-white shadow rounded-lg overflow-hidden text-center">
+                    <img src="/images/landing-page-image-2.jpg" alt="Supplier" class="w-full h-48 object-cover">
+                    <div class="p-4">
+                        <h3 class="font-semibold text-lg">Supplier</h3>
+                        <p class="text-sm text-gray-600 mt-2">Track bean shipments, update inventory, and manage orders.</p>
+                    </div>
+                </div>
+            </button>
+        </form>
 
         <!-- Vendor Card -->
-        <a href="#"> <!--handle routing here-->
-        <div class=" cursor-pointer transition hover:scale-110 bg-white shadow rounded-lg overflow-hidden text-center">
-            <img src="/images/landing-page-image-3.jpg" alt="Vendor" class="w-full h-48 object-cover"> <!-- Replace path -->
-            <div class="p-4">
-                <h3 class="font-semibold text-lg">Vendor</h3>
-                <p class="text-sm text-gray-600 mt-2">View inventory, place orders, and track deliveries.</p>
-            </div>
-        </div>
-        </a>
+        <form action="{{ route('role.select') }}" method="POST">
+            @csrf
+            <input type="hidden" name="role" value="vendor">
+            <button type="submit" class="w-full">
+                <div class="cursor-pointer transition hover:scale-110 bg-white shadow rounded-lg overflow-hidden text-center">
+                    <img src="/images/landing-page-image-3.jpg" alt="Vendor" class="w-full h-48 object-cover">
+                    <div class="p-4">
+                        <h3 class="font-semibold text-lg">Vendor</h3>
+                        <p class="text-sm text-gray-600 mt-2">View inventory, place orders, and track deliveries.</p>
+                    </div>
+                </div>
+            </button>
+        </form>
     </section>
 
-
-
-        <script src="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.js"></script>
 
  </body>
- </html>   
+ </html>
 

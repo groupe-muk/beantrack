@@ -31,13 +31,26 @@
     --color-light-gray: #F5F2F0; /*for grey buttons in light mode*/
     --color-brown: #47301f; /*for brown subtext in the light mode*/
     --color-soft-brown: #8F6E56; /*for icons and card headings*/
-    --color-cream-brown: #D3BEAC; /*for column graph bars*/    --color-light-background: #EDECEC; /*  for body background in light mode */
+    --color-cream-brown: #D3BEAC; /*for column graph bars*/    
+    --color-light-background: #EDECEC; /*  for body background in light mode */
+    --color-pale-brown: #EFEBE7; /*for some card item backgrounds*/
     --color-dashboard-text-light: #ECE6DF;
     --color-dashboard-light: #47301F;
     --color-hover-brown: #5A3D29;
-
-
     --color-off-white: #F1ECE7; /*for grid lines on graphs*/
+    --color-status-text-red: #991B1B;
+    --color-status-background-red: #FEE2E2;
+    --color-status-text-green: #166534;
+    --color-status-background-green: #DCFCE7;
+    --color-status-text-orange: #92400E;
+    --color-status-background-orange: #FEF3C7;
+    --color-status-text-blue: #1E40AF;
+    --color-status-background-blue: #D8EAFE;
+    --color-status-text-gray: #1F2937;
+    --color-status-background-gray: #F3F4F6;
+    --color-progress-bar-green: #22C55E;
+    --color-progress-bar-orange: #F59E08;
+    --color-progress-bar-red: #EF4444;
 
 }
 
