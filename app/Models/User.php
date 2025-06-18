@@ -11,7 +11,11 @@ class User extends Authenticatable
     use HasFactory;
 
     protected $fillable = [
-        'name', 'email', 'email_verified_at', 'password', 'remember_token', 'created_at', 'updated_at'
+        'id', 'name', 'email', 'email_verified_at', 'password', 'role', 'phone', 'remember_token', 'created_at', 'updated_at'
+    ];
+    
+    protected $hidden = [
+        'password', 'remember_token',
     ];
 
     public function supplier()
@@ -41,5 +45,34 @@ class User extends Authenticatable
     public function vendorApplications()
     {
         return $this->hasMany(VendorApplication::class, 'applicant_id');
+    }
+    
+    public function isAdmin()
+    {
+        return $this->role === 'admin';
+    }
+    
+    public function isSupplier()
+    {
+        return $this->role === 'supplier';
+    }
+    
+    public function isVendor()
+    {
+        return $this->role === 'vendor';
+    }
+    
+    public function getDashboardRoute()
+    {
+        switch ($this->role) {
+            case 'admin':
+                return 'admin.dashboard';
+            case 'supplier':
+                return 'supplier.dashboard';
+            case 'vendor':
+                return 'vendor.dashboard';
+            default:
+                return 'dashboard';
+        }
     }
 }
