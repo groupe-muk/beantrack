@@ -11,19 +11,37 @@ use App\Http\Controllers\tableCardController;
 Route::get('/sample', [columnChartController::class, 'showColumnChart'])->name('column.chart');
 
 
-Route::get('/', function () {
-    return view('auth.welcome');
-})->name("web");
+// Onboarding route - entry point
+Route::get('/', [AuthController::class, 'showOnboarding'])->name('onboarding');
 
-Route::post('/logout',[AuthController::class, 'logout'])->name('logout');
-Route::get('/app', [AuthController::class, 'showApp'])->name('show.app'); 
+// Role selection from onboarding page
+Route::post('/role-select', [AuthController::class, 'roleSelection'])->name('role.select');
 
+// Authentication routes for guests
 Route::middleware(['guest'])->controller(AuthController::class)->group(function () {
-        
-Route::get('/create', 'showcreate')->name('show.create');
-Route::get('/login', 'showlogin')->name('show.login');
-Route::post('/create', 'create')->name('create');
-Route::post('/login', 'login')->name('login');
+    Route::get('/create', 'showcreate')->name('show.create');
+    Route::get('/login', 'showlogin')->name('show.login');
+    Route::post('/create', 'create')->name('create');
+    Route::post('/login', 'login')->name('login');
+});
+
+// Routes for authenticated users
+Route::middleware(['auth'])->group(function () {
+    Route::post('/logout',[AuthController::class, 'logout'])->name('logout');
+    Route::get('/dashboard', [AuthController::class, 'showApp'])->name('dashboard');
+    
+    // Role-specific routes
+    Route::middleware(['role:admin'])->group(function () {
+        // Admin routes
+    });
+    
+    Route::middleware(['role:supplier'])->group(function () {
+        // Supplier routes
+    });
+    
+    Route::middleware(['role:vendor'])->group(function () {
+        // Vendor routes
+    });
 });
 
 
