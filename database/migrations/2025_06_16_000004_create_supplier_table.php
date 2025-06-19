@@ -15,7 +15,7 @@ return new class extends Migration
             $table->string('supply_center_id', 7);
             $table->string('name', 255);
             $table->string('contact_person', 100);
-            $table->string('email', 255)->unique();
+            $table->string('email', 191)->unique();
             $table->string('phone', 20);
             $table->string('address', 255);
             $table->string('registration_number', 50)->unique();

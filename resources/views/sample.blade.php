@@ -13,7 +13,7 @@
                     unit="kgs"
                     changeText="5.2% from last period"
                     changeIconClass="fa-arrow-up"
-                />
+                />             
             </div>
         </div>
 
@@ -46,13 +46,40 @@
         
         <div class="space-y-6">
              
-                <x-progress-card
-                    title="Inventory Status"
-                    :items="$inventoryItems"
-                />
+        <x-progress-card
+            title="Inventory Status"
+            :items="$inventoryItems"
+        />
 
         </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <x-orders-card
+                title="Pending Orders"
+                :orders="$pendingOrders"
+                class="min-h-[300px]" 
+            />
+        </div>
+
+        <x-ml-prediction-graph-card
+            title="ML Predictions"
+            chart-title="Demand Forecast"
+            prediction-chart-i-d="mlPredictionsChart"
+            :chart-data="$mlPredictionData"
+            :chart-categories="$mlPredictionCategories"
+            :description="$mlPredictionDescription"
+            class="h-[600px]" {{-- Adjust height as needed for visual balance --}}
+        />
+
+        <x-line-graph-card
         
+            title="Quality Score"
+            line-chart-i-d="lineChart"
+            :chart-data="$lineChartData"
+            :chart-categories="$lineChartCategories"
+
+        />
+
     </div>
 </div>
 @endsection

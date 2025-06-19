@@ -57,13 +57,13 @@ class AuthController extends Controller
         return view('auth.login', ['role' => $role]);
     }
 
-    public function showApp() {
+    /*public function showApp() {
         if (!Auth::check()) {
             return redirect()->route('onboarding');
         }
         
         return view('dashboard');
-    }
+    }*/
     
     public function create(Request $request) {
         $validated = $request->validate([

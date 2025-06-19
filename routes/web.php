@@ -1,12 +1,12 @@
 <?php
 
+use App\Http\Controllers\dashboardController;
 use App\Http\Controllers\AuthController;
 use App\Livewire\Settings\Appearance;
 use App\Livewire\Settings\Password;
 use App\Livewire\Settings\Profile;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\columnChartController;
-use App\Http\Controllers\tableCardController;
 
 Route::get('/sample', [columnChartController::class, 'showColumnChart'])->name('column.chart');
 
@@ -28,7 +28,9 @@ Route::middleware(['guest'])->controller(AuthController::class)->group(function 
 // Routes for authenticated users
 Route::middleware(['auth'])->group(function () {
     Route::post('/logout',[AuthController::class, 'logout'])->name('logout');
-    Route::get('/dashboard', [AuthController::class, 'showApp'])->name('dashboard');
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+    /*Route::get('/dashboard', [AuthController::class, 'showApp'])->name('dashboard');*/
     
     // Role-specific routes
     Route::middleware(['role:admin'])->group(function () {
@@ -46,9 +48,9 @@ Route::middleware(['auth'])->group(function () {
 
 
 
-Route::view('dashboard', 'dashboard')
+/*Route::view('dashboard', 'dashboard')
     ->middleware(['auth', 'verified'])
-    ->name('dashboard');
+    ->name('dashboard');*/
 
 // Route::middleware(['auth'])->group(function () {
 //     Route::redirect('settings', 'settings/profile');
