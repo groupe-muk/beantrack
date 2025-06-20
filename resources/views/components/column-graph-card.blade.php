@@ -13,9 +13,9 @@
 
 <div class="bg-white p-6 w-full rounded-2xl shadow-md flex flex-col justify-between h-full {{ $class }}">
    @isset($title)
-        <h5 class="text-xl font-bold leading-none text-coffee-brown dark:text-white pb-2">{{ $title }}</h5>
+        <h5 class="text-xl font-bold leading-none text-coffee-brown dark:text-white pb-15">{{ $title }}</h5>
     @endisset
-  <div id="{{ $columnChartID }}" class="w-full"></div>
+  <div id="{{ $columnChartID }}" class="w-full h-full"></div>
 
 {{-- JavaScript for the Chart --}}
 @push('scripts')
@@ -29,7 +29,7 @@
             const creamBrown = getComputedStyle(document.documentElement).getPropertyValue('--color-cream-brown').trim() || '#D3BEAC';
             const warmGray = getComputedStyle(document.documentElement).getPropertyValue('--color-warm-gray').trim() || '#332E2E';
             const offWhite = getComputedStyle(document.documentElement).getPropertyValue('--color-off-white').trim() || '#F1ECE7'; // for grid lines
-            const grayText = getComputedStyle(document.documentElement).getPropertyValue('--color-warm-grey').trim() || '#332E2E';
+            const grayText = getComputedStyle(document.documentElement).getPropertyValue('--color-warm-gray').trim() || '#332E2E';
 
             const options = {
                 series: [{
@@ -78,8 +78,7 @@
                     width: 2,
                     colors: ['transparent']
                 },
-                // Define two distinct colors for the two series
-                colors: [isDark ? softBrown : creamBrown, isDark ? creamBrown : softBrown], // Swapped colors for dark/light mode example
+                colors: [isDark ? creamBrown : softBrown , isDark ? softBrown : creamBrown], // Swapped colors for dark/light mode example
                 grid: {
                     show: true,
                     strokeDashArray: 4,
@@ -146,7 +145,7 @@
                 legend: {
                     show: true, // Show legend to distinguish between two series
                     position: 'top',
-                    horizontalAlign: 'right',
+                    horizontalAlign: 'center',
                     labels: {
                         colors: grayText // Legend label colors
                     }
