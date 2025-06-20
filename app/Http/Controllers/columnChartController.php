@@ -48,7 +48,69 @@ class columnChartController extends Controller
             ],
         ];
 
-        return view('sample', compact('salesData', 'salesData2', 'salesCategories', 'productsTableHeaders', 'productsTableData', 'inventoryItems'));
+        $pendingOrders = [
+            [
+                'name' => 'Coffee House Roasters',
+                'order_id' => 'CMD-1842',
+                'quantity' => 200,
+                'date' => '2025-05-28',
+                'productName' => 'Arabica Grade A',
+            ],
+            [
+                'name' => 'Bean & Brew Inc.',
+                'order_id' => 'ES-903',
+                'quantity' => 180,
+                'date' => '2025-06-03',
+                'productName' => 'Arabica Medium Roast',
+            ],
+            [
+                'name' => 'Fresh Roast Co.',
+                'order_id' => 'FRC-777',
+                'quantity' => 500,
+                'date' => '2025-06-15',
+                'productName' => 'Robusta Grade A',
+            ],
+        ];
+
+             $mlPredictionData = [
+            [
+                'name' => 'Actual',
+                'data' => [50, 55, 60, 58, 65, 70, 68, 75, 80, 82, 85, 90]
+            ],
+            [
+                'name' => 'Predicted',
+                'data' => [20, 25, 28, 35, 30, 45, 50, 60, 70, 65, 75, 80]
+            ],
+            
+            [
+                'name' => 'Optimisstic',
+                'data' => [30, 40, 35, 50, 49, 60, 70, 91, 125, 100, 110, 130]
+            ]      
+        ];
+
+        $mlPredictionCategories = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        $mlPredictionDescription = 'Weight: ML predictions in 000 tonnes to assist optimal resource allocation. Forecasts generated using historical data and market indicators.';
+
+        $lineChartData = [
+        [
+            'name' => 'Arabica',
+            'data' => [50, 55, 60, 58, 65, 70]
+        ],
+        [
+            'name' => 'Robusta',
+            'data' => [20, 25, 28, 35, 30, 45]
+        ],
+            
+        [
+            'name' => 'Excella',
+            'data' => [30, 40, 35, 50, 49, 60]
+        ]      
+        ];
+        
+        $lineChartCategories = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'];
+
+        return view('sample', compact('salesData', 'salesData2', 'salesCategories', 'productsTableHeaders', 'productsTableData', 'inventoryItems', 'pendingOrders', 'mlPredictionData', 'mlPredictionCategories', 'mlPredictionDescription', 'lineChartData', 'lineChartCategories' ));
+        
     }
 
     
