@@ -1,8 +1,9 @@
 @extends('layouts.main-view') 
 
 @section('content')
-<div class="p-4 bg-light-background dark:bg-dark-background min-h-screen">
-    <h1 class="text-2xl font-semibold text-coffee-brown dark:text-off-white mb-6">User Management</h1>
+<div class="p-7 bg-light-background dark:bg-dark-background min-h-screen">
+    <h1 class="text-3xl font-semibold text-coffee-brown dark:text-off-white mb-6">User Management</h1>
+    <p class="text-soft-brown pb-10">Manage all users across your chain supply</p>
 
     @if (session('success'))
         <div class="bg-status-background-green border border-progress-bar-green text-status-text-green px-4 py-3 rounded relative mb-4" role="alert">
@@ -46,7 +47,7 @@
         </div>
 
         <div class="overflow-x-auto border-2 rounded-2xl p-4">
-            <table id="user-table" class="min-w-full leading-normal">
+            <table id="search-table" class="min-w-full leading-normal">
                 <thead>
                     <tr>
                         <th class="px-5 py-5 border-b-2 border-soft-gray dark:border-mild-gray bg-transparent dark:bg-dark-background text-left text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider rounded-tl-lg">
@@ -223,7 +224,14 @@
 
 @push('scripts')
 <script>
-document.addEventListener('DOMContentLoaded', function () {
+    if (document.getElementById("search-table") && typeof simpleDatatables.DataTable !== 'undefined') {
+    const dataTable = new simpleDatatables.DataTable("#search-table", {
+        searchable: true,
+        sortable: false
+    });
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
     console.log("User management script initialized.");
 
     // --- Essential Modal and Form Elements ---
