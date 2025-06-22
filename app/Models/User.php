@@ -61,6 +61,11 @@ class User extends Authenticatable
     {
         return $this->role === 'vendor';
     }
+
+    public function checkRole(string $role): bool
+    {
+        return $this->role === $role;
+    }
     
     public function getDashboardRoute()
     {

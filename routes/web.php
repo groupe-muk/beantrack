@@ -7,6 +7,7 @@ use App\Livewire\Settings\Password;
 use App\Livewire\Settings\Profile;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\columnChartController;
+use App\Http\Controllers\userManagerController;
 
 Route::get('/sample', [columnChartController::class, 'showColumnChart'])->name('column.chart');
 
@@ -34,7 +35,11 @@ Route::middleware(['auth'])->group(function () {
     
     // Role-specific routes
     Route::middleware(['role:admin'])->group(function () {
-        // Admin routes
+        //User management routes
+        Route::get('admin/users', [userManagerController::class, 'index'])->name('admin.users.index');
+        Route::post('admin/users', [userManagerController::class, 'store'])->name('admin.users.store');
+        Route::patch('admin/users/{user}', [userManagerController::class, 'update'])->name('admin.users.update');
+        Route::delete('admin/users/{user}', [userManagerController::class, 'destroy'])->name('admin.users.destroy');
     });
     
     Route::middleware(['role:supplier'])->group(function () {
