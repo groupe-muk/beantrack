@@ -20,6 +20,7 @@ use Illuminate\Http\Request;
 use App\Http\Controllers\tableCardController;
 use App\Http\Controllers\OrderController;
 
+use App\Http\Controllers\InventoryController;
 
 Route::get('/sample', [columnChartController::class, 'showColumnChart'])->name('column.chart');
 
@@ -116,3 +117,8 @@ Route::middleware(['auth'])->group(function () {
 
 
 require __DIR__.'/auth.php';
+Route::get('/inventory',function(){
+    return view('Inventory.inventory');
+});
+
+
