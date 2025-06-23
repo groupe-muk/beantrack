@@ -27,3 +27,27 @@ return new class extends Migration {
         DB::unprepared('DROP TRIGGER IF EXISTS before_users_insert');
     }
 };
+
+class CreateInventoriesTable extends Migration
+{
+    public function up()
+    {
+        Schema::create('inventories', function (Blueprint $table) {
+            $table->id();
+            $table->string('sku')->unique();
+            $table->string('name');
+            $table->string('category');
+            $table->integer('quantity');
+            $table->decimal('unit_price', 10, 2);
+            $table->string('location');
+            $table->string('status');
+            $table->string('supplier');
+            $table->timestamps();
+        });
+    }
+
+    public function down()
+    {
+        Schema::dropIfExists('inventories');
+    }
+}
