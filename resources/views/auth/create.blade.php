@@ -1,6 +1,6 @@
 @extends('layouts.app')
     @section('content')
-<div class="flex min-h-screen">
+<div class="flex min-h-screen bg-white">
     <img src="{{ asset('/images/Register-page-image.jpg') }}" alt = "coffee" class = "w-1/2 h-full object-cover sticky top-0 left-0" >
         <div class ="w-1/2 flex items-start justify-center">
         <div class="w-full  flex flex-col items-left">
@@ -12,8 +12,15 @@
     <form action = "{{ route('create') }}" method = "POST" >
         @csrf
         <div style="max-width: 400px; margin: 0 auto;">
-            <h2 class = "w-full text-center text-5xl mb-5 text-light-brown font-semibold">Register</h2>
-            <p class="w-full text-center mb-5 text-brown">provide your name, email and a strong password</p>
+            <h2 class = "w-full text-center text-5xl mb-5 text-light-brown font-semibold mt-5">Register</h2>
+            <p class="w-full text-center mb-5 text-brown">Provide your name, email and a strong password</p>
+    
+    <div class="mb-5">
+        <h2 class="text-xl font-semibold text-coffee-brown mb-2">Account Type: {{ ucfirst($role ?? 'admin') }}</h2>
+        <p class="text-sm text-brown">Creating a new {{ ucfirst($role ?? 'admin') }} account</p>
+    </div>
+    <input type="hidden" name="role" value="{{ $role ?? 'admin' }}">
+    
     <div style="margin-bottom: 1rem;">
         <label for="name" class="w-full text-coffee-brown font-semibold">Full name</label>
         <input type="text" id="name" name="name" required class="w-full h-10 rounded border-0.5"  value="{{ old('name') }}">

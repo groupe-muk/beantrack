@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="flex min-h-screen">
+<div class="flex min-h-screen bg-white">
     <img src="{{ asset('/images/Login-page-image.jpg') }}" alt = "coffee" class = "w-1/2 h-full object-cover sticky top-0 left-0" >
         <div class ="w-1/2 flex items-start justify-center">
         <div class="w-full p flex flex-col items-left">
@@ -15,9 +15,14 @@
         <form method="POST" action="{{ route('login') }}" class = "w-full">
         
           @csrf
+            <input type="hidden" name="role" value="{{ $role ?? 'admin' }}">
+            <div class="mb-5">
+                <h2 class="text-xl font-semibold text-coffee-brown mb-2">Account Type: {{ ucfirst($role ?? 'admin') }}</h2>
+                <p class="text-sm text-brown">Logging in as {{ ucfirst($role ?? 'admin') }}</p>
+            </div>
             <div style="margin-bottom: 1.5rem;">
                 <label for="email" class= "block mb-2 text-coffee-brown font-semibold">Email</label>
-                <input type="email" id="email" name="email" required value="{{ old('email') }}" value="{{ old('email') }}" class = "w-full border-soft-gray rounded border-2 h-12">
+                <input type="email" id="email" name="email" required value="{{ old('email') }}" class = "w-full border-soft-gray rounded border-2 h-12">
             </div>
             <div style="margin-bottom: 1.5rem;">
                 <label for="password" class = "block mb-2 text-coffee-brown font-semibold">Password</label>

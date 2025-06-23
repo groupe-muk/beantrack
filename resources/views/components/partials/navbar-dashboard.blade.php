@@ -95,6 +95,45 @@
                 </div>
             </a>
           </div>
+          
+          <!-- User Menu -->
+          <div class="flex items-center ml-3">
+            <div>
+              <button type="button" class="flex text-sm bg-gray-100 rounded-full focus:ring-4 focus:ring-gray-300 dark:focus:ring-gray-600" id="user-menu-button-2" aria-expanded="false" data-dropdown-toggle="dropdown-2">
+                <span class="sr-only">Open user menu</span>
+                <div class="relative w-8 h-8 rounded-full bg-brown">
+                    <span class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-white font-semibold">
+                        {{ Auth::check() ? substr(Auth::user()->name, 0, 1) : 'G' }}
+                    </span>
+                </div>
+              </button>
+            </div>
+            <!-- Dropdown menu -->
+            <div class="z-50 hidden my-4 text-base list-none bg-white divide-y divide-gray-100 rounded shadow dark:bg-gray-700 dark:divide-gray-600" id="dropdown-2">
+              <div class="px-4 py-3" role="none">
+                <p class="text-sm text-gray-900 dark:text-white" role="none">
+                  {{ Auth::check() ? Auth::user()->name : 'Guest' }}
+                </p>
+                <p class="text-sm font-medium text-gray-900 truncate dark:text-gray-300" role="none">
+                  {{ Auth::check() ? Auth::user()->email : 'guest@example.com' }}
+                </p>
+                <p class="text-sm font-medium text-coffee-brown" role="none">
+                  {{ Auth::check() ? ucfirst(Auth::user()->role) : 'Guest' }}
+                </p>
+              </div>
+              <ul class="py-1" role="none">
+                <li>
+                  <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-600 dark:hover:text-white" role="menuitem">Settings</a>
+                </li>
+                <li>
+                  <form method="POST" action="{{ route('logout') }}">
+                    @csrf
+                    <button type="submit" class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-600 dark:hover:text-white" role="menuitem">Sign out</button>
+                  </form>
+                </li>
+              </ul>
+            </div>
+          </div>
           <!-- Apps -->
           <button type="button" data-dropdown-toggle="apps-dropdown" class="hidden p-2 text-dashboard-text-light rounded-lg sm:flex hover:text-dashboard-text-light hover:bg-light-brown dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-700">
             <span class="sr-only">View notifications</span>

@@ -11,7 +11,7 @@
     'class' => '',      // Additional classes for the card wrapper
 ])
 
-<div class="bg-white p-6 w-97 rounded-2xl shadow-md flex flex-col justify-between h-full {{ $class }}">
+<div class="bg-white p-6 w-full rounded-2xl shadow-md flex flex-col justify-between h-full {{ $class }}">
     {{-- Top Row: Title and Icon --}}
     <div class="flex justify-between items-center mb-4">
         <h4 class="text-sm font-semibold text-soft-brown">{{ $title }}</h4>
