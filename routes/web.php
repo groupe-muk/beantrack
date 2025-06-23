@@ -10,7 +10,7 @@ use App\Livewire\Settings\Profile;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\columnChartController;
 
-
+use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\userManagerController;
 
 use App\Http\Controllers\PusherController;
@@ -116,3 +116,12 @@ Route::middleware(['auth'])->group(function () {
 
 
 require __DIR__.'/auth.php';
+
+ 
+
+//inventory routes
+Route::get('/inventory',function(){
+    return view('Inventory.inventory');
+});
+
+
