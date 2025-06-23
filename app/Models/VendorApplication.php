@@ -9,8 +9,10 @@ class VendorApplication extends Model
 {
     use HasFactory;
     protected $table = 'vendor_applications';
+    protected $keyType = 'string';
+    public $incrementing = false;
     protected $fillable = [
-        'applicant_id', 'financial_data', 'references', 'license_data', 'status', 'visit_scheduled', 'created_at', 'updated_at'
+        'id', 'applicant_id', 'financial_data', 'references', 'license_data', 'status', 'visit_scheduled', 'created_at', 'updated_at'
     ];
 
     public function applicant()

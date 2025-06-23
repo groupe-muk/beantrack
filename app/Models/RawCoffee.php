@@ -10,8 +10,10 @@ class RawCoffee extends Model
     use HasFactory;
 
     protected $table = 'raw_coffee';
+    protected $keyType = 'string';
+    public $incrementing = false;
     protected $fillable = [
-        'supplier_id', 'coffee_type', 'grade', 'screen_size', 'defect_count', 'harvest_date', 'created_at', 'updated_at'
+        'id', 'supplier_id', 'coffee_type', 'grade', 'screen_size', 'defect_count', 'harvest_date', 'created_at', 'updated_at'
     ];
 
     public function supplier()

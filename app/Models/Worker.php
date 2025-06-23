@@ -10,8 +10,10 @@ class Worker extends Model
     use HasFactory;
 
     protected $table = 'workers';
+    protected $keyType = 'string';
+    public $incrementing = false;
     protected $fillable = [
-        'name', 'role', 'email', 'phone', 'address', 'created_at', 'updated_at'
+        'id', 'name', 'role', 'email', 'phone', 'address', 'created_at', 'updated_at'
     ];
 
     public function workforceAssignments()

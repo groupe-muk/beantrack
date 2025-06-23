@@ -11,7 +11,9 @@ class AnalyticsData extends Model
         use HasFactory;
 
     protected $table = 'analytics_data';
+    protected $keyType = 'string';
+    public $incrementing = false;
     protected $fillable = [
-        'type', 'data', 'generated_at', 'created_at', 'updated_at'
+        'id', 'type', 'data', 'generated_at', 'created_at', 'updated_at'
     ];
 }

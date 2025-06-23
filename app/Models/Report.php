@@ -9,8 +9,10 @@ class Report extends Model
 {
     use HasFactory;
     protected $table = 'reports';
+    protected $keyType = 'string';
+    public $incrementing = false;
     protected $fillable = [
-        'type', 'recipient_id', 'frequency', 'content', 'last_sent', 'created_at', 'updated_at'
+        'id', 'type', 'recipient_id', 'frequency', 'content', 'last_sent', 'created_at', 'updated_at'
     ];
 
     public function recipient()
