@@ -7,6 +7,7 @@ use App\Livewire\Settings\Profile;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\columnChartController;
 use App\Http\Controllers\tableCardController;
+use App\Http\Controllers\OrderController;
 
 Route::get('/sample', [columnChartController::class, 'showColumnChart'])->name('column.chart');
 
@@ -31,32 +32,25 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard', [AuthController::class, 'showApp'])->name('dashboard');
     
     // Role-specific routes
-    Route::middleware(['role:admin'])->group(function () {
+    Route::middleware(['checkrole:admin'])->group(function () {
         // Admin routes
+        Route::prefix('orders')->name('orders.')->group(function () {
+            Route::get('/', [OrderController::class, 'index'])->name('index');
+            Route::get('/create', [OrderController::class, 'create'])->name('create');
+            Route::post('/', [OrderController::class, 'store'])->name('store');
+            Route::get('/{order}', [OrderController::class, 'show'])->name('show');
+            Route::put('/{order}/status', [OrderController::class, 'updateStatus'])->name('update-status');
+            Route::get('/api/stats', [OrderController::class, 'getOrderStats'])->name('api.stats');
+        });
     });
     
-    Route::middleware(['role:supplier'])->group(function () {
+    Route::middleware(['checkrole:supplier'])->group(function () {
         // Supplier routes
     });
     
-    Route::middleware(['role:vendor'])->group(function () {
+    Route::middleware(['checkrole:vendor'])->group(function () {
         // Vendor routes
     });
 });
 
-
-
-Route::view('dashboard', 'dashboard')
-    ->middleware(['auth', 'verified'])
-    ->name('dashboard');
-
-// Route::middleware(['auth'])->group(function () {
-//     Route::redirect('settings', 'settings/profile');
-
-
-
-
 require __DIR__.'/auth.php';
- 
-
-
