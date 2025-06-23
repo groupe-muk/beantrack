@@ -7,6 +7,7 @@ use App\Livewire\Settings\Profile;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\columnChartController;
 use App\Http\Controllers\tableCardController;
+use App\Http\Controllers\SupplyCentersController;
 
 Route::get('/sample', [columnChartController::class, 'showColumnChart'])->name('column.chart');
 
@@ -26,6 +27,21 @@ Route::post('/create', 'create')->name('create');
 Route::post('/login', 'login')->name('login');
 });
 
+
+
+
+Route::get('/SupplyCenters', function () {
+    return view('SupplyCenters.SupplyCenters');
+})->name('SupplyCenters');
+Route::get('/SupplyCenter1', [SupplyCentersController::class,  'shownSupplyCenter1'])->name('show.SupplyCenter1'); 
+Route::get('/SupplyCenter2', [SupplyCentersController::class, 'shownSupplyCenter2'])->name('show.SupplyCenter2'); 
+Route::get('/SupplyCenter3', [SupplyCentersController::class, 'shownSupplyCenter3'])->name('show.SupplyCenter3'); 
+
+
+
+//Route::post('/warehouseA', [WarehouseController::class, 'warehouseA'])->name('warehouseA');
+//Route::post('/workers/{worker}/transfer', [WarehouseController::class, 'transfer'])->name('workers.transfer');
+//Route::delete('/workers/{worker}', [WarehouseController::class, 'destroy'])->name('workers.destroy');
 
 
 Route::view('dashboard', 'dashboard')
