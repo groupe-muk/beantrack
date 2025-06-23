@@ -47,6 +47,8 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/chat', [ChatController::class, 'index'])->name('chat.index');
     Route::get('/chat/{userId}', [ChatController::class, 'chatRoom'])->name('chat.room');
     Route::post('/chat/send',[ChatController::class, 'send'])->name('chat.send');
+    // Chat Test Route
+    Route::match(['get', 'post'], '/chat/test/send', [App\Http\Controllers\ChatTestController::class, 'testSend'])->name('chat.test');
     Route::post('/chat/receive', function (Request $request) {
         // Since we're expecting JSON data
         $message = $request->input('message');

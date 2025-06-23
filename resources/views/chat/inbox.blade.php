@@ -45,9 +45,8 @@
     <div id="tab-content">
         <!-- Suppliers Tab -->
         <div class="p-4 rounded-lg bg-gray-50 dark:bg-gray-800 tab-content active" id="suppliers-tab-content">
-            <div class="grid gap-4">
-                @foreach($suppliers as $supplier)
-                <a href="{{ route('chat.room', $supplier->id) }}" class="block">
+            <div class="grid gap-4">                @foreach($suppliers as $supplier)
+                <a href="{{ route('chat.room', $supplier->user ? $supplier->user->id : $supplier->id) }}" class="block">
                     <div class="flex items-center p-3 bg-white rounded-lg shadow-sm hover:bg-gray-50 transition-all">
                         <div class="relative">
                             <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-semibold text-lg">
@@ -57,7 +56,7 @@
                         </div>
                         <div class="ml-4">
                             <h3 class="text-md font-semibold">{{ $supplier->name }}</h3>
-                            <p class="text-sm text-gray-500">{{ $supplier->email }}</p>
+                            <p class="text-sm text-gray-500">{{ $supplier->email ?? ($supplier->user ? $supplier->user->email : 'No email') }}</p>
                             @php
                                 $lastMessage = $recentMessages->firstWhere('contact_id', $supplier->id);
                             @endphp
@@ -81,9 +80,8 @@
         
         <!-- Vendors Tab -->
         <div class="p-4 rounded-lg bg-gray-50 dark:bg-gray-800 tab-content hidden" id="vendors-tab-content">
-            <div class="grid gap-4">
-                @foreach($vendors as $vendor)
-                <a href="{{ route('chat.room', $vendor->id) }}" class="block">
+            <div class="grid gap-4">                @foreach($vendors as $vendor)
+                <a href="{{ route('chat.room', $vendor->user ? $vendor->user->id : $vendor->id) }}" class="block">
                     <div class="flex items-center p-3 bg-white rounded-lg shadow-sm hover:bg-gray-50 transition-all">
                         <div class="relative">
                             <div class="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center text-green-600 font-semibold text-lg">
@@ -93,7 +91,7 @@
                         </div>
                         <div class="ml-4">
                             <h3 class="text-md font-semibold">{{ $vendor->name }}</h3>
-                            <p class="text-sm text-gray-500">{{ $vendor->email }}</p>
+                            <p class="text-sm text-gray-500">{{ $vendor->email ?? ($vendor->user ? $vendor->user->email : 'No email') }}</p>
                             @php
                                 $lastMessage = $recentMessages->firstWhere('contact_id', $vendor->id);
                             @endphp

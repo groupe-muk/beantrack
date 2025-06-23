@@ -10,7 +10,7 @@ use App\Models\Wholesaler;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Log;
+use Illuminate\Support\Facades\Log;
 
 class ChatController extends Controller
 {
@@ -32,11 +32,11 @@ class ChatController extends Controller
        
         
         if ($user->role === 'admin') {
-            $suppliers = Supplier::all();
-           
+            // Eager load user relationships
+            $suppliers = Supplier::with('user')->get();
             
             Log::info('Suppliers query result:', ['count' => count($suppliers), 'suppliers' => $suppliers->toArray()]);
-            $vendors = Wholesaler::all();
+            $vendors = Wholesaler::with('user')->get();
             Log::info("Vendors query result: ", ['count' => count($vendors), 'vendors' => $vendors]);
         } elseif ($user->role === 'supplier') {
             $vendors = User::where('role', 'vendor')->get();
@@ -91,26 +91,46 @@ class ChatController extends Controller
     public function chatRoom($userId)
     {
         $currentUser = Auth::user();
-        $otherUser = User::findOrFail($userId);
         
-        // Get all messages between these two users
-        $messages = Message::where(function($query) use ($currentUser, $userId) {
-                $query->where('sender_id', $currentUser->id)
-                      ->where('receiver_id', $userId);
-            })
-            ->orWhere(function($query) use ($currentUser, $userId) {
-                $query->where('sender_id', $userId)
-                      ->where('receiver_id', $currentUser->id);
-            })
-            ->orderBy('created_at', 'asc')
-            ->with(['sender', 'receiver'])
-            ->get();
-        
-        return view('chat.chat-room', [
-            'messages' => $messages,
-            'otherUser' => $otherUser,
-            'currentUser' => $currentUser
-        ]);
+        try {
+            $otherUser = User::findOrFail($userId);
+            
+            // If this is a supplier or wholesaler ID rather than a user ID, redirect to the correct user ID
+            if (strtoupper(substr($userId, 0, 1)) === 'S') {
+                // This is likely a supplier ID
+                $supplier = Supplier::with('user')->find($userId);
+                if ($supplier && $supplier->user) {
+                    return redirect()->route('chat.room', $supplier->user->id);
+                }
+            } elseif (strtoupper(substr($userId, 0, 1)) === 'W') {
+                // This is likely a wholesaler ID
+                $wholesaler = Wholesaler::with('user')->find($userId);
+                if ($wholesaler && $wholesaler->user) {
+                    return redirect()->route('chat.room', $wholesaler->user->id);
+                }
+            }
+            
+            // Get all messages between these two users
+            $messages = Message::where(function($query) use ($currentUser, $userId) {
+                    $query->where('sender_id', $currentUser->id)
+                        ->where('receiver_id', $userId);
+                })
+                ->orWhere(function($query) use ($currentUser, $userId) {
+                    $query->where('sender_id', $userId)
+                        ->where('receiver_id', $currentUser->id);
+                })
+                ->orderBy('created_at', 'asc')
+                ->with(['sender', 'receiver'])
+                ->get();
+            
+            return view('chat.chat-room', [
+                'messages' => $messages,
+                'otherUser' => $otherUser,
+                'currentUser' => $currentUser
+            ]);
+        } catch (\Exception $e) {
+            return back()->with('error', 'User not found. Please try again.');
+        }
     }
 
     /**
@@ -121,26 +141,51 @@ class ChatController extends Controller
         $receiverId = $request->input('receiver_id');
         $user = Auth::user();
         
+        // Log request data for debugging
+        Log::info('Chat message attempt', [
+            'message' => $message,
+            'receiver_id' => $receiverId,
+            'user_id' => $user ? $user->id : null,
+        ]);
+        
         if (!$user) {
+            Log::error('Message send failed: User not authenticated');
             return response()->json(['error' => 'User not authenticated'], 401);
         }
         
-        // Store the message in the database
-        $messageModel = Message::create([
-            'sender_id' => $user->id,
-            'receiver_id' => $receiverId,
-            'content' => $message
-        ]);
+        try {
+            // Store the message in the database using the Message model with automatic timestamps
+            $messageModel = Message::create([
+                'sender_id' => $user->id,
+                'receiver_id' => $receiverId,
+                'content' => $message
+            ]);
+            
+            Log::info('Message saved to database', ['message_id' => $messageModel->id]);
 
-        // Broadcast the message to the receiver
-        broadcast(new MessageSent($message, $user, $receiverId, $messageModel->id))->toOthers();
+            try {
+                // Try broadcasting to others
+                broadcast(new MessageSent($message, $user, $receiverId, $messageModel->id))->toOthers();
+                Log::info('Message broadcast successfully');
+            } catch (\Exception $broadcastError) {
+                // Log the broadcast error but don't fail the request
+                Log::warning('Broadcasting error (non-critical): ' . $broadcastError->getMessage());
+            }
 
-        // Return the message as a right chat bubble for sender
-        return response()->view('components.chat.right-chat-bubble', [
-            'message' => $message,
-            'messageId' => $messageModel->id,
-            'timestamp' => now()->format('h:i A')
-        ])->header('Content-Type', 'text/html');
+            // Return the message as a right chat bubble for sender
+            return response()->view('components.chat.right-chat-bubble', [
+                'message' => $message,
+                'messageId' => $messageModel->id,
+                'timestamp' => now()->format('h:i A')
+            ])->header('Content-Type', 'text/html');
+            
+        } catch (\Exception $e) {
+            Log::error('Message send error', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return response()->json(['error' => 'Failed to send message: '.$e->getMessage()], 500);
+        }
 
     }
 
