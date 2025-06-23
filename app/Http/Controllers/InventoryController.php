@@ -4,13 +4,20 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Inventory;
+use App\Models\RawCoffee;
+use App\Models\CoffeeProduct;
+use App\Models\SupplyCenter;
 
 class InventoryController extends Controller
 {
     // Get all inventory items
     public function index()
     {
-        return Inventory::all();
+        
+        $rawCoffeeInventory = Inventory::with(['rawCoffee', 'supplyCenter'])->whereNotNull('raw_coffee_id')->get();
+        $coffeeProductInventory = Inventory::with('coffeeProduct', 'supplyCenter')->whereNotNull('coffee_product_id')->get();
+
+        return view('Inventory.inventory', compact(['rawCoffeeInventory', 'coffeeProductInventory']));
     }
 
     // Store a new inventory item
