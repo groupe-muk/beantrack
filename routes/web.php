@@ -10,8 +10,12 @@ use App\Livewire\Settings\Profile;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\columnChartController;
 
+
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\userManagerController;
+
+use App\Http\Controllers\tableCardController;
+
 
 use App\Http\Controllers\PusherController;
 use Illuminate\Http\Request;
@@ -38,6 +42,7 @@ Route::middleware(['guest'])->controller(AuthController::class)->group(function 
     Route::post('/login', 'login')->name('login');
     
 });
+
 
 // Routes for authenticated users
 Route::middleware(['auth'])->group(function () {
@@ -106,6 +111,11 @@ Route::middleware(['auth'])->group(function () {
 
 
 /*Route::view('dashboard', 'dashboard')
+
+
+
+Route::view('dashboard', 'dashboard')
+
     ->middleware(['auth', 'verified'])
     ->name('dashboard');*/
 
