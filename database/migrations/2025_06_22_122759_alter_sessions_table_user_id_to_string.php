@@ -12,32 +12,45 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('sessions', function (Blueprint $table) {
-            // Step 1: Drop the existing index on 'user_id' first.
-            // This prevents the "Duplicate key name" error.
-            try {
-                $table->dropIndex(['user_id']); // This targets the index named 'sessions_user_id_index'
-            } catch (\Illuminate\Database\QueryException $e) {
-                // If the index doesn't exist (e.g., if the sessions table was created without it for some reason),
-                // catch the error and continue.
+        // First check if the column exists before attempting modifications
+        if (Schema::hasColumn('sessions', 'user_id')) {
+            // Handle indexes that might interfere with the change
+            Schema::table('sessions', function (Blueprint $table) {
+                try {
+                    $table->dropIndex(['user_id']);
+                } catch (\Exception $e) {
+                    // Index might not exist or have a different name
+                }
+            });
+            
+            // Check for foreign keys directly in the database
+            $foreignKeyExists = DB::select("
+                SELECT * FROM information_schema.TABLE_CONSTRAINTS
+                WHERE CONSTRAINT_SCHEMA = DATABASE()
+                AND TABLE_NAME = 'sessions' 
+                AND CONSTRAINT_TYPE = 'FOREIGN KEY'
+                AND CONSTRAINT_NAME = 'sessions_user_id_foreign'
+            ");
+            
+            if (!empty($foreignKeyExists)) {
+                DB::statement('ALTER TABLE sessions DROP FOREIGN KEY sessions_user_id_foreign');
             }
-
-            // Step 2: Attempt to drop the foreign key constraint.
-            // This is still important if it existed, as you cannot change a column type if it has an active foreign key.
-            try {
-                $table->dropForeign('sessions_user_id_foreign');
-            } catch (\Illuminate\Database\QueryException $e) {
-                // If the foreign key doesn't exist or has a different name (common with MyISAM), catch the error.
-            }
-
-            // Step 3: Change the column type from unsignedBigInteger (default) to varchar(6).
-            // This is the core purpose of this migration.
-            $table->string('user_id', 6)->nullable()->change();
-
-            // Step 4: Re-add an index on the 'user_id' column for performance after the type change.
-            // A new index with the default name 'sessions_user_id_index' will be created.
-            $table->index('user_id');
-        });
+            
+            // Now modify the column type - using DB statement for more direct control
+            // This avoids issues with Laravel's schema builder
+            DB::statement('ALTER TABLE sessions MODIFY user_id VARCHAR(6) NULL');
+            
+            // Re-add the index
+            Schema::table('sessions', function (Blueprint $table) {
+                $table->index('user_id');
+            });
+        } else {
+            // If user_id column doesn't exist, add it
+            Schema::table('sessions', function (Blueprint $table) {
+                $table->string('user_id', 6)->nullable()->after('id');
+                $table->index('user_id');
+            });
+        }
     }
 
     /**
@@ -45,22 +58,26 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('sessions', function (Blueprint $table) {
-            // Step 1: Drop the string index that was created in the `up` method.
-            $table->dropIndex(['user_id']);
+        if (Schema::hasColumn('sessions', 'user_id')) {
+            // Drop any existing index
+            try {
+                Schema::table('sessions', function (Blueprint $table) {
+                    $table->dropIndex(['user_id']);
+                });
+            } catch (\Exception $e) {
+                // Index might not exist, continue
+            }
 
-            // Step 2: Change the column type back to unsignedBigInteger.
-            $table->unsignedBigInteger('user_id')->nullable()->change();
-
-            // Step 3: Re-add the index for the integer column.
-            $table->index('user_id');
-
-            // IMPORTANT: Only re-add the foreign key here if your `users.id` column
-            // would also be reverted to an integer type.
-            // Example if needed:
-            // try {
-            //     $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
-            // } catch (\Illuminate\Database\QueryException $e) { /* ... */ }
-        });
+            // Directly change the type with SQL for more control
+            DB::statement('ALTER TABLE sessions MODIFY user_id BIGINT UNSIGNED NULL');
+            
+            // Re-add the index
+            Schema::table('sessions', function (Blueprint $table) {
+                $table->index('user_id');
+            });
+            
+            // Note: We don't add foreign key constraints because it's not
+            // clear what this would reference in the users table.
+        }
     }
 };

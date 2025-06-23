@@ -9,8 +9,10 @@ class WorkforceAssignment extends Model
 {
     use HasFactory;
     protected $table = 'workforce_assignments';
+    protected $keyType = 'string';
+    public $incrementing = false;
     protected $fillable = [
-        'worker_id', 'supply_center_id', 'role', 'start_date', 'end_date', 'created_at', 'updated_at'
+        'id', 'worker_id', 'supply_center_id', 'role', 'start_date', 'end_date', 'created_at', 'updated_at'
     ];
 
     public function worker()

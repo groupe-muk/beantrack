@@ -22,7 +22,7 @@
     </div>
 
     {{-- Middle Row: Value and Unit --}}
-    <div class="flex mb-4">
+    <div class="flex mb-4 flex-wrap">
         <p class="text-4xl font-bold text-coffee-brown leading-tight">{{ $value }}</p>
         @if ($unit)      
             <p class="text-3xl font-bold text-coffee-brown mt-1 ml-2">{{ $unit }}</p>
