@@ -10,8 +10,10 @@ class Inventory extends Model
     use HasFactory;
 
     protected $table = 'inventory';
+    protected $keyType = 'string';
+    public $incrementing = false;
     protected $fillable = [
-        'raw_coffee_id', 'coffee_product_id', 'quantity_in_stock', 'supply_center_id', 'last_updated', 'created_at', 'updated_at'
+        'id', 'raw_coffee_id', 'coffee_product_id', 'quantity_in_stock', 'supply_center_id', 'last_updated', 'created_at', 'updated_at'
     ];
 
     public function rawCoffee()

@@ -10,8 +10,10 @@ class Supplier extends Model
     use HasFactory;
 
     protected $table = 'supplier';
+    protected $keyType = 'string';
+    public $incrementing = false;
     protected $fillable = [
-        'user_id', 'supply_center_id', 'name', 'contact_person', 'email', 'phone', 'address', 'registration_number', 'approved_date', 'created_at', 'updated_at'
+        'id', 'user_id', 'name', 'address', 'contact_person', 'phone', 'region', 'country', 'description', 'created_at', 'updated_at'
     ];
 
     public function user()
