@@ -11,8 +11,12 @@ class Worker extends Model
 
     protected $table = 'workers';
     protected $fillable = [
-        'name', 'role', 'email', 'phone', 'address', 'created_at', 'updated_at'
+        'id', 'name', 'role', 'email', 'phone', 'address', 'created_at', 'updated_at'
     ];
+    
+    // Disable auto-incrementing as we're using string IDs
+    public $incrementing = false;
+    protected $keyType = 'string';
 
     public function workforceAssignments()
     {

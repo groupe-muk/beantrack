@@ -11,8 +11,12 @@ class SupplyCenter extends Model
 
     protected $table = 'supply_centers';
     protected $fillable = [
-        'name', 'location', 'capacity', 'created_at', 'updated_at'
+        'id', 'name', 'location', 'capacity', 'created_at', 'updated_at'
     ];
+    
+    // Disable auto-incrementing as we're using string IDs
+    public $incrementing = false;
+    protected $keyType = 'string';
 
     public function suppliers()
     {

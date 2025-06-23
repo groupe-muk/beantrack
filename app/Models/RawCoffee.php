@@ -11,8 +11,12 @@ class RawCoffee extends Model
 
     protected $table = 'raw_coffee';
     protected $fillable = [
-        'supplier_id', 'coffee_type', 'grade', 'screen_size', 'defect_count', 'harvest_date', 'created_at', 'updated_at'
+        'id', 'supplier_id', 'coffee_type', 'grade', 'screen_size', 'defect_count', 'harvest_date', 'created_at', 'updated_at'
     ];
+    
+    // Disable auto-incrementing as we're using string IDs
+    public $incrementing = false;
+    protected $keyType = 'string';
 
     public function supplier()
     {

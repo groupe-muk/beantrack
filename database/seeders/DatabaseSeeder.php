@@ -11,41 +11,40 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // Call individual seeders in the correct order to maintain relationships
+        $this->command->info('Starting database seeding...');
         
-        // First, seed independent entities
+        // Step 1: Seed essential data with our fixed seeder
+        // This handles users, supply centers, suppliers, and wholesalers properly
+        $this->command->info('Seeding users, supply centers, suppliers, and wholesalers...');
         $this->call([
-            UserSeeder::class,
-            SupplyCenterSeeder::class,
-        ]);
-        
-        // Second, seed entities that depend on users and/or supply centers
-        $this->call([
-            WorkerSeeder::class,
-            SupplierSeeder::class,
-            WholesalerSeeder::class,
+            FixedSeeder::class,
+            WorkerSeeder::class, 
             WorkforceAssignmentSeeder::class,
+            RawCoffeeSeeder::class,
         ]);
         
-        // Third, seed entities related to products
+        // Step 2: Seed products
+        $this->command->info('Seeding coffee products and inventory...');
         $this->call([
-            RawCoffeeSeeder::class,
             CoffeeProductSeeder::class,
             InventorySeeder::class,
         ]);
         
-        // Fourth, seed entities that depend on inventory
+        // Step 7: Seed inventory updates and orders
+        $this->command->info('Seeding inventory updates and orders...');
         $this->call([
             InventoryUpdateSeeder::class,
             OrderSeeder::class,
         ]);
         
-        // Fifth, seed entities that depend on orders
+        // Step 8: Seed order tracking
+        $this->command->info('Seeding order tracking...');
         $this->call([
             OrderTrackingSeeder::class,
         ]);
         
-        // Lastly, seed remaining entities
+        // Step 9: Seed remaining entities
+        $this->command->info('Seeding remaining entities...');
         $this->call([
             MessageSeeder::class,
             ReportSeeder::class,

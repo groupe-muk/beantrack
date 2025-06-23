@@ -11,8 +11,12 @@ class InventoryUpdate extends Model
 
     protected $table = 'inventory_updates';
     protected $fillable = [
-        'inventory_id', 'quantity_change', 'reason', 'updated_by', 'created_at'
+        'id', 'inventory_id', 'quantity_change', 'reason', 'updated_by', 'created_at'
     ];
+    
+    public $timestamps = false;
+    public $incrementing = false;
+    protected $keyType = 'string';
 
     public function inventory()
     {
