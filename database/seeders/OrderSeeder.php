@@ -23,57 +23,78 @@ class OrderSeeder extends Seeder
         $coffeeProducts = CoffeeProduct::all();
         $rawCoffees = RawCoffee::all();
         
-        // Log the count of related models for debugging
-        Log::info("OrderSeeder - Available models: Suppliers: {$suppliers->count()}, Wholesalers: {$wholesalers->count()}, Products: {$coffeeProducts->count()}, Raw Coffee: {$rawCoffees->count()}");
-        
         // Check if we have the necessary related models
-        $hasSuppliers = $suppliers->count() > 0;
-        $hasWholesalers = $wholesalers->count() > 0;
-        $hasProducts = $coffeeProducts->count() > 0;
-        $hasRawCoffee = $rawCoffees->count() > 0;
-        
-        // Early exit if we don't have required relationships
-        if (!$hasSuppliers && !$hasWholesalers) {
-            Log::warning('Cannot create orders: No suppliers or wholesalers available');
+        if (($suppliers->count() === 0 && $wholesalers->count() === 0) || 
+            ($coffeeProducts->count() === 0 && $rawCoffees->count() === 0)) {
+            Log::warning('Cannot create orders: Missing necessary related models');
             return;
         }
         
-        if (!$hasProducts && !$hasRawCoffee) {
-            Log::warning('Cannot create orders: No coffee products or raw coffee available');
-            return;
-        }
-        
-        // Create orders directly with factory, which has been improved to handle validation
-        $ordersCreated = 0;
-        $maxAttempts = 20; // Try up to 20 times to create 10 valid orders
-        
-        for ($i = 0; $i < $maxAttempts && $ordersCreated < 10; $i++) {
+        // Create orders
+        foreach (range(1, 10) as $i) {
+            // Randomly decide if this is a supplier or wholesaler order
+            $isSupplierOrder = rand(0, 1) === 1;
+            
+            // Randomly decide if this is a raw coffee or coffee product order
+            $isRawCoffeeOrder = rand(0, 1) === 1;
+            
+            $order = [
+                'status' => $this->array_random(['pending', 'processing', 'shipped', 'delivered', 'cancelled']),
+                'payment_status' => $this->array_random(['unpaid', 'paid', 'refunded']),
+                'payment_method' => $this->array_random(['credit_card', 'bank_transfer', 'cash']),
+                'notes' => 'Order #' . $i,
+            ];
+              // Set the supplier or wholesaler
             try {
-                // Use our improved factory which throws exceptions for invalid data
-                $order = Order::factory()->create();
-                $ordersCreated++;
-                
-                // Double check that the order doesn't have any zero values for foreign keys
-                $hasZeroValues = false;
-                foreach (['supplier_id', 'wholesaler_id', 'raw_coffee_id', 'coffee_product_id'] as $key) {
-                    if ($order->$key === '0' || $order->$key === 0) {
-                        $hasZeroValues = true;
-                        Log::error("Order created with zero value for {$key}: " . json_encode($order->toArray()));
+                if ($isSupplierOrder && $suppliers->count() > 0) {
+                    $supplier = $suppliers->random();
+                    if ($supplier) {
+                        $order['supplier_id'] = $supplier->id;
+                        $order['wholesaler_id'] = null;
+                    } else {
+                        continue;
                     }
+                } elseif ($wholesalers->count() > 0) {
+                    $wholesaler = $wholesalers->random();
+                    if ($wholesaler) {
+                        $order['supplier_id'] = null;
+                        $order['wholesaler_id'] = $wholesaler->id;
+                    } else {
+                        continue;
+                    }
+                } else {
+                    continue; // Skip if no valid ordering entity
                 }
                 
-                // If we somehow created an order with zero values, delete it
-                if ($hasZeroValues) {
-                    $order->delete();
-                    $ordersCreated--;
-                    Log::info("Deleted invalid order with ID: {$order->id}");
+                // Set the product type
+                if ($isRawCoffeeOrder && $rawCoffees->count() > 0) {
+                    $rawCoffee = $rawCoffees->random();
+                    if ($rawCoffee) {
+                        $order['raw_coffee_id'] = $rawCoffee->id;
+                        $order['coffee_product_id'] = null;
+                        $order['type'] = 'raw_coffee';
+                    } else {
+                        continue;
+                    }
+                } elseif ($coffeeProducts->count() > 0) {
+                    $coffeeProduct = $coffeeProducts->random();
+                    if ($coffeeProduct) {
+                        $order['raw_coffee_id'] = null;
+                        $order['coffee_product_id'] = $coffeeProduct->id;
+                        $order['type'] = 'coffee_product';
+                    } else {
+                        continue;
+                    }
+                } else {
+                    continue; // Skip if no valid product
                 }
+                
+                Order::factory()->create($order);
             } catch (\Exception $e) {
-                Log::info('Order creation attempt failed: ' . $e->getMessage());
+                Log::error('Failed to create order: ' . $e->getMessage());
+                Log::error('Order data: ' . json_encode($order));
             }
         }
-        
-        Log::info("OrderSeeder completed: Created {$ordersCreated} valid orders after {$maxAttempts} attempts");
     }
       /**
      * Get a random element from an array

@@ -11,12 +11,8 @@ class Supplier extends Model
 
     protected $table = 'supplier';
     protected $fillable = [
-        'id', 'user_id', 'supply_center_id', 'name', 'contact_person', 'email', 'phone', 'address', 'registration_number', 'approved_date', 'created_at', 'updated_at'
+        'user_id', 'supply_center_id', 'name', 'contact_person', 'email', 'phone', 'address', 'registration_number', 'approved_date', 'created_at', 'updated_at'
     ];
-    
-    // Disable auto-incrementing as we're using string IDs
-    public $incrementing = false;
-    protected $keyType = 'string';
 
     public function user()
     {

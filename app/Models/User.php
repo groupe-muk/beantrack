@@ -14,10 +14,6 @@ class User extends Authenticatable
         'id', 'name', 'email', 'email_verified_at', 'password', 'role', 'phone', 'remember_token', 'created_at', 'updated_at'
     ];
     
-    // Disable auto-incrementing as we're using string IDs
-    public $incrementing = false;
-    protected $keyType = 'string';
-    
     protected $hidden = [
         'password', 'remember_token',
     ];

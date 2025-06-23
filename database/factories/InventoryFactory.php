@@ -11,31 +11,16 @@ class InventoryFactory extends Factory
 {
     public function definition(): array
     {
-        // First check if we have any raw coffee or coffee products
-        $hasRawCoffee = RawCoffee::count() > 0;
-        $hasCoffeeProduct = CoffeeProduct::count() > 0;
-        
-        // Determine inventory type based on available data
-        $isRawCoffeeInventory = $hasRawCoffee && ($this->faker->boolean() || !$hasCoffeeProduct);
-        
-        // Get valid IDs, ensuring we never have null or 0 values
-        $rawCoffeeId = $isRawCoffeeInventory ? RawCoffee::inRandomOrder()->first()?->id : null;
-        $coffeeProductId = !$isRawCoffeeInventory && $hasCoffeeProduct ? CoffeeProduct::inRandomOrder()->first()?->id : null;
-        
-        // Get a valid supply center
-        $supplyCenterId = SupplyCenter::inRandomOrder()->first()?->id;
-        
-        // Only proceed if we have valid IDs and meet our constraint (one of raw or product must be set)
-        if (($rawCoffeeId === null && $coffeeProductId === null) || $supplyCenterId === null) {
-            throw new \Exception("Cannot create inventory: missing required related models");
-        }
-        
+        $rawCoffeeId = RawCoffee::inRandomOrder()->first()?->id;
+        $coffeeProductId = CoffeeProduct::inRandomOrder()->first()?->id;
+        // Only one of raw_coffee_id or coffee_product_id should be set
+        $rawOrProduct = $this->faker->boolean();
         return [
             'id' => null,
-            'raw_coffee_id' => $rawCoffeeId,
-            'coffee_product_id' => $coffeeProductId,
+            'raw_coffee_id' => $rawOrProduct ? $rawCoffeeId : null,
+            'coffee_product_id' => !$rawOrProduct ? $coffeeProductId : null,
             'quantity_in_stock' => $this->faker->randomFloat(2, 10, 1000),
-            'supply_center_id' => $supplyCenterId,
+            'supply_center_id' => SupplyCenter::inRandomOrder()->first()?->id,
             'last_updated' => $this->faker->dateTimeThisYear(),
         ];
     }

@@ -9,14 +9,9 @@ class RawCoffeeFactory extends Factory
 {
     public function definition(): array
     {
-        static $coffeeNumber = 1;
-        
-        // Get an actual supplier ID from the database
-        $supplier = Supplier::inRandomOrder()->first();
-        
         return [
-            'id' => 'RC' . str_pad($coffeeNumber++, 5, '0', STR_PAD_LEFT),
-            'supplier_id' => $supplier ? $supplier->id : null,
+            'id' => null,
+            'supplier_id' => Supplier::inRandomOrder()->first()?->id,
             'coffee_type' => $this->faker->word(),
             'grade' => $this->faker->randomElement(['A', 'B', 'C']),
             'screen_size' => $this->faker->optional()->randomElement(['12', '14', '16']),

@@ -8,10 +8,8 @@ class WorkerFactory extends Factory
 {
     public function definition(): array
     {
-        static $workerNumber = 1;
-        
         return [
-            'id' => 'W' . str_pad($workerNumber++, 5, '0', STR_PAD_LEFT),
+            // 'id' => null, // id is not fillable
             'name' => $this->faker->name(),
             'role' => $this->faker->jobTitle(),
             'email' => $this->faker->unique()->safeEmail(),

@@ -11,11 +11,8 @@ class Order extends Model
 
     protected $table = 'orders';
     protected $fillable = [
-        'id', 'supplier_id', 'wholesaler_id', 'raw_coffee_id', 'coffee_product_id', 'status', 'quantity', 'total_price', 'created_at', 'updated_at'
+        'supplier_id', 'wholesaler_id', 'raw_coffee_id', 'coffee_product_id', 'status', 'quantity', 'total_price', 'created_at', 'updated_at'
     ];
-    
-    public $incrementing = false;
-    protected $keyType = 'string';
 
     public function supplier()
     {

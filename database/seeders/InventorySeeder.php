@@ -20,77 +20,45 @@ class InventorySeeder extends Seeder
         $rawCoffees = RawCoffee::all();
         
         // Check if we have the necessary related models
-        if ($supplyCenters->count() === 0) {
-            Log::warning('Cannot create inventory: No supply centers available');
+        if ($supplyCenters->count() === 0 || 
+            ($coffeeProducts->count() === 0 && $rawCoffees->count() === 0)) {
+            Log::warning('Cannot create inventory: Missing necessary related models');
             return;
         }
-        
-        if ($coffeeProducts->count() === 0 && $rawCoffees->count() === 0) {
-            Log::warning('Cannot create inventory: No coffee products or raw coffee available');
-            return;
-        }
-        
-        $inventoriesCreated = 0;
-        $maxAttempts = 20;
-        $attempt = 0;
         
         // Create inventory entries
-        while ($inventoriesCreated < 10 && $attempt < $maxAttempts) {
-            $attempt++;
-            
-            try {
-                // Decide if this should be raw coffee or product based on what's available
-                $hasRawCoffee = $rawCoffees->count() > 0;
-                $hasProducts = $coffeeProducts->count() > 0;
-                
-                if (!$hasRawCoffee && !$hasProducts) {
-                    Log::warning('No coffee products or raw coffee available');
-                    return;
-                }
-                
-                // Choose type based on what's available
-                $isRawCoffee = false;
-                if ($hasRawCoffee && $hasProducts) {
-                    // If both are available, randomly choose one
-                    $isRawCoffee = rand(0, 1) === 1;
-                } else {
-                    // Otherwise use whatever is available
-                    $isRawCoffee = $hasRawCoffee;
-                }
-                
-                $supplyCenter = $supplyCenters->random();
-                if (!$supplyCenter) {
-                    Log::warning('Failed to get a valid supply center');
-                    continue;
-                }
-                
-                // Create the inventory record with explicit null values where needed
-                if ($isRawCoffee) {
+        foreach (range(1, 10) as $i) {
+            // Randomly decide whether this is a raw coffee or coffee product inventory
+            $isRawCoffee = rand(0, 1) === 1;
+              try {
+                if ($isRawCoffee && $rawCoffees->count() > 0) {
+                    $supplyCenter = $supplyCenters->random();
                     $rawCoffee = $rawCoffees->random();
-                    if ($rawCoffee) {
+                    
+                    if ($supplyCenter && $rawCoffee) {
                         Inventory::factory()->create([
                             'supply_center_id' => $supplyCenter->id,
                             'raw_coffee_id' => $rawCoffee->id,
-                            'coffee_product_id' => null, // Explicitly set to null
+                            'coffee_product_id' => null,
+                            'type' => 'raw_coffee',
                         ]);
-                        $inventoriesCreated++;
                     }
-                } else {
+                } elseif ($coffeeProducts->count() > 0) {
+                    $supplyCenter = $supplyCenters->random();
                     $coffeeProduct = $coffeeProducts->random();
-                    if ($coffeeProduct) {
+                    
+                    if ($supplyCenter && $coffeeProduct) {
                         Inventory::factory()->create([
                             'supply_center_id' => $supplyCenter->id,
-                            'raw_coffee_id' => null, // Explicitly set to null
+                            'raw_coffee_id' => null,
                             'coffee_product_id' => $coffeeProduct->id,
+                            'type' => 'coffee_product',
                         ]);
-                        $inventoriesCreated++;
                     }
                 }
             } catch (\Exception $e) {
                 Log::error('Failed to create inventory: ' . $e->getMessage());
             }
         }
-        
-        Log::info("Created $inventoriesCreated inventory records successfully");
     }
 }

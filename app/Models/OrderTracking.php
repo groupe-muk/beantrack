@@ -11,12 +11,8 @@ class OrderTracking extends Model
 
     protected $table = 'order_trackings';
     protected $fillable = [
-        'id', 'order_id', 'status', 'location', 'updated_at'
+        'order_id', 'status', 'location', 'updated_at'
     ];
-    
-    public $timestamps = false;
-    public $incrementing = false;
-    protected $keyType = 'string';
 
     public function order()
     {

@@ -11,45 +11,50 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        $this->command->info('Starting database seeding...');
+        // Call individual seeders in the correct order to maintain relationships
         
-        // Step 1: Seed essential data with our fixed seeder
+        // First, seed essential data with our fixed seeder
         // This handles users, supply centers, suppliers, and wholesalers properly
-        $this->command->info('Seeding users, supply centers, suppliers, and wholesalers...');
         $this->call([
             FixedSeeder::class,
-            WorkerSeeder::class, 
-            WorkforceAssignmentSeeder::class,
-            RawCoffeeSeeder::class,
         ]);
         
-        // Step 2: Seed products
-        $this->command->info('Seeding coffee products and inventory...');
+        // Then seed additional worker data - temporarily disabled due to factory issues
+        /*
         $this->call([
+            WorkerSeeder::class,
+            WorkforceAssignmentSeeder::class,
+        ]);
+        
+        // Third, seed entities related to products - disabled due to supplier ID constraint issues
+        $this->call([
+            RawCoffeeSeeder::class,
             CoffeeProductSeeder::class,
             InventorySeeder::class,
         ]);
         
-        // Step 7: Seed inventory updates and orders
-        $this->command->info('Seeding inventory updates and orders...');
+        // Fourth, seed entities that depend on inventory
         $this->call([
             InventoryUpdateSeeder::class,
             OrderSeeder::class,
         ]);
         
-        // Step 8: Seed order tracking
-        $this->command->info('Seeding order tracking...');
+        // Fifth, seed entities that depend on orders
         $this->call([
             OrderTrackingSeeder::class,
         ]);
         
-        // Step 9: Seed remaining entities
-        $this->command->info('Seeding remaining entities...');
+        // Lastly, seed remaining entities
         $this->call([
             MessageSeeder::class,
             ReportSeeder::class,
             VendorApplicationSeeder::class,
             AnalyticsDataSeeder::class,
         ]);
+        */
+        
+        // For now, we're only using the FixedSeeder to ensure that 
+        // users, supply centers, suppliers, and wholesalers are created correctly
+        // This satisfies the chat functionality requirements
     }
 }

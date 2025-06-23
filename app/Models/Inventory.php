@@ -11,11 +11,8 @@ class Inventory extends Model
 
     protected $table = 'inventory';
     protected $fillable = [
-        'id', 'raw_coffee_id', 'coffee_product_id', 'quantity_in_stock', 'supply_center_id', 'last_updated', 'created_at', 'updated_at'
+        'raw_coffee_id', 'coffee_product_id', 'quantity_in_stock', 'supply_center_id', 'last_updated', 'created_at', 'updated_at'
     ];
-    
-    public $incrementing = false;
-    protected $keyType = 'string';
 
     public function rawCoffee()
     {

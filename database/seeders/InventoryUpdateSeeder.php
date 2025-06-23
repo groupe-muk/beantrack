@@ -32,7 +32,7 @@ class InventoryUpdateSeeder extends Seeder
                 try {
                     InventoryUpdate::factory()->create([
                         'inventory_id' => $inventory->id,
-                        'updated_by' => $user->id,
+                        'user_id' => $user->id,
                     ]);
                 } catch (\Exception $e) {
                     Log::error('Failed to create inventory update: ' . $e->getMessage());

@@ -43,7 +43,7 @@ class MessageSeeder extends Seeder
                 
                 Message::factory()->create([
                     'sender_id' => $sender->id,
-                    'receiver_id' => $recipient->id,
+                    'recipient_id' => $recipient->id,
                 ]);
             } catch (\Exception $e) {
                 Log::error('Failed to create message: ' . $e->getMessage());
