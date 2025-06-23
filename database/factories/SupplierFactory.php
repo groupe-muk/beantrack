@@ -10,15 +10,10 @@ class SupplierFactory extends Factory
 {
     public function definition(): array
     {
-        $user = User::inRandomOrder()->first();
-        $supplyCenter = SupplyCenter::inRandomOrder()->first();
-        // If no user or supply center exists, create one and use its id
-        if (!$user) {
-            $user = User::factory()->create();
-        }
-        if (!$supplyCenter) {
-            $supplyCenter = SupplyCenter::factory()->create();
-        }
+        // Always create a new user and supply center to ensure valid IDs
+        $user = User::factory()->create(['role' => 'supplier']);
+        $supplyCenter = SupplyCenter::factory()->create();
+        
         return [
             'user_id' => $user->id,
             'supply_center_id' => $supplyCenter->id,
