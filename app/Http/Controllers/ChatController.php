@@ -1,0 +1,173 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Events\MessageSent;
+use App\Models\Message;
+use App\Models\Supplier;
+use App\Models\User;
+use App\Models\Wholesaler;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Log;
+
+class ChatController extends Controller
+{
+    public function __construct()
+    {
+        // Auth middleware is applied in routes
+    }
+
+    /**
+     * Show the inbox with user lists
+     */
+    public function index()
+    {
+        $user = Auth::user();
+        
+        // Get suppliers and vendors for admins, or appropriate contacts for other roles
+        $suppliers = [];
+        $vendors = [];
+       
+        
+        if ($user->role === 'admin') {
+            $suppliers = Supplier::all();
+           
+            
+            Log::info('Suppliers query result:', ['count' => count($suppliers), 'suppliers' => $suppliers->toArray()]);
+            $vendors = Wholesaler::all();
+            Log::info("Vendors query result: ", ['count' => count($vendors), 'vendors' => $vendors]);
+        } elseif ($user->role === 'supplier') {
+            $vendors = User::where('role', 'vendor')->get();
+            $admins = User::where('role', 'admin')->get();
+            $suppliers = User::where('role', 'supplier')
+                ->where('id', '!=', $user->id)
+                ->get();
+        } elseif ($user->role === 'vendor') {
+            $suppliers = User::where('role', 'supplier')->get();
+            $admins = User::where('role', 'admin')->get();
+            $vendors = User::where('role', 'vendor')
+                ->where('id', '!=', $user->id)
+                ->get();
+        }
+        
+        // Get most recent messages with each user for previews
+        $recentMessages = DB::select("
+            SELECT m.*, u.name as sender_name, u.role as sender_role 
+            FROM (
+                SELECT 
+                    CASE 
+                        WHEN sender_id = ? THEN receiver_id
+                        ELSE sender_id
+                    END as contact_id,
+                    MAX(created_at) as latest_message_time
+                FROM messages
+                WHERE sender_id = ? OR receiver_id = ?
+                GROUP BY contact_id
+            ) as latest
+            JOIN messages m ON (
+                (m.sender_id = latest.contact_id AND m.receiver_id = ?) OR
+                (m.sender_id = ? AND m.receiver_id = latest.contact_id)
+            )
+            JOIN users u ON u.id = latest.contact_id
+            WHERE m.created_at = latest.latest_message_time
+            ORDER BY latest_message_time DESC
+        ", [$user->id, $user->id, $user->id, $user->id, $user->id]);
+        
+        return view('chat.inbox', [
+            'user' => $user,
+            'suppliers' => $suppliers,
+            'vendors' => $vendors,
+            'admins' => $admins ?? [],
+            'recentMessages' => collect($recentMessages),
+            'currentUser' => $user
+        ]);
+    }
+    
+    /**
+     * Show chat room with a specific user
+     */
+    public function chatRoom($userId)
+    {
+        $currentUser = Auth::user();
+        $otherUser = User::findOrFail($userId);
+        
+        // Get all messages between these two users
+        $messages = Message::where(function($query) use ($currentUser, $userId) {
+                $query->where('sender_id', $currentUser->id)
+                      ->where('receiver_id', $userId);
+            })
+            ->orWhere(function($query) use ($currentUser, $userId) {
+                $query->where('sender_id', $userId)
+                      ->where('receiver_id', $currentUser->id);
+            })
+            ->orderBy('created_at', 'asc')
+            ->with(['sender', 'receiver'])
+            ->get();
+        
+        return view('chat.chat-room', [
+            'messages' => $messages,
+            'otherUser' => $otherUser,
+            'currentUser' => $currentUser
+        ]);
+    }
+
+    /**
+     * Send a message to another user
+     */
+    public function send(Request $request) {
+        $message = $request->input('message');
+        $receiverId = $request->input('receiver_id');
+        $user = Auth::user();
+        
+        if (!$user) {
+            return response()->json(['error' => 'User not authenticated'], 401);
+        }
+        
+        // Store the message in the database
+        $messageModel = Message::create([
+            'sender_id' => $user->id,
+            'receiver_id' => $receiverId,
+            'content' => $message
+        ]);
+
+        // Broadcast the message to the receiver
+        broadcast(new MessageSent($message, $user, $receiverId, $messageModel->id))->toOthers();
+
+        // Return the message as a right chat bubble for sender
+        return response()->view('components.chat.right-chat-bubble', [
+            'message' => $message,
+            'messageId' => $messageModel->id,
+            'timestamp' => now()->format('h:i A')
+        ])->header('Content-Type', 'text/html');
+
+    }
+
+    public function fetchSuppliers() {
+        $suppliers = Supplier::all();
+        return response()->json($suppliers);
+    }
+    
+    /**
+     * Get recent messages for each contact
+     */
+    private function getRecentMessages($user)
+    {
+        // Get the most recent message between the current user and each other user
+        $recentMessages = Message::where('sender_id', $user->id)
+            ->orWhere('receiver_id', $user->id)
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->groupBy(function ($message) use ($user) {
+                // Group by the other user's ID (whether sender or receiver)
+                return $message->sender_id == $user->id ? $message->receiver_id : $message->sender_id;
+            })
+            ->map(function ($messages) {
+                // Get the most recent message for each user
+                return $messages->first();
+            });
+            
+        return $recentMessages;
+    }
+}

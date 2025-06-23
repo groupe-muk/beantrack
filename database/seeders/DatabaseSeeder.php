@@ -13,21 +13,20 @@ class DatabaseSeeder extends Seeder
     {
         // Call individual seeders in the correct order to maintain relationships
         
-        // First, seed independent entities
+        // First, seed essential data with our fixed seeder
+        // This handles users, supply centers, suppliers, and wholesalers properly
         $this->call([
-            UserSeeder::class,
-            SupplyCenterSeeder::class,
+            FixedSeeder::class,
         ]);
         
-        // Second, seed entities that depend on users and/or supply centers
+        // Then seed additional worker data - temporarily disabled due to factory issues
+        /*
         $this->call([
             WorkerSeeder::class,
-            SupplierSeeder::class,
-            WholesalerSeeder::class,
             WorkforceAssignmentSeeder::class,
         ]);
         
-        // Third, seed entities related to products
+        // Third, seed entities related to products - disabled due to supplier ID constraint issues
         $this->call([
             RawCoffeeSeeder::class,
             CoffeeProductSeeder::class,
@@ -52,5 +51,10 @@ class DatabaseSeeder extends Seeder
             VendorApplicationSeeder::class,
             AnalyticsDataSeeder::class,
         ]);
+        */
+        
+        // For now, we're only using the FixedSeeder to ensure that 
+        // users, supply centers, suppliers, and wholesalers are created correctly
+        // This satisfies the chat functionality requirements
     }
 }

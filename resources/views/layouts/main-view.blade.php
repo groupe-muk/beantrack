@@ -17,6 +17,8 @@
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"> 
         <!-- Styles / Scripts -->
         @vite(['resources/css/app.css', 'resources/js/app.js'])
+         {{-- For chat --}}
+        <script src="https://js.pusher.com/7.0/pusher.min.js"></script>
     </head>
 
     <body class = "font-serif">        
@@ -35,6 +37,10 @@
         <script src="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
         <script src="https://cdn.jsdelivr.net/npm/simple-datatables@9.0.3"></script>
+
+       
         @stack('scripts')
     </body>
+
+   
 </html>
