@@ -10,10 +10,15 @@ use App\Livewire\Settings\Profile;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\columnChartController;
 
+
 use App\Http\Controllers\userManagerController;
 
 use App\Http\Controllers\PusherController;
 use Illuminate\Http\Request;
+
+
+use App\Http\Controllers\tableCardController;
+use App\Http\Controllers\OrderController;
 
 
 Route::get('/sample', [columnChartController::class, 'showColumnChart'])->name('column.chart');
@@ -65,13 +70,25 @@ Route::middleware(['auth'])->group(function () {
     /*Route::get('/dashboard', [AuthController::class, 'showApp'])->name('dashboard');*/
     
     // Role-specific routes
+
     Route::middleware(['role:admin'])->group(function () {
         //User management routes
         Route::get('admin/users', [userManagerController::class, 'index'])->name('admin.users.index');
         Route::post('admin/users', [userManagerController::class, 'store'])->name('admin.users.store');
         Route::patch('admin/users/{user}', [userManagerController::class, 'update'])->name('admin.users.update');
         Route::delete('admin/users/{user}', [userManagerController::class, 'destroy'])->name('admin.users.destroy');
-    });
+      
+       // Order routes
+        Route::prefix('orders')->name('orders.')->group(function () {
+            Route::get('/', [OrderController::class, 'index'])->name('index');
+            Route::get('/create', [OrderController::class, 'create'])->name('create');
+            Route::post('/', [OrderController::class, 'store'])->name('store');
+            Route::get('/{order}', [OrderController::class, 'show'])->name('show');
+            Route::put('/{order}/status', [OrderController::class, 'updateStatus'])->name('update-status');
+            Route::get('/api/stats', [OrderController::class, 'getOrderStats'])->name('api.stats');
+        });
+
+   
     
     Route::middleware(['role:supplier'])->group(function () {
         // Supplier routes
@@ -84,6 +101,7 @@ Route::middleware(['auth'])->group(function () {
 
 
 
+
 /*Route::view('dashboard', 'dashboard')
     ->middleware(['auth', 'verified'])
     ->name('dashboard');*/
@@ -93,7 +111,5 @@ Route::middleware(['auth'])->group(function () {
 
 
 
+
 require __DIR__.'/auth.php';
- 
-
-
