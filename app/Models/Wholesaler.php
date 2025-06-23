@@ -10,8 +10,10 @@ class Wholesaler extends Model
     use HasFactory;
 
     protected $table = 'wholesaler';
+    protected $keyType = 'string';
+    public $incrementing = false;
     protected $fillable = [
-        'user_id', 'name', 'contact_person', 'email', 'phone', 'address', 'distribution_region', 'registration_number', 'approved_date', 'created_at', 'updated_at'
+        'id', 'user_id', 'name', 'contact_person', 'email', 'phone', 'address', 'distribution_region', 'registration_number', 'approved_date', 'created_at', 'updated_at'
     ];
 
     public function user()

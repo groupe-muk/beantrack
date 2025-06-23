@@ -10,8 +10,10 @@ class InventoryUpdate extends Model
     use HasFactory;
 
     protected $table = 'inventory_updates';
+    protected $keyType = 'string';
+    public $incrementing = false;
     protected $fillable = [
-        'inventory_id', 'quantity_change', 'reason', 'updated_by', 'created_at'
+        'id', 'inventory_id', 'quantity_change', 'reason', 'updated_by', 'created_at'
     ];
 
     public function inventory()

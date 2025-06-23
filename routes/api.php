@@ -1,7 +1,14 @@
 
+
+
+
 <?php
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\InventoryController;
+             
+Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
+    return $request->user();
+});             
 
 // Get all inventory items
 Route::get('/inventory', [InventoryController::class, 'index']);
@@ -17,3 +24,4 @@ Route::put('/inventory/{id}', [InventoryController::class, 'update']);
 
 // (Optional) Delete an inventory item
 Route::delete('/inventory/{id}', [InventoryController::class, 'destroy']);
+

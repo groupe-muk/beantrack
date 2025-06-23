@@ -7,9 +7,17 @@ use Illuminate\Database\Eloquent\Model;
 class Message extends Model
 {
     protected $table = 'messages';
+    protected $keyType = 'string';
+    public $incrementing = false;
     protected $fillable = [
-        'sender_id', 'receiver_id', 'content', 'created_at'
+        'id', 'sender_id', 'receiver_id', 'content'
     ];
+    
+    /**
+     * Indicates if the model should be timestamped.
+     * Set to true to use Laravel's automatic timestamps (created_at and updated_at)
+     */
+    public $timestamps = true;
 
     public function sender()
     {

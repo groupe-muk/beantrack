@@ -10,8 +10,10 @@ class SupplyCenter extends Model
     use HasFactory;
 
     protected $table = 'supply_centers';
+    protected $keyType = 'string';
+    public $incrementing = false;
     protected $fillable = [
-        'name', 'location', 'capacity', 'created_at', 'updated_at'
+        'id', 'name', 'location', 'capacity', 'created_at', 'updated_at'
     ];
 
     public function suppliers()
