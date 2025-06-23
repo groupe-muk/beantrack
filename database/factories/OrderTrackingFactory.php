@@ -17,4 +17,13 @@ class OrderTrackingFactory extends Factory
             'updated_at' => $this->faker->dateTimeThisYear(),
         ];
     }
+    
+    // Configure the model factory to not include timestamps
+    public function configure()
+    {
+        return $this->afterMaking(function ($tracking) {
+            // Log to indicate successful creation
+            \Log::info('Creating order tracking', ['order_id' => $tracking->order_id]);
+        });
+    }
 }

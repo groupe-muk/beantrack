@@ -70,6 +70,7 @@ Route::middleware(['auth'])->group(function () {
     /*Route::get('/dashboard', [AuthController::class, 'showApp'])->name('dashboard');*/
     
     // Role-specific routes
+});
 
     Route::middleware(['role:admin'])->group(function () {
         //User management routes

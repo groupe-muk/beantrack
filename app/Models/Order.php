@@ -10,8 +10,10 @@ class Order extends Model
     use HasFactory;
 
     protected $table = 'orders';
+    protected $keyType = 'string';
+    public $incrementing = false;
     protected $fillable = [
-        'supplier_id', 'wholesaler_id', 'raw_coffee_id', 'coffee_product_id', 'status', 'quantity', 'total_price', 'created_at', 'updated_at'
+        'id', 'supplier_id', 'wholesaler_id', 'raw_coffee_id', 'coffee_product_id', 'status', 'quantity', 'total_price', 'created_at', 'updated_at'
     ];
 
     public function supplier()

@@ -7,8 +7,10 @@ use Illuminate\Database\Eloquent\Model;
 class Message extends Model
 {
     protected $table = 'messages';
+    protected $keyType = 'string';
+    public $incrementing = false;
     protected $fillable = [
-        'sender_id', 'receiver_id', 'content', 'created_at'
+        'id', 'sender_id', 'receiver_id', 'content', 'created_at'
     ];
 
     public function sender()
