@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Auth\Events\Validated;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Log;
 
 class AuthController extends Controller
 {
@@ -18,6 +19,7 @@ class AuthController extends Controller
     
     public function roleSelection(Request $request)
     {
+        Log::info("Role selection: " . $request);
         $role = $request->validate([
             'role' => 'required|string|in:admin,supplier,vendor',
         ])['role'];
@@ -25,9 +27,12 @@ class AuthController extends Controller
         // Store the selected role in the session
         session(['selected_role' => $role]);
         
+        Log::info("USER LOGGED IN? " . (Auth::check() ? 'true' : 'false'));
+
         // Check if the user has an account with this email for the selected role
         if (Auth::check()) {
             // If user is already logged in, redirect to dashboard
+            Log::info("USER LOGGED IN? " . (Auth::check() ? 'true' : 'false'));
             return redirect()->route('dashboard');
         }
         
@@ -57,13 +62,13 @@ class AuthController extends Controller
         return view('auth.login', ['role' => $role]);
     }
 
-    public function showApp() {
+    /*public function showApp() {
         if (!Auth::check()) {
             return redirect()->route('onboarding');
         }
         
         return view('dashboard');
-    }
+    }*/
     
     public function create(Request $request) {
         $validated = $request->validate([
