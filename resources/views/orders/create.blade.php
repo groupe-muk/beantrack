@@ -50,7 +50,7 @@
 
                 <!-- Success Message -->
                 @if (session('success'))
-                    <div class="mb-4 bg-green-50 border border-green-200 rounded-md p-4">
+                    <div id="success-alert" class="mb-4 bg-green-50 border border-green-200 rounded-md p-4">
                         <div class="flex">
                             <div class="flex-shrink-0">
                                 <svg class="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
@@ -64,7 +64,7 @@
                     </div>
                 @endif
                 
-                <form action="{{ route('orders.store') }}" method="POST">
+                <form id="order-form" action="{{ route('orders.store') }}" method="POST">
                     @csrf
                     
                     <!-- Supplier Selection -->
@@ -156,4 +156,27 @@
         </div>
     </div>
 </div>
+
+<script>
+    // Clear form when success message is shown
+    @if (session('success'))
+        document.addEventListener('DOMContentLoaded', function() {
+            // Clear the form
+            document.getElementById('order-form').reset();
+            
+            // Auto-hide success alert after 5 seconds
+            setTimeout(function() {
+                const alert = document.getElementById('success-alert');
+                if (alert) {
+                    alert.style.transition = 'opacity 0.5s';
+                    alert.style.opacity = '0';
+                    setTimeout(function() {
+                        alert.remove();
+                    }, 500);
+                }
+            }, 5000);
+        });
+    @endif
+</script>
+
 @endsection

@@ -10,7 +10,7 @@ use App\Models\Wholesaler;
 use App\Models\RawCoffee;
 use App\Models\CoffeeProduct;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Validation\Rule; 
+use Illuminate\Validation\Rule; // Add this for unique validation if needed
 
 class OrderController extends Controller
 {
@@ -95,7 +95,7 @@ class OrderController extends Controller
         // Since this is a new order with 'pending' status, we'll skip tracking for now
         // Tracking can be added later when the order status changes to 'shipped'
 
-        return redirect()->route('orders.index')->with('success', 'Order created successfully.');
+        return redirect()->route('orders.create')->with('success', 'Order created successfully!');
     }
 
     /**
