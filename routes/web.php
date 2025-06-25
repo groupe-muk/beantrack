@@ -46,18 +46,34 @@ Route::middleware(['auth'])->group(function () {
     // Chat Test Route
     Route::match(['get', 'post'], '/chat/test/send', [App\Http\Controllers\ChatTestController::class, 'testSend'])->name('chat.test');
     Route::post('/chat/receive', function (Request $request) {
-        // Since we're expecting JSON data
-        $message = $request->input('message');
-        $user = $request->input('user');
-        $timestamp = $request->input('timestamp');
-        
-        // Return only the chat bubble component, not a full layout
-        return response()->view('components.chat.left-chat-bubble', [
-            'message' => $message,
-            'user' => $user,
-            'timestamp' => $timestamp,
-            'messageId' => uniqid()
-        ])->header('Content-Type', 'text/html');
+        try {
+            // Get the input data
+            $message = $request->input('message');
+            $userData = $request->input('user');
+            $timestamp = $request->input('timestamp');
+            $messageId = $request->input('messageId', uniqid());
+            
+            // Create a user object from the data
+            // The user data comes as an array from JavaScript, but the component expects an object
+            $user = (object) $userData;
+            
+            // Return only the chat bubble component, not a full layout
+            return response()->view('components.chat.left-chat-bubble', [
+                'message' => $message,
+                'user' => $user,
+                'timestamp' => $timestamp,
+                'messageId' => $messageId
+            ])->header('Content-Type', 'text/html');
+            
+        } catch (\Exception $e) {
+            \Log::error('Chat receive error', [
+                'error' => $e->getMessage(),
+                'request_data' => $request->all(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response('Error loading message', 500);
+        }
     })->name('chat.receive');
     
     // Message Attachments
