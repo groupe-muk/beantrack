@@ -13,6 +13,7 @@ use App\Http\Controllers\OrderController;
 use App\Http\Controllers\userManagerController;
 use App\Http\Controllers\tableCardController;
 use App\Http\Controllers\SupplyCentersController;
+use App\Http\Controllers\InventoryController;
 
 Route::get('/sample', [columnChartController::class, 'showColumnChart'])->name('column.chart');
 
