@@ -38,23 +38,40 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     // Chat Routes
     Route::get('/chat', [ChatController::class, 'index'])->name('chat.index');
+    Route::get('/chat/unread', [ChatController::class, 'getUnreadCount'])->name('chat.unread');
+    Route::post('/chat/mark-read', [ChatController::class, 'markAsRead'])->name('chat.mark-read');
     Route::get('/chat/{userId}', [ChatController::class, 'chatRoom'])->name('chat.room');
     Route::post('/chat/send',[ChatController::class, 'send'])->name('chat.send');
     // Chat Test Route
     Route::match(['get', 'post'], '/chat/test/send', [App\Http\Controllers\ChatTestController::class, 'testSend'])->name('chat.test');
     Route::post('/chat/receive', function (Request $request) {
-        // Since we're expecting JSON data
-        $message = $request->input('message');
-        $user = $request->input('user');
-        $timestamp = $request->input('timestamp');
-        
-        // Return only the chat bubble component, not a full layout
-        return response()->view('components.chat.left-chat-bubble', [
-            'message' => $message,
-            'user' => $user,
-            'timestamp' => $timestamp,
-            'messageId' => uniqid()
-        ])->header('Content-Type', 'text/html');
+        try {
+            // Since we're expecting JSON data
+            $message = $request->input('message');
+            $userData = $request->input('user'); // This is an array/object
+            $timestamp = $request->input('timestamp');
+            
+            // Convert user data to an object if it's an array
+            if (is_array($userData)) {
+                $user = (object) $userData;
+            } else {
+                $user = $userData;
+            }
+            
+            // Return only the chat bubble component, not a full layout
+            return response()->view('components.chat.left-chat-bubble', [
+                'message' => $message,
+                'user' => $user,
+                'timestamp' => $timestamp,
+                'messageId' => uniqid()
+            ])->header('Content-Type', 'text/html');
+        } catch (\Exception $e) {
+            \Log::error('Chat receive error: ' . $e->getMessage(), [
+                'request_data' => $request->all(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
     })->name('chat.receive');
     
     // Message Attachments

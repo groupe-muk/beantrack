@@ -13,6 +13,8 @@ if (pusherKey && pusherCluster) {
         key: pusherKey,
         cluster: pusherCluster,
         forceTLS: true,
+        csrfToken: document.querySelector('meta[name="csrf-token"]')?.content,
+        authEndpoint: '/broadcasting/auth',
         // Enable debug mode for easier troubleshooting
         enabledTransports: ['ws', 'wss'],
     });
@@ -20,6 +22,21 @@ if (pusherKey && pusherCluster) {
     // Add global error handler for Echo
     window.Echo.connector.pusher.connection.bind('error', function(err) {
         console.error('Pusher connection error:', err);
+    });
+    
+    // Add connection success handler for debugging
+    window.Echo.connector.pusher.connection.bind('connected', function() {
+        console.log('Pusher connected successfully!');
+    });
+    
+    // Subscribe to connection state change events
+    window.Echo.connector.pusher.connection.bind('state_change', function(states) {
+        console.log(`Pusher connection: ${states.previous} -> ${states.current}`);
+    });
+    
+    // Add debugging for auth failures
+    window.Echo.connector.pusher.connection.bind('auth_failed', function(err) {
+        console.error('Pusher auth failed:', err);
     });
 } else {
     console.warn('Pusher configuration missing. Real-time messaging disabled.');

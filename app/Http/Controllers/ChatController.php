@@ -25,6 +25,8 @@ class ChatController extends Controller
     public function index()
     {
         $user = Auth::user();
+        Log::info('Current authenticated user:', ['user' => $user]);
+   
         
         // Get suppliers and vendors for admins, or appropriate contacts for other roles
         $suppliers = [];
@@ -32,6 +34,7 @@ class ChatController extends Controller
        
         
         if ($user->role === 'admin') {
+
             // Eager load user relationships
             $suppliers = Supplier::with('user')->get();
             
@@ -122,6 +125,19 @@ class ChatController extends Controller
                 ->orderBy('created_at', 'asc')
                 ->with(['sender', 'receiver'])
                 ->get();
+                
+            // Mark all messages from the other user as read
+            Message::where('sender_id', $userId)
+                ->where('receiver_id', $currentUser->id)
+                ->where('is_read', 0)
+                ->update(['is_read' => 1]);
+                
+            // Log that messages have been marked as read
+            Log::info('Messages marked as read', [
+                'user_id' => $currentUser->id,
+                'other_user_id' => $userId,
+                'count' => $messages->where('sender_id', $userId)->where('is_read', 0)->count()
+            ]);
             
             return view('chat.chat-room', [
                 'messages' => $messages,
@@ -164,12 +180,31 @@ class ChatController extends Controller
             Log::info('Message saved to database', ['message_id' => $messageModel->id]);
 
             try {
-                // Try broadcasting to others
-                broadcast(new MessageSent($message, $user, $receiverId, $messageModel->id))->toOthers();
-                Log::info('Message broadcast successfully');
+                // Try broadcasting immediately without queuing
+                $event = new MessageSent($message, $user, $receiverId, $messageModel->id);
+                
+                // Test without toOthers() to debug
+                broadcast($event);
+                
+                Log::info('Message broadcast successfully', [
+                    'channel' => 'chat.' . $receiverId,
+                    'event' => 'message.sent',
+                    'sender_id' => $user->id,
+                    'receiver_id' => $receiverId,
+                    'message_id' => $messageModel->id,
+                    'broadcast_data' => [
+                        'message' => $message,
+                        'user' => $user->toArray(),
+                        'receiverId' => $receiverId,
+                        'messageId' => $messageModel->id
+                    ]
+                ]);
             } catch (\Exception $broadcastError) {
                 // Log the broadcast error but don't fail the request
-                Log::warning('Broadcasting error (non-critical): ' . $broadcastError->getMessage());
+                Log::warning('Broadcasting error (non-critical): ' . $broadcastError->getMessage(), [
+                    'exception' => $broadcastError,
+                    'trace' => $broadcastError->getTraceAsString()
+                ]);
             }
 
             // Return the message as a right chat bubble for sender
@@ -214,5 +249,54 @@ class ChatController extends Controller
             });
             
         return $recentMessages;
+    }
+
+    /**
+     * Get count of unread messages for current user
+     */
+    public function getUnreadCount()
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return response()->json(['count' => 0]);
+        }
+        
+        $count = Message::getUnreadCount($user->id);
+        return response()->json(['count' => $count]);
+    }
+
+    /**
+     * Mark messages from a specific sender as read
+     */
+    public function markAsRead(Request $request)
+    {
+        $senderId = $request->input('sender_id');
+        $currentUser = Auth::user();
+        
+        if (!$currentUser || !$senderId) {
+            return response()->json(['error' => 'Invalid request'], 400);
+        }
+        
+        try {
+            // Mark all messages from the sender to the current user as read
+            $count = Message::where('sender_id', $senderId)
+                ->where('receiver_id', $currentUser->id)
+                ->where('is_read', 0)
+                ->update(['is_read' => 1]);
+                
+            Log::info('Messages marked as read via AJAX', [
+                'user_id' => $currentUser->id,
+                'sender_id' => $senderId,
+                'count' => $count
+            ]);
+                
+            return response()->json(['success' => true, 'count' => $count]);
+        } catch (\Exception $e) {
+            Log::error('Error marking messages as read', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
     }
 }
