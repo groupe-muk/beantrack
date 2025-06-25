@@ -14,10 +14,10 @@ use Illuminate\Support\Facades\Broadcast;
 */
 
 Broadcast::channel('App.Models.User.{id}', function ($user, $id) {
-    return (int) $user->id === (int) $id;
+    return $user->id === $id; // Using string comparison instead of int cast
 });
 
 // Private chat channel authorization
 Broadcast::channel('chat.{id}', function ($user, $id) {
-    return (int) $user->id === (int) $id;
+    return $user->id === $id; // Using string comparison instead of int cast
 });

@@ -39,6 +39,8 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     // Chat Routes
     Route::get('/chat', [ChatController::class, 'index'])->name('chat.index');
+    Route::get('/chat/unread', [ChatController::class, 'getUnreadCount'])->name('chat.unread');
+    Route::post('/chat/mark-read', [ChatController::class, 'markAsRead'])->name('chat.mark-read');
     Route::get('/chat/{userId}', [ChatController::class, 'chatRoom'])->name('chat.room');
     Route::post('/chat/send',[ChatController::class, 'send'])->name('chat.send');
     // Chat Test Route

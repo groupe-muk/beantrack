@@ -12,6 +12,9 @@
             <a href="{{ $menuItem['href'] }}" class="flex items-center p-2 text-base text-dashboard-text-light rounded-lg hover:bg-light-brown group dark:text-gray-200 dark:hover:bg-gray-700">
               {!! $menuItem['icon'] ?? '' !!}
               <span class="ml-3" sidebar-toggle-item>{{ $menuItem['label']}}</span>
+              @if(isset($menuItem['badge']))
+                {!! $menuItem['badge'] !!}
+              @endif
             </a>
           </li>
           @endforeach
