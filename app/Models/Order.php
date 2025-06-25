@@ -26,6 +26,22 @@ class Order extends Model
 
     ];
 
+    /**
+     * Get the order date attribute with null safety
+     */
+    public function getOrderDateAttribute($value)
+    {
+        if (empty($value) || $value === '0000-00-00' || $value === '0000-00-00 00:00:00') {
+            return null;
+        }
+        
+        try {
+            return $this->asDate($value);
+        } catch (\Exception $e) {
+            return null;
+        }
+    }
+
     public function supplier()
     {
         return $this->belongsTo(Supplier::class, 'supplier_id');
