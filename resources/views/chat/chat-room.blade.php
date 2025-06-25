@@ -72,5 +72,5 @@
 </div>
 
 <!-- Load external chat JavaScript -->
-<script src="{{ asset('js/chat.js') }}?v={{ time() }}" defer></script>
+<script src="{{ asset('resources/js/chat.js') }}?v={{ time() }}" defer></script>
 @endsection
