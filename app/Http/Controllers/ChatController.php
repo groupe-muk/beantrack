@@ -35,6 +35,8 @@ class ChatController extends Controller
         
         if ($user->role === 'admin') {
 
+
+
             // Eager load user relationships
             $suppliers = Supplier::with('user')->get();
             
@@ -125,6 +127,7 @@ class ChatController extends Controller
                 ->orderBy('created_at', 'asc')
                 ->with(['sender', 'receiver'])
                 ->get();
+
                 
             // Mark all messages from the other user as read
             Message::where('sender_id', $userId)
@@ -138,6 +141,7 @@ class ChatController extends Controller
                 'other_user_id' => $userId,
                 'count' => $messages->where('sender_id', $userId)->where('is_read', 0)->count()
             ]);
+
             
             return view('chat.chat-room', [
                 'messages' => $messages,
@@ -180,6 +184,7 @@ class ChatController extends Controller
             Log::info('Message saved to database', ['message_id' => $messageModel->id]);
 
             try {
+
                 // Try broadcasting immediately without queuing
                 $event = new MessageSent($message, $user, $receiverId, $messageModel->id);
                 
@@ -205,6 +210,7 @@ class ChatController extends Controller
                     'exception' => $broadcastError,
                     'trace' => $broadcastError->getTraceAsString()
                 ]);
+
             }
 
             // Return the message as a right chat bubble for sender

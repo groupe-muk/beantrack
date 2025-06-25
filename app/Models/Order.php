@@ -13,7 +13,17 @@ class Order extends Model
     protected $keyType = 'string';
     public $incrementing = false;
     protected $fillable = [
-        'id', 'supplier_id', 'wholesaler_id', 'raw_coffee_id', 'coffee_product_id', 'status', 'quantity', 'total_price', 'created_at', 'updated_at'
+
+        'id', 'supplier_id', 'wholesaler_id', 'raw_coffee_id', 'coffee_product_id', 
+        'status', 'quantity', 'total_price', 'order_date', 'total_amount', 'notes'
+    ];
+
+    protected $casts = [
+        'order_date' => 'date',
+        'total_amount' => 'decimal:2',
+        'total_price' => 'decimal:2',
+        'quantity' => 'decimal:2',
+
     ];
 
     public function supplier()

@@ -43,11 +43,12 @@
                   data-csrf-token="{{ csrf_token() }}">
                 @csrf
                 <input type="hidden" name="receiver_id" id="receiver_id" value="{{ $otherUser->id }}">
-                <div class="flex flex-row items-center rounded-xl bg-white w-full px-4">
-                    <div class="flex-grow">
+                <div class="flex flex-row items-center rounded-xl bg-white w-full px-4">                    <div class="flex-grow">
                         <div class="relative w-full">
 
+
                             <input type="text" id="message" name="message" class="flex w-full border rounded-xl focus:outline-none focus:border-light-brown pl-4 h-10" placeholder="Type your message..." autofocus />
+
                         </div>
                     </div>
                     <div class="ml-4">
@@ -67,6 +68,8 @@
     </div>
 </div>
 
+
 <!-- Load external chat JavaScript -->
 @vite('resources/js/chat.js')
+
 @endsection
