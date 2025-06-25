@@ -10,10 +10,13 @@ use App\Livewire\Settings\Profile;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 use App\Http\Controllers\columnChartController;
+
 use App\Http\Controllers\InventoryController;
+
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\userManagerController;
 use App\Http\Controllers\tableCardController;
+
 use App\Http\Controllers\SupplyCentersController;
 
 Route::get('/sample', [columnChartController::class, 'showColumnChart'])->name('column.chart');
@@ -112,6 +115,9 @@ Route::middleware(['auth'])->group(function () {
             Route::get('/create', [OrderController::class, 'create'])->name('create');
             Route::post('/', [OrderController::class, 'store'])->name('store');
             Route::get('/{order}', [OrderController::class, 'show'])->name('show');
+            Route::get('/{order}/edit', [OrderController::class, 'edit'])->name('edit');
+            Route::put('/{order}', [OrderController::class, 'update'])->name('update');
+            Route::delete('/{order}', [OrderController::class, 'destroy'])->name('destroy');
             Route::put('/{order}/status', [OrderController::class, 'updateStatus'])->name('update-status');
             Route::get('/api/stats', [OrderController::class, 'getOrderStats'])->name('api.stats');
         });
