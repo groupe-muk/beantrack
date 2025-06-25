@@ -9,17 +9,11 @@ use App\Livewire\Settings\Password;
 use App\Livewire\Settings\Profile;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\columnChartController;
-
 use App\Http\Controllers\InventoryController;
-use App\Http\Controllers\userManagerController;
-
-use App\Http\Controllers\PusherController;
-use Illuminate\Http\Request;
-
-
-use App\Http\Controllers\tableCardController;
 use App\Http\Controllers\OrderController;
-
+use App\Http\Controllers\userManagerController;
+use App\Http\Controllers\tableCardController;
+use App\Http\Controllers\SupplyCentersController;
 
 Route::get('/sample', [columnChartController::class, 'showColumnChart'])->name('column.chart');
 
@@ -36,8 +30,8 @@ Route::middleware(['guest'])->controller(AuthController::class)->group(function 
     Route::get('/login', 'showlogin')->name('show.login');
     Route::post('/create', 'create')->name('create');
     Route::post('/login', 'login')->name('login');
-    
 });
+
 
 // Routes for authenticated users
 Route::middleware(['auth'])->group(function () {
@@ -109,6 +103,12 @@ Route::middleware(['auth'])->group(function () {
             Route::get('/api/stats', [OrderController::class, 'getOrderStats'])->name('api.stats');
         });
 
+        //Inventory routes
+        Route::get('/inventory', [InventoryController::class, 'index'])->name('inventory.index');
+        Route::post('/inventory', [InventoryController::class, 'store'])->name('inventory.store');
+        Route::patch('/inventory/{inventory}', [InventoryController::class, 'update'])->name('inventory.update');
+        Route::delete('/inventory/{inventory}', [InventoryController::class, 'destroy'])->name('inventory.destroy');
+
    
     
     Route::middleware(['role:supplier'])->group(function () {
@@ -124,6 +124,53 @@ Route::middleware(['auth'])->group(function () {
 
 
 /*Route::view('dashboard', 'dashboard')
+
+// Routes for authenticated users
+Route::middleware(['auth'])->group(function () {
+    Route::post('/logout',[AuthController::class, 'logout'])->name('logout');
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+    /*Route::get('/dashboard', [AuthController::class, 'showApp'])->name('dashboard');*/
+    
+    // Role-specific routes
+    Route::middleware(['role:admin'])->group(function () {
+        //User management routes
+        Route::get('admin/users', [userManagerController::class, 'index'])->name('admin.users.index');
+        Route::post('admin/users', [userManagerController::class, 'store'])->name('admin.users.store');
+        Route::patch('admin/users/{user}', [userManagerController::class, 'update'])->name('admin.users.update');
+        Route::delete('admin/users/{user}', [userManagerController::class, 'destroy'])->name('admin.users.destroy');
+    });
+    
+    Route::middleware(['role:supplier'])->group(function () {
+        // Supplier routes
+    });
+    
+    Route::middleware(['role:vendor'])->group(function () {
+        // Vendor routes
+    });
+
+
+
+
+/*Route::view('dashboard', 'dashboard')
+
+
+
+Route::get('/SupplyCenters', function () {
+    return view('SupplyCenters.SupplyCenters');
+})->name('SupplyCenters');
+Route::get('/SupplyCenter1', [SupplyCentersController::class,  'shownSupplyCenter1'])->name('show.SupplyCenter1'); 
+Route::get('/SupplyCenter2', [SupplyCentersController::class, 'shownSupplyCenter2'])->name('show.SupplyCenter2'); 
+Route::get('/SupplyCenter3', [SupplyCentersController::class, 'shownSupplyCenter3'])->name('show.SupplyCenter3'); 
+
+
+
+//Route::post('/warehouseA', [WarehouseController::class, 'warehouseA'])->name('warehouseA');
+//Route::post('/workers/{worker}/transfer', [WarehouseController::class, 'transfer'])->name('workers.transfer');
+//Route::delete('/workers/{worker}', [WarehouseController::class, 'destroy'])->name('workers.destroy');
+
+
+Route::view('dashboard', 'dashboard')
     ->middleware(['auth', 'verified'])
     ->name('dashboard');*/
 
@@ -137,9 +184,5 @@ require __DIR__.'/auth.php';
 
  
 
-//inventory routes
-Route::get('/inventory',function(){
-    return view('Inventory.inventory');
-});
 
 
