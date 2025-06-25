@@ -10,7 +10,9 @@ class Message extends Model
     protected $keyType = 'string';
     public $incrementing = false;
     protected $fillable = [
+
         'id', 'sender_id', 'receiver_id', 'content', 'is_read'
+
     ];
     
     /**

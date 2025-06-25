@@ -8,10 +8,15 @@ use App\Livewire\Settings\Appearance;
 use App\Livewire\Settings\Password;
 use App\Livewire\Settings\Profile;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Http\Request;
 use App\Http\Controllers\columnChartController;
+
+use App\Http\Controllers\InventoryController;
+
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\userManagerController;
 use App\Http\Controllers\tableCardController;
+
 use App\Http\Controllers\SupplyCentersController;
 use App\Http\Controllers\InventoryController;
 
@@ -46,18 +51,46 @@ Route::middleware(['auth'])->group(function () {
     // Chat Test Route
     Route::match(['get', 'post'], '/chat/test/send', [App\Http\Controllers\ChatTestController::class, 'testSend'])->name('chat.test');
     Route::post('/chat/receive', function (Request $request) {
-        // Since we're expecting JSON data
-        $message = $request->input('message');
-        $user = $request->input('user');
-        $timestamp = $request->input('timestamp');
-        
-        // Return only the chat bubble component, not a full layout
-        return response()->view('components.chat.left-chat-bubble', [
-            'message' => $message,
-            'user' => $user,
-            'timestamp' => $timestamp,
-            'messageId' => uniqid()
-        ])->header('Content-Type', 'text/html');
+        try {
+            // Get the input data - JavaScript sends JSON, not form data
+            $jsonData = json_decode($request->getContent(), true);
+            
+            $message = $jsonData['message'] ?? $request->input('message');
+            $userData = $jsonData['user'] ?? $request->input('user');
+            $timestamp = $jsonData['timestamp'] ?? $request->input('timestamp');
+            $messageId = $jsonData['messageId'] ?? $request->input('messageId', uniqid());
+            
+            // Log the incoming data for debugging
+            \Log::info('Chat receive route data', [
+                'message' => $message,
+                'userData' => $userData,
+                'userDataType' => gettype($userData),
+                'timestamp' => $timestamp,
+                'messageId' => $messageId
+            ]);
+            
+            // Create a user object from the data
+            // The user data comes as an array from JavaScript, but the component expects an object
+            $user = is_array($userData) ? (object) $userData : $userData;
+            
+            // Return only the chat bubble component, not a full layout
+            return response()->view('components.chat.left-chat-bubble', [
+                'message' => $message,
+                'user' => $user,
+                'timestamp' => $timestamp,
+                'messageId' => $messageId
+            ])->header('Content-Type', 'text/html');
+            
+        } catch (\Exception $e) {
+            \Log::error('Chat receive error', [
+                'error' => $e->getMessage(),
+                'request_data' => $request->all(),
+                'json_data' => json_decode($request->getContent(), true),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response('Error loading message', 500);
+        }
     })->name('chat.receive');
     
     // Message Attachments
@@ -83,6 +116,9 @@ Route::middleware(['auth'])->group(function () {
             Route::get('/create', [OrderController::class, 'create'])->name('create');
             Route::post('/', [OrderController::class, 'store'])->name('store');
             Route::get('/{order}', [OrderController::class, 'show'])->name('show');
+            Route::get('/{order}/edit', [OrderController::class, 'edit'])->name('edit');
+            Route::put('/{order}', [OrderController::class, 'update'])->name('update');
+            Route::delete('/{order}', [OrderController::class, 'destroy'])->name('destroy');
             Route::put('/{order}/status', [OrderController::class, 'updateStatus'])->name('update-status');
             Route::get('/api/stats', [OrderController::class, 'getOrderStats'])->name('api.stats');
         });
