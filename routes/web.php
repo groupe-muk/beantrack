@@ -94,8 +94,9 @@ Route::middleware(['auth'])->group(function () {
         //Inventory routes
         Route::get('/inventory', [InventoryController::class, 'index'])->name('inventory.index');
         Route::post('/inventory', [InventoryController::class, 'store'])->name('inventory.store');
-        Route::patch('/inventory/{inventory}', [InventoryController::class, 'update'])->name('inventory.update');
-        Route::delete('/inventory/{inventory}', [InventoryController::class, 'destroy'])->name('inventory.destroy');
+        Route::patch('/inventory/{rawCoffee}', [InventoryController::class, 'update'])->name('inventory.update');
+        //Route::patch('/inventory/{coffeeProduct}', [InventoryController::class, 'update'])->name('inventory.update');
+        Route::delete('/inventory/{rawCoffee}', [InventoryController::class, 'destroy'])->name('inventory.destroy');
 
    
     
