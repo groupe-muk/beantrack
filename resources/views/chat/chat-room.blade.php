@@ -1,9 +1,6 @@
 @extends('layouts.main-view')
 @section('content')
-<div class="container mx-auto px-4 py-6" 
-     data-current-user="{{ $currentUser->id }}" 
-     data-other-user="{{ $otherUser->id }}"
-     data-chat-send-url="{{ route('chat.send') }}">
+<div class="container mx-auto px-4 py-6">
     <div class="bg-white rounded-lg shadow-md flex flex-col h-[calc(100vh-200px)]">
         <!-- Chat Header -->
         <div class="border-b p-4 flex items-center justify-between">
@@ -57,8 +54,192 @@
                     </div>
                 </div>
             </form>
-        </div>    </div>
+        </div>
+    </div>
 </div>
 
-<script src="{{ asset('js/chat.js') }}"></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log("Inner script running");
+        const chatForm = document.getElementById('chat-form');
+        const messageInput = document.getElementById('message');
+        const messagesContainer = document.getElementById('chat-messages');
+        
+        // Add debugging info
+        console.log('Chat room initialized');
+        const currentUserId = {!! json_encode($currentUser->id) !!};
+        const otherUserId = {!! json_encode($otherUser->id) !!};
+        console.log('Current user ID:', currentUserId);
+        console.log('Other user ID:', otherUserId);
+        
+        // Function to append message to chat
+        function appendMessage(html) {
+            // Log the received HTML for debugging
+            console.log('Received HTML response to append:', html);
+
+            // Create a temporary container to parse the HTML
+            const tempContainer = document.createElement('div');
+            tempContainer.innerHTML = html.trim();
+
+            // Find the correct chat bubble element - could be right or left bubble
+            // Direct check for the main div
+            if (tempContainer.firstElementChild) {
+                console.log('Found first element child to append:', tempContainer.firstElementChild.tagName, tempContainer.firstElementChild.className);
+                messagesContainer.appendChild(tempContainer.firstElementChild);
+            } else {
+                console.log('No element child found, using insertAdjacentHTML');
+                // Fallback to the old method if we can't find a proper element
+                messagesContainer.insertAdjacentHTML('beforeend', html);
+            }            // Scroll to bottom
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+        
+        // Listen for messages from Echo on a private channel
+        try {
+            if (window.Echo && typeof window.Echo.private === 'function') {
+                // Add debug info to help troubleshoot                console.log('Setting up Echo private channel:', `chat.${currentUserId}`);
+                const channel = window.Echo.private(`chat.${currentUserId}`);
+                
+                // Add debugging for channel events
+                channel.subscribed(() => {
+                    console.log('Successfully subscribed to channel:', `chat.${currentUserId}`);
+                });
+                
+                channel.error((error) => {
+                    console.error('Channel subscription error:', error);
+                });
+                
+                channel.listen('message.sent', function(data) {// Log incoming message data
+                console.log('Received message via Echo:', data);
+                
+                // Dispatch event for unread count update
+                window.dispatchEvent(new CustomEvent('message-received'));
+                
+                // Only process messages from the current chat partner
+                if (data.user.id === otherUserId) {
+                    fetch('/chat/receive', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Accept': 'text/html',
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                            },
+                            body: JSON.stringify({
+                                message: data.message,
+                                user: data.user,
+                                timestamp: data.timestamp
+                            })
+                        })
+                        .then(response => response.text())
+                        .then(html => {
+                            appendMessage(html);
+
+                            // Mark the message as read since we're in the chat room
+                            fetch('/chat/mark-read', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                                },
+                                body: JSON.stringify({
+                                    sender_id: data.user.id
+                                })
+                            }).catch(error => console.error('Error marking as read:', error));
+                        })
+                        .catch(error => {
+                            console.error('Error receiving message:', error);                        });
+                }
+            });
+            
+            // Show connected status
+            console.log('Real-time chat connected successfully');
+        } else {
+            console.warn('Echo is not properly initialized. Real-time messaging disabled.');
+        }
+    } catch (error) {
+        console.error('Error setting up real-time messaging:', error);
+    }
+
+    // Handle form submission
+    chatForm.addEventListener('submit', function(e) {
+        console.log('Form submit triggered');
+        // Ensure the form doesn't submit traditionally
+        e.preventDefault();
+
+        const message = messageInput.value;
+        const receiverId = document.getElementById('receiver_id').value;
+
+        if (!message.trim()) {
+            console.log('Empty message, not sending');
+            return;
+        }
+        console.log('Sending message:', message, 'to receiver:', receiverId);
+
+        // Use URLSearchParams instead of FormData for x-www-form-urlencoded format
+        const formData = new URLSearchParams();
+        formData.append('message', message);
+        formData.append('receiver_id', receiverId);
+        formData.append('_token', document.querySelector('meta[name="csrf-token"]').content);
+        
+        console.log('Submitting form data:', {
+            message,
+            receiver_id: receiverId,
+            csrf: document.querySelector('meta[name="csrf-token"]').content
+        });
+        
+        fetch('{{ route('chat.send') }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'Accept': 'text/html',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                    },
+                    body: formData
+                }).then(response => {
+                console.log('Response received:', response.status, response.statusText);
+                if (!response.ok) {
+                    throw new Error('Network response was not ok: ' + response.status);
+                }
+                return response.text();
+            })
+            .then(html => {
+                console.log('Message sent successfully, received HTML response');
+                // Check if the response is empty
+                if (!html || html.trim() === '') {
+                    console.error('Empty response received from server');
+                    throw new Error('Empty response from server');
+                }
+
+                appendMessage(html);
+                messageInput.value = '';
+            }).catch(error => {
+                console.error('Error sending message:', error);
+                console.error('Error details:', error.message);
+                // Display a toast message instead of an alert
+                const errorMessage = document.createElement('div');
+                errorMessage.className = 'bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded fixed bottom-4 right-4 shadow-md';
+                errorMessage.innerHTML = `
+                    <div class="flex items-center">
+                        <div class="py-1">
+                            <svg class="w-6 h-6 mr-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <p>Failed to send message. The message was saved but real-time updates may not work.</p>
+                            <p class="text-sm">Try refreshing the page.</p>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(errorMessage);
+
+                // Remove the error message after 5 seconds
+                setTimeout(() => {
+                    errorMessage.remove();
+                }, 5000);
+            });
+    });
+});
+</script>
 @endsection

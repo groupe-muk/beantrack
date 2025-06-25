@@ -183,8 +183,8 @@ class ChatController extends Controller
                 // Try broadcasting immediately without queuing
                 $event = new MessageSent($message, $user, $receiverId, $messageModel->id);
                 
-                // Test without toOthers() to debug
-                broadcast($event);
+                // Use broadcast()->toOthers() but ensure it's not queued
+                broadcast($event)->toOthers();
                 
                 Log::info('Message broadcast successfully', [
                     'channel' => 'chat.' . $receiverId,
