@@ -11,7 +11,6 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 use App\Http\Controllers\columnChartController;
 
-use App\Http\Controllers\InventoryController;
 
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\userManagerController;
