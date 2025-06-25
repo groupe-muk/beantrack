@@ -8,6 +8,7 @@ use App\Livewire\Settings\Appearance;
 use App\Livewire\Settings\Password;
 use App\Livewire\Settings\Profile;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Http\Request;
 use App\Http\Controllers\columnChartController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\OrderController;
@@ -47,15 +48,26 @@ Route::middleware(['auth'])->group(function () {
     Route::match(['get', 'post'], '/chat/test/send', [App\Http\Controllers\ChatTestController::class, 'testSend'])->name('chat.test');
     Route::post('/chat/receive', function (Request $request) {
         try {
-            // Get the input data
-            $message = $request->input('message');
-            $userData = $request->input('user');
-            $timestamp = $request->input('timestamp');
-            $messageId = $request->input('messageId', uniqid());
+            // Get the input data - JavaScript sends JSON, not form data
+            $jsonData = json_decode($request->getContent(), true);
+            
+            $message = $jsonData['message'] ?? $request->input('message');
+            $userData = $jsonData['user'] ?? $request->input('user');
+            $timestamp = $jsonData['timestamp'] ?? $request->input('timestamp');
+            $messageId = $jsonData['messageId'] ?? $request->input('messageId', uniqid());
+            
+            // Log the incoming data for debugging
+            \Log::info('Chat receive route data', [
+                'message' => $message,
+                'userData' => $userData,
+                'userDataType' => gettype($userData),
+                'timestamp' => $timestamp,
+                'messageId' => $messageId
+            ]);
             
             // Create a user object from the data
             // The user data comes as an array from JavaScript, but the component expects an object
-            $user = (object) $userData;
+            $user = is_array($userData) ? (object) $userData : $userData;
             
             // Return only the chat bubble component, not a full layout
             return response()->view('components.chat.left-chat-bubble', [
@@ -69,6 +81,7 @@ Route::middleware(['auth'])->group(function () {
             \Log::error('Chat receive error', [
                 'error' => $e->getMessage(),
                 'request_data' => $request->all(),
+                'json_data' => json_decode($request->getContent(), true),
                 'trace' => $e->getTraceAsString()
             ]);
             

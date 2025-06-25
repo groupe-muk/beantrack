@@ -68,5 +68,5 @@
 </div>
 
 <!-- Load external chat JavaScript -->
-<script src="{{ asset('resources/js/chat.js') }}?v={{ time() }}" defer></script>
+@vite('resources/js/chat.js')
 @endsection
