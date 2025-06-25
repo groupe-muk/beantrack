@@ -21,7 +21,7 @@
                 </div>
             </div>
         </div>
-        
+
         <!-- Chat Messages -->
         <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-4">
             @foreach($messages as $message)
@@ -35,16 +35,25 @@
         
         <!-- Chat Input -->
         <div class="border-t p-4">
-            <form id="chat-form" action="" method="POST">
+            <form id="chat-form" 
+                  action="javascript:void(0);" 
+                  method="POST"
+                  data-current-user-id="{{ $currentUser->id }}"
+                  data-receiver-id="{{ $otherUser->id }}"
+                  data-csrf-token="{{ csrf_token() }}">
                 @csrf
                 <input type="hidden" name="receiver_id" id="receiver_id" value="{{ $otherUser->id }}">
                 <div class="flex flex-row items-center rounded-xl bg-white w-full px-4">                    <div class="flex-grow">
                         <div class="relative w-full">
-                            <input type="text" id="message" name="message" class="flex w-full border rounded-xl focus:outline-none focus:border-indigo-300 pl-4 h-10" placeholder="Type your message..." autofocus />
+
+
+                            <input type="text" id="message" name="message" class="flex w-full border rounded-xl focus:outline-none focus:border-light-brown pl-4 h-10" placeholder="Type your message..." autofocus />
+
                         </div>
                     </div>
                     <div class="ml-4">
-                        <button type="submit" class="flex items-center justify-center bg-indigo-500 hover:bg-indigo-600 rounded-xl text-white px-4 py-1 flex-shrink-0">
+                        <button type="submit" class="flex items-center justify-center bg-coffee-brown hover:bg-light-brown rounded-xl text-white px-4 py-1 flex-shrink-0">
+
                             <span>Send</span>
                             <span class="ml-2">
                                 <svg class="w-4 h-4 transform rotate-45 -mt-px" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -60,127 +69,7 @@
 </div>
 
 
-<script>
-    document.addEventListener('DOMContentLoaded', function() {        const chatForm = document.getElementById('chat-form');
-        const messageInput = document.getElementById('message');
-        const messagesContainer = document.getElementById('chat-messages');
-        
-        // Function to append message to chat
-        function appendMessage(html) {
-            // Create a temporary container to parse the HTML
-            const tempContainer = document.createElement('div');
-            tempContainer.innerHTML = html.trim();
-            
-            // Find the actual chat bubble element (first child with flex class)
-            const chatBubble = tempContainer.querySelector('.flex');
-            
-            if (chatBubble) {
-                // Only append the chat bubble element, not the entire HTML
-                messagesContainer.appendChild(chatBubble);
-            } else {
-                // Fallback to the old method if we can't find a proper chat bubble
-                messagesContainer.insertAdjacentHTML('beforeend', html);
-            }
-            
-            // Scroll to bottom
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
-        }        // Listen for messages from Echo on a private channel
-        try {
-            if (window.Echo && typeof window.Echo.private === 'function') {
-                const channel = window.Echo.private(`chat.${{{ $currentUser->id }}}`);
-                
-                channel.listen('.message.sent', function(data) {
-                    // Only process messages from the current chat partner
-                    if (data.user.id == {{ $otherUser->id }}) {
-                        fetch('/chat/receive', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json', 
-                                'Accept': 'text/html',
-                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-                            },
-                            body: JSON.stringify({
-                                message: data.message,
-                                user: data.user,
-                                timestamp: data.timestamp
-                            })
-                        })
-                        .then(response => response.text())
-                        .then(html => {
-                            appendMessage(html);
-                        })
-                        .catch(error => {
-                            console.error('Error receiving message:', error);
-                        });
-                    }
-                });
-                
-                // Show connected status
-                console.log('Real-time chat connected successfully');
-            } else {
-                console.warn('Echo is not properly initialized. Real-time messaging disabled.');
-            }
-        } catch (error) {
-            console.error('Error setting up real-time messaging:', error);
-        }//Handle form submission
-        chatForm.addEventListener('submit', function(e) {
-            e.preventDefault();
+<!-- Load external chat JavaScript -->
+@vite('resources/js/chat.js')
 
-            const message = messageInput.value;
-            const receiverId = document.getElementById('receiver_id').value;
-            
-            if(!message.trim()) return;
-            console.log('Sending message:', message, 'to receiver:', receiverId);
-              fetch('{{ route('chat.send') }}', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                    'Accept': 'text/html',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-                },
-                body: new URLSearchParams({
-                    'message': message,
-                    'receiver_id': receiverId,
-                    '_token': document.querySelector('meta[name="csrf-token"]').content
-                })
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Network response was not ok: ' + response.status);
-                }
-                return response.text();
-            })
-            .then(html => {
-                console.log('Message sent successfully');
-                appendMessage(html);
-                messageInput.value = '';
-            })            .catch(error => {
-                console.error('Error sending message:', error);
-                // Display a toast message instead of an alert
-                const errorMessage = document.createElement('div');
-                errorMessage.className = 'bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded fixed bottom-4 right-4 shadow-md';
-                errorMessage.innerHTML = `
-                    <div class="flex items-center">
-                        <div class="py-1">
-                            <svg class="w-6 h-6 mr-4" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"></path>
-                            </svg>
-                        </div>
-                        <div>
-                            <p>Failed to send message. The message was saved but real-time updates may not work.</p>
-                            <p class="text-sm">Try refreshing the page.</p>
-                        </div>
-                    </div>
-                `;
-                document.body.appendChild(errorMessage);
-                
-                // Remove the error message after 5 seconds
-                setTimeout(() => {
-                    errorMessage.remove();
-                }, 5000);
-            })
-        })
-    });
-
-</script>
 @endsection

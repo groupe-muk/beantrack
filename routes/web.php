@@ -8,17 +8,15 @@ use App\Livewire\Settings\Appearance;
 use App\Livewire\Settings\Password;
 use App\Livewire\Settings\Profile;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\columnChartController;
-use App\Http\Controllers\OrderController;
-use App\Http\Controllers\userManagerController;
-
-use App\Http\Controllers\PusherController;
 use Illuminate\Http\Request;
-
-
-use App\Http\Controllers\tableCardController;
+use App\Http\Controllers\columnChartController;
 
 use App\Http\Controllers\InventoryController;
+
+use App\Http\Controllers\OrderController;
+use App\Http\Controllers\userManagerController;
+use App\Http\Controllers\tableCardController;
+
 use App\Http\Controllers\SupplyCentersController;
 
 Route::get('/sample', [columnChartController::class, 'showColumnChart'])->name('column.chart');
@@ -38,29 +36,60 @@ Route::middleware(['guest'])->controller(AuthController::class)->group(function 
     Route::post('/login', 'login')->name('login');
 });
 
+
 // Routes for authenticated users
 Route::middleware(['auth'])->group(function () {
     Route::post('/logout',[AuthController::class, 'logout'])->name('logout');
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     // Chat Routes
     Route::get('/chat', [ChatController::class, 'index'])->name('chat.index');
+    Route::get('/chat/unread', [ChatController::class, 'getUnreadCount'])->name('chat.unread');
+    Route::post('/chat/mark-read', [ChatController::class, 'markAsRead'])->name('chat.mark-read');
     Route::get('/chat/{userId}', [ChatController::class, 'chatRoom'])->name('chat.room');
     Route::post('/chat/send',[ChatController::class, 'send'])->name('chat.send');
     // Chat Test Route
     Route::match(['get', 'post'], '/chat/test/send', [App\Http\Controllers\ChatTestController::class, 'testSend'])->name('chat.test');
     Route::post('/chat/receive', function (Request $request) {
-        // Since we're expecting JSON data
-        $message = $request->input('message');
-        $user = $request->input('user');
-        $timestamp = $request->input('timestamp');
-        
-        // Return only the chat bubble component, not a full layout
-        return response()->view('components.chat.left-chat-bubble', [
-            'message' => $message,
-            'user' => $user,
-            'timestamp' => $timestamp,
-            'messageId' => uniqid()
-        ])->header('Content-Type', 'text/html');
+        try {
+            // Get the input data - JavaScript sends JSON, not form data
+            $jsonData = json_decode($request->getContent(), true);
+            
+            $message = $jsonData['message'] ?? $request->input('message');
+            $userData = $jsonData['user'] ?? $request->input('user');
+            $timestamp = $jsonData['timestamp'] ?? $request->input('timestamp');
+            $messageId = $jsonData['messageId'] ?? $request->input('messageId', uniqid());
+            
+            // Log the incoming data for debugging
+            \Log::info('Chat receive route data', [
+                'message' => $message,
+                'userData' => $userData,
+                'userDataType' => gettype($userData),
+                'timestamp' => $timestamp,
+                'messageId' => $messageId
+            ]);
+            
+            // Create a user object from the data
+            // The user data comes as an array from JavaScript, but the component expects an object
+            $user = is_array($userData) ? (object) $userData : $userData;
+            
+            // Return only the chat bubble component, not a full layout
+            return response()->view('components.chat.left-chat-bubble', [
+                'message' => $message,
+                'user' => $user,
+                'timestamp' => $timestamp,
+                'messageId' => $messageId
+            ])->header('Content-Type', 'text/html');
+            
+        } catch (\Exception $e) {
+            \Log::error('Chat receive error', [
+                'error' => $e->getMessage(),
+                'request_data' => $request->all(),
+                'json_data' => json_decode($request->getContent(), true),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response('Error loading message', 500);
+        }
     })->name('chat.receive');
     
     // Message Attachments
@@ -171,6 +200,7 @@ Route::view('dashboard', 'dashboard')
 
 
 require __DIR__.'/auth.php';
+
  
 
 

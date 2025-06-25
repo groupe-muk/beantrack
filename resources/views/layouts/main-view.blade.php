@@ -38,8 +38,41 @@
         <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
         <script src="https://cdn.jsdelivr.net/npm/simple-datatables@9.0.3"></script>
 
-       
-        @stack('scripts')
+        @if(auth()->check())
+        <script>
+            // Function to update unread message count
+            function updateUnreadCount() {
+                fetch('{{ route('chat.unread') }}')
+                    .then(response => response.json())
+                    .then(data => {
+                        const badge = document.getElementById('unread-message-count');
+                        if (badge) {
+                            if (data.count > 0) {
+                                badge.textContent = data.count;
+                                badge.classList.remove('hidden');
+                            } else {
+                                badge.classList.add('hidden');
+                            }
+                        }
+                    })
+                    .catch(error => console.error('Error fetching unread count:', error));
+            }
+
+            // Update on page load
+            document.addEventListener('DOMContentLoaded', function() {
+                updateUnreadCount();
+                // Update every 30 seconds
+                setInterval(updateUnreadCount, 30000);
+            });
+
+            // Listen for message events (if using pusher)
+            @if(config('broadcasting.connections.pusher.key'))
+            window.addEventListener('message-received', function() {
+                updateUnreadCount();
+            });
+            @endif
+        </script>
+        @endif
     </body>
 
    
