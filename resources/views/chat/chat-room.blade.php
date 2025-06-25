@@ -39,11 +39,11 @@
                 <div class="flex flex-row items-center rounded-xl bg-white w-full px-4">
                     <div class="flex-grow">
                         <div class="relative w-full">
-                            <input type="text" id="message" name="message" class="flex w-full border rounded-xl focus:outline-none focus:border-indigo-300 pl-4 h-10" placeholder="Type your message..." autofocus />
+                            <input type="text" id="message" name="message" class="flex w-full border rounded-xl focus:outline-none focus:border-light-brown pl-4 h-10" placeholder="Type your message..." autofocus />
                         </div>
                     </div>
                     <div class="ml-4">
-                        <button type="submit" class="flex items-center justify-center bg-indigo-500 hover:bg-indigo-600 rounded-xl text-white px-4 py-1 flex-shrink-0">
+                        <button type="submit" class="flex items-center justify-center bg-coffee-brown hover:bg-light-brown rounded-xl text-white px-4 py-1 flex-shrink-0">
                             <span>Send</span>
                             <span class="ml-2">
                                 <svg class="w-4 h-4 transform rotate-45 -mt-px" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
