@@ -687,18 +687,34 @@ Route::post('/chat/send',[ChatController::class, 'send'])->name('chat.send');
 
 // Receive message component (for displaying incoming messages)
 Route::post('/chat/receive', function (Request $request) {
-    // Since we're expecting JSON data
-    $message = $request->input('message');
-    $user = $request->input('user');
-    $timestamp = $request->input('timestamp');
-    
-    // Return only the chat bubble component, not a full layout
-    return response()->view('components.chat.left-chat-bubble', [
-        'message' => $message,
-        'user' => $user,
-        'timestamp' => $timestamp,
-        'messageId' => uniqid()
-    ])->header('Content-Type', 'text/html');
+    try {
+        // Get the input data
+        $message = $request->input('message');
+        $userData = $request->input('user');
+        $timestamp = $request->input('timestamp');
+        $messageId = $request->input('messageId', uniqid());
+        
+        // Create a user object from the data
+        // The user data comes as an array from JavaScript, but the component expects an object
+        $user = (object) $userData;
+        
+        // Return only the chat bubble component, not a full layout
+        return response()->view('components.chat.left-chat-bubble', [
+            'message' => $message,
+            'user' => $user,
+            'timestamp' => $timestamp,
+            'messageId' => $messageId
+        ])->header('Content-Type', 'text/html');
+        
+    } catch (\Exception $e) {
+        \Log::error('Chat receive error', [
+            'error' => $e->getMessage(),
+            'request_data' => $request->all(),
+            'trace' => $e->getTraceAsString()
+        ]);
+        
+        return response('Error loading message', 500);
+    }
 })->name('chat.receive');
 ```
 
@@ -771,6 +787,12 @@ window.addEventListener('message-received', function() {
    - **Cause**: JavaScript errors or route issues
    - **Solution**: Check browser console and ensure the 'chat.unread' route is accessible
 
+5. **"HTTP 500: Internal Server Error" on `/chat/receive` endpoint**
+   - **Cause**: JavaScript sends user data as an object, but Blade component expects it as a model with `->` syntax
+   - **Solution**: Convert the user array to an object in the route: `$user = (object) $userData;`
+   - **Symptoms**: Real-time messaging works (messages save to database) but incoming messages don't display
+   - **Debug**: Check Laravel logs for detailed error information
+
 ### System Requirements
 
 - PHP 8.x
@@ -789,6 +811,45 @@ window.addEventListener('message-received', function() {
 
 3. **Message Archiving**
    - Consider archiving older messages to improve performance for active conversations
+
+### Important Implementation Notes
+
+#### Data Type Consistency
+When working with JavaScript-to-PHP data transmission in real-time chat:
+
+**Issue**: JavaScript objects vs PHP object access
+```javascript
+// JavaScript sends user data as an object
+body: JSON.stringify({
+    message: data.message,
+    user: data.user, // This is a JavaScript object: {id: 'U00013', name: 'John'}
+    timestamp: data.timestamp
+})
+```
+
+```php
+// PHP route receives it as an array, but Blade expects object notation
+$userData = $request->input('user'); // This is now an array
+$user = (object) $userData; // Convert to object for Blade component
+```
+
+**Solution**: Always convert JavaScript objects to PHP objects when passing to Blade components:
+```php
+Route::post('/chat/receive', function (Request $request) {
+    try {
+        $message = $request->input('message');
+        $userData = $request->input('user');
+        $user = (object) $userData; // Convert array to object
+        
+        return response()->view('components.chat.left-chat-bubble', [
+            'user' => $user, // Now accessible as $user->name in Blade
+        ]);
+    } catch (\Exception $e) {
+        \Log::error('Chat receive error', ['error' => $e->getMessage()]);
+        return response('Error loading message', 500);
+    }
+});
+```
 
 ## Conclusion
 

@@ -38,6 +38,11 @@ if (pusherKey && pusherCluster) {
     window.Echo.connector.pusher.connection.bind('auth_failed', function(err) {
         console.error('Pusher auth failed:', err);
     });
+    
+    // Make Pusher instance globally accessible for direct binding
+    window.pusher = window.Echo.connector.pusher;
+    
+    console.log('✅ Echo and Pusher initialized successfully');
 } else {
     console.warn('Pusher configuration missing. Real-time messaging disabled.');
     // Create a dummy Echo object to prevent errors
