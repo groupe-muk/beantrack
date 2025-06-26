@@ -6,9 +6,7 @@
   <!-- Header Section -->
   <div class="flex justify-between items-center mb-6">
     <h1 class="text-3xl font-bold text-dashboard-light">Inventory Management</h1>
-    <div>
-      <button onclick="addItem()" class="bg-black text-white px-4 py-2 rounded">+ Add Item</button>
-    </div>
+  
   </div>
   <p class="text-soft-brown mb-4">Track and manage your inventory across all locations</p>
   
@@ -39,8 +37,12 @@
 
 
   <!-- Inventory Table -->
-  <div class="mt-10">
-  <h1 class="text-2xl font-semibold text-dashboard-light pb-5">Raw Coffee</h1>
+  <div class=" mt-10">
+     
+  <div class="flex justify-between items-center pb-5">
+    <h1 class="text-2xl font-semibold text-dashboard-light">Raw Coffee</h1>
+    <button onclick="addItem()" class="bg-brown text-white px-4 py-2 rounded hover:bg-gray-800 transition-colors">+ Add Item</button>
+</div>
     <div class="bg-white rounded shadow overflow-x-auto p-4">
       <table class="min-w-full leading-normal" id="search-table">
         <thead>
