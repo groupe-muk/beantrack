@@ -10,9 +10,16 @@ return new class extends Migration {
     {
         Schema::create('reports', function (Blueprint $table) {
             $table->string('id', 6)->primary();
-            $table->enum('type', ['inventory', 'order_summary', 'performance']);
+            $table->string('name')->nullable();
+            $table->text('description')->nullable();
+            $table->enum('type', ['inventory', 'order_summary', 'performance', 'adhoc']);
             $table->string('recipient_id', 6);
-            $table->enum('frequency', ['weekly', 'monthly']);
+            $table->enum('frequency', ['daily', 'weekly', 'monthly', 'quarterly', 'once']);
+            $table->enum('format', ['pdf', 'excel', 'csv', 'dashboard'])->default('pdf');
+            $table->text('recipients')->nullable();
+            $table->time('schedule_time')->nullable();
+            $table->string('schedule_day')->nullable();
+            $table->enum('status', ['active', 'paused', 'failed', 'processing', 'completed'])->default('active');
             $table->json('content');
             $table->timestamp('last_sent')->nullable();
             $table->timestamps();

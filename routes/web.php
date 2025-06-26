@@ -139,6 +139,21 @@ Route::middleware(['auth'])->group(function () {
     });
 });
 
+// Report Management Routes
+    Route::prefix('reports')->group(function () {
+        Route::get('/', [App\Http\Controllers\ReportController::class, 'index'])->name('reports.index');
+        Route::get('/library', [App\Http\Controllers\ReportController::class, 'getReportLibrary'])->name('reports.library');
+        Route::get('/historical', [App\Http\Controllers\ReportController::class, 'getHistoricalReports'])->name('reports.historical');
+        Route::get('/templates', [App\Http\Controllers\ReportController::class, 'getTemplates'])->name('reports.templates');
+        Route::get('/recipients', [App\Http\Controllers\ReportController::class, 'getRecipients'])->name('reports.recipients');
+        Route::post('/', [App\Http\Controllers\ReportController::class, 'store'])->name('reports.store');
+        Route::post('/adhoc', [App\Http\Controllers\ReportController::class, 'generateAdhocReport'])->name('reports.adhoc');
+        Route::post('/{report}/generate', [App\Http\Controllers\ReportController::class, 'generateNow'])->name('reports.generate');
+        Route::delete('/{report}', [App\Http\Controllers\ReportController::class, 'destroy'])->name('reports.destroy');
+        Route::get('/{report}/download', [App\Http\Controllers\ReportController::class, 'download'])->name('reports.download');
+        Route::get('/{report}/view', [App\Http\Controllers\ReportController::class, 'view'])->name('reports.view');
+    });
+
 
 
 
@@ -201,7 +216,7 @@ Route::view('dashboard', 'dashboard')
 
 require __DIR__.'/auth.php';
 
- 
+
 
 
 
