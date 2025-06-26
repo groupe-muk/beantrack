@@ -195,14 +195,22 @@
                                         <tr class="hover:bg-gray-50 transition-colors duration-200">
                                             <td class="px-6 py-4 whitespace-nowrap">
                                                 <div class="text-sm font-medium text-gray-900">#{{ $order->id }}</div>
-                                            </td>
-                                            <td class="px-6 py-4 whitespace-nowrap">
-                                                <div class="text-sm font-medium text-gray-900">{{ $order->supplier->name }}</div>
-                                            </td>
-                                            <td class="px-6 py-4 whitespace-nowrap">
-                                                <div class="text-sm text-gray-900">{{ $order->rawCoffee->coffee_type }}</div>
-                                                <div class="text-sm text-gray-500">Grade: {{ $order->rawCoffee->grade }}</div>
-                                            </td>
+                                            </td>                            <td class="px-6 py-4 whitespace-nowrap">
+                                @if($order->supplier)
+                                    <div class="text-sm font-medium text-gray-900">{{ $order->supplier->name }}</div>
+                                @else
+                                    <div class="text-sm font-medium text-gray-900">No supplier specified</div>
+                                @endif
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                @if($order->rawCoffee)
+                                    <div class="text-sm text-gray-900">{{ $order->rawCoffee->coffee_type }}</div>
+                                    <div class="text-sm text-gray-500">Grade: {{ $order->rawCoffee->grade }}</div>
+                                @else
+                                    <div class="text-sm text-gray-900">No coffee specified</div>
+                                    <div class="text-sm text-gray-500">-</div>
+                                @endif
+                            </td>
                                             <td class="px-6 py-4 whitespace-nowrap">
                                                 <div class="text-sm text-gray-900">{{ number_format($order->quantity) }} kg</div>
                                             </td>
@@ -224,8 +232,13 @@
                                                 </span>
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap">
-                                                <div class="text-sm text-gray-900">{{ $order->order_date->format('M d, Y') }}</div>
-                                                <div class="text-sm text-gray-500">{{ $order->order_date->diffForHumans() }}</div>
+                                                @if($order->order_date && $order->order_date instanceof \Carbon\Carbon)
+                                                    <div class="text-sm text-gray-900">{{ $order->order_date->format('M d, Y') }}</div>
+                                                    <div class="text-sm text-gray-500">{{ $order->order_date->diffForHumans() }}</div>
+                                                @else
+                                                    <div class="text-sm text-gray-900">No date set</div>
+                                                    <div class="text-sm text-gray-500">-</div>
+                                                @endif
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                                 <a href="{{ route('orders.edit', $order) }}" 
@@ -292,14 +305,22 @@
                                         <tr class="hover:bg-gray-50 transition-colors duration-200">
                                             <td class="px-6 py-4 whitespace-nowrap">
                                                 <div class="text-sm font-medium text-gray-900">#{{ $order->id }}</div>
-                                            </td>
-                                            <td class="px-6 py-4 whitespace-nowrap">
-                                                <div class="text-sm font-medium text-gray-900">{{ $order->wholesaler->name }}</div>
-                                            </td>
-                                            <td class="px-6 py-4 whitespace-nowrap">
-                                                <div class="text-sm text-gray-900">{{ $order->rawCoffee->coffee_type }}</div>
-                                                <div class="text-sm text-gray-500">Grade: {{ $order->rawCoffee->grade }}</div>
-                                            </td>
+                                            </td>                            <td class="px-6 py-4 whitespace-nowrap">
+                                @if($order->wholesaler)
+                                    <div class="text-sm font-medium text-gray-900">{{ $order->wholesaler->name }}</div>
+                                @else
+                                    <div class="text-sm font-medium text-gray-900">No wholesaler specified</div>
+                                @endif
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                @if($order->rawCoffee)
+                                    <div class="text-sm text-gray-900">{{ $order->rawCoffee->coffee_type }}</div>
+                                    <div class="text-sm text-gray-500">Grade: {{ $order->rawCoffee->grade }}</div>
+                                @else
+                                    <div class="text-sm text-gray-900">No coffee specified</div>
+                                    <div class="text-sm text-gray-500">-</div>
+                                @endif
+                            </td>
                                             <td class="px-6 py-4 whitespace-nowrap">
                                                 <div class="text-sm text-gray-900">{{ number_format($order->quantity) }} kg</div>
                                             </td>
@@ -319,11 +340,15 @@
                                                 <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border {{ $statusClass }}">
                                                     {{ ucfirst($order->status) }}
                                                 </span>
-                                            </td>
-                                            <td class="px-6 py-4 whitespace-nowrap">
-                                                <div class="text-sm text-gray-900">{{ $order->order_date->format('M d, Y') }}</div>
-                                                <div class="text-sm text-gray-500">{{ $order->order_date->diffForHumans() }}</div>
-                                            </td>
+                                            </td>                            <td class="px-6 py-4 whitespace-nowrap">
+                                @if($order->order_date && $order->order_date instanceof \Carbon\Carbon)
+                                    <div class="text-sm text-gray-900">{{ $order->order_date->format('M d, Y') }}</div>
+                                    <div class="text-sm text-gray-500">{{ $order->order_date->diffForHumans() }}</div>
+                                @else
+                                    <div class="text-sm text-gray-900">No date set</div>
+                                    <div class="text-sm text-gray-500">-</div>
+                                @endif
+                            </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                                 <a href="{{ route('orders.edit', $order) }}" 
                                                    class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-green-700 bg-green-100 hover:bg-green-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors duration-200">

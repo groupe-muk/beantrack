@@ -72,7 +72,7 @@
                             <!-- Order Date -->
                             <div class="mb-4">
                                 <label for="order_date" class="block text-sm font-medium text-yellow-900">Order Date</label>
-                                <input type="date" id="order_date" name="order_date" value="{{ old('order_date', $order->order_date->format('Y-m-d')) }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-yellow-500 focus:ring-yellow-500 @error('order_date') border-red-300 @enderror" required>
+                                <input type="date" id="order_date" name="order_date" value="{{ old('order_date', $order->order_date ? $order->order_date->format('Y-m-d') : '') }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-yellow-500 focus:ring-yellow-500 @error('order_date') border-red-300 @enderror" required>
                                 @error('order_date')
                                     <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                                 @enderror
