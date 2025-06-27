@@ -11,13 +11,13 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 use App\Http\Controllers\columnChartController;
 
-use App\Http\Controllers\InventoryController;
 
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\userManagerController;
 use App\Http\Controllers\tableCardController;
 
 use App\Http\Controllers\SupplyCentersController;
+use App\Http\Controllers\InventoryController;
 
 Route::get('/sample', [columnChartController::class, 'showColumnChart'])->name('column.chart');
 
@@ -125,8 +125,9 @@ Route::middleware(['auth'])->group(function () {
         //Inventory routes
         Route::get('/inventory', [InventoryController::class, 'index'])->name('inventory.index');
         Route::post('/inventory', [InventoryController::class, 'store'])->name('inventory.store');
-        Route::patch('/inventory/{inventory}', [InventoryController::class, 'update'])->name('inventory.update');
-        Route::delete('/inventory/{inventory}', [InventoryController::class, 'destroy'])->name('inventory.destroy');
+        Route::patch('/inventory/{rawCoffee}', [InventoryController::class, 'update'])->name('inventory.update');
+        //Route::patch('/inventory/{coffeeProduct}', [InventoryController::class, 'update'])->name('inventory.update');
+        Route::delete('/inventory/{rawCoffee}', [InventoryController::class, 'destroy'])->name('inventory.destroy');
 
    
     
