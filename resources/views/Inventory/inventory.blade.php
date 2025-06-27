@@ -6,6 +6,7 @@
   <!-- Header Section -->
   
   <h1 class="text-3xl font-bold text-dashboard-light">Inventory Management</h1>
+
   <p class="text-soft-brown mb-4">Track and manage your inventory across all locations</p>
 
   @if (session('success'))
@@ -72,6 +73,7 @@
         <button class="bg-light-brown text-white px-4 py-2 rounded" data-mode="add" data-modal-open="addRawCoffeeModal">+ Add Item</button>
       </div>
   </div>
+  
     <div class="bg-white rounded shadow overflow-x-auto p-4">
       <table class="min-w-full leading-normal" id="search-table">
         <thead>

@@ -1,4 +1,4 @@
-@props(['title', 'orders', 'class' => ''])
+@props(['title', 'orders', 'class' => '', 'fullWidth' => false])
 
 <div class="bg-white p-6 w-full rounded-2xl shadow-md flex flex-col justify-between {{ $class }}">
     {{-- Card Header --}}
@@ -10,7 +10,7 @@
     </div>
 
     {{-- Orders List --}}
-    <div class="space-y-4"> 
+    <div class="space-y-3 grid grid-cols-1 {{ $fullWidth ? 'lg:grid-cols-2' : '' }} gap-4"> 
         @forelse($orders as $order)
             <div class="border rounded-2xl border-pale-brown p-4"> {{-- Container for each order item --}}
                 <div class="flex justify-between items-start">
