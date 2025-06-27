@@ -144,10 +144,11 @@
     <div class="flex justify-between items-center mb-6 pt-10">
     <h1 class="text-2xl font-semibold text-dashboard-light pb-5">Processed Coffee</h1>
       <div>
-        <button class="bg-light-brown text-white px-4 py-2 rounded">+ Add Item</button>
+        <button class="bg-light-brown text-white px-4 py-2 rounded" data-mode="add" data-modal-open="addProcessedCoffeeModal">+ Add Item</button>
       </div>
   </div>
     <div class="bg-white rounded shadow overflow-x-auto p-4">
+    
       <table class="min-w-full leading-normal" id="search-table2">
         <thead>
           <tr class="bg-gray-100 text-left">
@@ -218,14 +219,14 @@
   </div>
 
 <x-modal 
-    id="addCoffeeProductModal" 
-    title="Add New Coffee Product Item" 
+    id="addRawCoffeeModal" 
+    title="Add New Raw Coffee Item" 
     size="md" 
-    submit-form="addCoffeeProductForm" 
+    submit-form="addRawCoffeeForm" 
     submit-text="Add Item"
     cancel-text="Cancel">
     
-    <form action="{{ route('inventory.store') }}" method="POST" id="addCoffeeProductForm">
+    <form action="{{ route('inventory.store') }}" method="POST" id="addRawCoffeeForm">
         @csrf
         <input type="hidden" name="_method" id="form-method" value="">
         
@@ -234,31 +235,30 @@
             <label for="name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Product Name
             </label>
-            <input type="text" 
-                   id="coffeeProductName" 
-                   name="name" 
-                   required
-                   class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-coffee-brown focus:border-coffee-brown dark:bg-dark-background dark:text-off-white"
-                   placeholder="Enter product name"
-                   value="{{ old('name') }}">
-            @error('name')
+            <select name="raw_coffee_id" id="raw-coffee-name" required>
+              <option value="">Select Raw Coffee Item</option>
+              @foreach($rawCoffeeItems as $rawCoffeeItem)
+              <option value="{{ $rawCoffeeItem->id }}">{{ $rawCoffeeItem->coffee_type }}</option>
+              @endforeach
+            </select>
+            @error('raw_coffee_name')
                 <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
             @enderror
         </div>
 
-        {{-- Category Field --}}
+        {{-- Grade Field --}}
         <div class="mb-4">
-            <label for="category" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label for="grade" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Grade
             </label>
             <input type="text" 
-                   id="coffeeProductCategory" 
-                   name="category" 
+                   id="rawCoffeeGrade" 
+                   name="grade" 
                    required
                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-coffee-brown focus:border-coffee-brown dark:bg-dark-background dark:text-off-white"
-                   placeholder="Enter coffee category"
-                   value="{{ old('category') }}">
-            @error('category')
+                   placeholder="Enter coffee grade"
+                   value="{{ old('grade') }}">
+            @error('grade')
                 <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
             @enderror
         </div>
@@ -269,7 +269,7 @@
                 Quantity
             </label>
             <input type="number" 
-                   id="coffeeProductQuantity" 
+                   id="rawCoffeeQuantity" 
                    name="quantity_in_stock" 
                    required
                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-coffee-brown focus:border-coffee-brown dark:bg-dark-background dark:text-off-white"
@@ -299,63 +299,63 @@
 </x-modal> 
 
 <x-modal 
-    id="addRawCoffeeModal" 
-    title="Add New Raw Coffee Item" 
+    id="addProcessedCoffeeModal" 
+    title="Add New Processed Coffee Item" 
     size="md" 
-    submit-form="addRawCoffeeForm" 
+    submit-form="addProcessedCoffeeForm" 
     submit-text="Add Item"
     cancel-text="Cancel">
     
-    <form action="{{ route('inventory.store') }}" method="POST" id="addRawCoffeeForm">
+    <form action="{{ route('inventory.store') }}" method="POST" id="addProcessedCoffeeForm">
         @csrf
         <input type="hidden" name="_method" id="form-method" value="">
 
         {{-- Name Field --}}
         <div class="mb-4">
-            <label for="name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Raw Coffee Name
+            <label for="coffee_product_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Processed Coffee Name
             </label>
-            <select name="raw_coffee_id" id="raw-coffee-name">
-              <option value="">Select Raw Coffee Item</option>
-              @foreach($rawCoffeeItems as $rawCoffeeItem)
-              <option value="{{ $rawCoffeeItem->id }}">{{ $rawCoffeeItem->coffee_type }}</option>
+            <select name="coffee_product_id" id="coffee-product-name" required>
+              <option value="">Select Processed Coffee Item</option>
+              @foreach($coffeeProductItems as $coffeeProductItem)
+              <option value="{{ $coffeeProductItem->id }}">{{ $coffeeProductItem->name }}</option>
               @endforeach
             </select>
-            @error('raw_coffee_id')
+            @error('coffee_product_id')
                 <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
             @enderror
         </div>
 
-        {{-- Grade Field --}}
+        {{-- Category Field --}}
         <div class="mb-4">
-            <label for="grade" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Grade
+            <label for="category" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Category
             </label>
             <input type="text" 
-                   id="raw-coffee-grade" 
-                   name="grade" 
+                   id="coffee-product-category" 
+                   name="category" 
                    required
                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-coffee-brown focus:border-coffee-brown dark:bg-dark-background dark:text-off-white"
-                   placeholder="Enter coffee grade"
-                   value="{{ old('grade') }}">
-            @error('grade')
+                   placeholder="Enter coffee category"
+                   value="{{ old('category') }}">
+            @error('category')
                 <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
             @enderror
         </div>
 
         {{-- Quantity Field --}}
         <div class="mb-4">
-            <label for="quantity" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label for="quantity_in_stock" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Quantity
             </label>
             <input type="number" 
-                   id="raw-coffee-quantity" 
+                   id="coffee-product-quantity" 
                    name="quantity_in_stock" 
                    required
                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-coffee-brown focus:border-coffee-brown dark:bg-dark-background dark:text-off-white"
                    placeholder="Enter Quantity"
-                   value="{{ old('quantity') }}">
-            @error('quantity')
+                   value="{{ old('quantity_in_stock') }}">
+            @error('quantity_in_stock')
                 <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
             @enderror
         </div>
@@ -365,7 +365,7 @@
             <label for="warehouse" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Warehouse
             </label>
-            <select name="supply_center_id" id="raw-coffee-warehouse">
+            <select name="supply_center_id" id="processedCoffeeWarehouse">
               <option value="">Select Warehouse</option>
               @foreach($supplyCenters as $center)
               <option value="{{ $center->id }}">{{ $center->name }}</option>
@@ -383,7 +383,7 @@
 @push('scripts')
   <script>
 
-  
+
       if (document.getElementById("search-table") && typeof simpleDatatables.DataTable !== 'undefined') {
           const dataTable = new simpleDatatables.DataTable("#search-table", {
               searchable: true,
@@ -422,6 +422,25 @@
 
         });
     }
+      // --- Add New Processed Coffee Item Button ---
+const addProcessedCoffeeButton = document.querySelector('button[data-modal-open="addProcessedCoffeeModal"]');
+const modalProcessed = document.getElementById('addProcessedCoffeeModal');
+const formProcessed = document.getElementById('addProcessedCoffeeForm');
+if (addProcessedCoffeeButton && modalProcessed && formProcessed) {
+    addProcessedCoffeeButton.addEventListener('click', function() {
+        formProcessed.reset();
+        // Set modal title and button text if needed
+        modalProcessed.querySelector('h3').textContent = 'Add New Processed Coffee Item';
+        modalProcessed.querySelector('button[type="submit"]').textContent = 'Add Item';
+        formProcessed.action = "{{ route('inventory.store') }}";
+        formProcessed.querySelector('input[name="_method"]').value = 'POST';
+
+        // Open the modal
+        modalProcessed.classList.remove('hidden');
+        modalProcessed.classList.add('flex');
+        document.body.style.overflow = 'hidden';
+    });
+}
 
     // --- Edit Raw Coffee Buttons ---
     const editButtons = document.querySelectorAll('.edit-RawCoffee-btn');
@@ -474,6 +493,6 @@
         });
     });
 
-});  
+  });  
   </script>
 @endpush
