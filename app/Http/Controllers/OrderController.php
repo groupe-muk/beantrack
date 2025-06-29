@@ -34,7 +34,6 @@ class OrderController extends Controller
         $statuses = $this->getStatuses();
 
         return view('orders.index', compact('ordersPlaced', 'ordersReceived', 'statuses'));
-        return view('orders.index', compact('orders', 'statuses'));
     }
 
     /**
@@ -58,37 +57,45 @@ class OrderController extends Controller
     public function store(LaravelRequest $request)
     {
         $validated = $request->validate([
-            'supplier_id' => 'required|exists:suppliers,id',
+            'supplier_id' => 'required|exists:supplier,id',
             'grade' => 'required|string',
             'coffee_type' => 'required|string',
             'order_date' => 'required|date',
             'total_amount' => 'required|numeric|min:0',
-            'status' => ['required', Rule::in(array_keys($this->getStatuses()))], // Reuse status keys
+            'quantity' => 'required|numeric|min:1', // Add quantity validation
             'notes' => 'nullable|string|max:500',
         ]);
 
         // Find the raw coffee that matches both grade and coffee_type
         $rawCoffee = RawCoffee::where('grade', $validated['grade'])
             ->where('coffee_type', $validated['coffee_type'])
-            ->firstOrFail();
+            ->first();
+
+        if (!$rawCoffee) {
+            return redirect()->back()
+                ->withInput()
+                ->withErrors(['grade' => 'No raw coffee found matching the selected grade and coffee type.']);
+        }
 
         $order = Order::create([
             'supplier_id' => $validated['supplier_id'],
             'raw_coffee_id' => $rawCoffee->id,
             'order_date' => $validated['order_date'],
             'total_amount' => $validated['total_amount'],
-            'status' => $validated['status'],
+            'quantity' => $validated['quantity'], // Use the actual quantity from form
+            'total_price' => $validated['total_amount'], // Map total_amount to total_price
+            'status' => 'pending', // Default status
             'notes' => $validated['notes'] ?? null
         ]);
 
-        // Create an initial tracking record
-        $order->orderTrackings()->create([
-            'status' => $validated['status'],
-            'location' => 'Order created',
-            'notes' => 'Initial order creation'
-        ]);
+        // Refresh the order model to get the auto-generated ID from the database trigger
+        $order->refresh();
 
-        return redirect()->route('orders.index')->with('success', 'Order created successfully.');
+        // Create an initial tracking record only for shipped orders
+        // Since this is a new order with 'pending' status, we'll skip tracking for now
+        // Tracking can be added later when the order status changes to 'shipped'
+
+        return redirect()->route('orders.create')->with('success', 'Order created successfully!');
     }
 
     /**
@@ -105,12 +112,7 @@ class OrderController extends Controller
      */
     public function edit(Order $order)
     {
-        $suppliers = Supplier::pluck('name', 'id');
-        $wholesalers = Wholesaler::pluck('name', 'id');
-        $rawCoffees = RawCoffee::pluck('name', 'id');
-        $coffeeProducts = CoffeeProduct::pluck('name', 'id');
-
-        return view('orders.edit', compact('order', 'suppliers', 'wholesalers', 'rawCoffees', 'coffeeProducts'));
+        return view('orders.edit', compact('order'));
     }
 
     /**
@@ -119,19 +121,40 @@ class OrderController extends Controller
     public function update(LaravelRequest $request, Order $order)
     {
         $validated = $request->validate([
-            'supplier_id' => 'nullable|exists:suppliers,id',
-            'wholesaler_id' => 'nullable|exists:wholesalers,id',
-            'raw_coffee_id' => 'nullable|exists:raw_coffees,id',
-            'coffee_product_id' => 'nullable|exists:coffee_products,id',
             'order_date' => 'required|date',
             'total_amount' => 'required|numeric|min:0',
-            // Do not allow status update here directly, use updateStatus for that
+            'quantity' => 'required|numeric|min:1',
+            'status' => ['required', Rule::in(['pending', 'confirmed', 'shipped', 'delivered'])],
             'notes' => 'nullable|string|max:500',
         ]);
 
+        // Check if status is changing
+        $statusChanged = $order->status !== $validated['status'];
+        $oldStatus = $order->status;
+
+        // Update the order
         $order->update($validated);
 
-        return redirect()->route('orders.show', $order)->with('success', 'Order updated successfully.');
+        // If status changed, create tracking record
+        if ($statusChanged) {
+            $trackableStatuses = ['shipped', 'in-transit', 'delivered'];
+            if (in_array($validated['status'], $trackableStatuses)) {
+                // Map order status to tracking status
+                $trackingStatus = $validated['status']; // 'shipped' and 'delivered' are the same
+                if ($validated['status'] === 'confirmed') {
+                    $trackingStatus = 'shipped'; // Map confirmed to shipped for tracking
+                }
+                
+                // Create a new tracking record
+                $order->orderTrackings()->create([
+                    'status' => $trackingStatus,
+                    'location' => Auth::check() ? ('Updated by ' . Auth::user()->name) : 'System Update',
+                    'notes' => 'Status updated from ' . $oldStatus . ' to ' . $validated['status']
+                ]);
+            }
+        }
+
+        return redirect()->route('orders.edit', $order)->with('success', 'Order updated successfully.');
     }
 
     /**
@@ -140,16 +163,26 @@ class OrderController extends Controller
     public function updateStatus(LaravelRequest $request, Order $order)
     {
         $validated = $request->validate([
-            'status' => ['required', Rule::in(array_keys($this->getStatuses()))],
+            'status' => ['required', Rule::in(['pending', 'confirmed', 'shipped', 'delivered'])], // Match database enum
             'notes' => 'nullable|string|max:500',
         ]);
 
-        // Create a new tracking record
-        $order->orderTrackings()->create([
-            'status' => $validated['status'],
-            'location' => Auth::check() ? ('Updated by ' . Auth::user()->name) : 'System Update', // Handle unauthenticated user
-            'notes' => $validated['notes'] ?? null
-        ]);
+        // Only create tracking records for trackable statuses
+        $trackableStatuses = ['shipped', 'in-transit', 'delivered'];
+        if (in_array($validated['status'], $trackableStatuses)) {
+            // Map order status to tracking status
+            $trackingStatus = $validated['status']; // 'shipped' and 'delivered' are the same
+            if ($validated['status'] === 'confirmed') {
+                $trackingStatus = 'shipped'; // Map confirmed to shipped for tracking
+            }
+            
+            // Create a new tracking record
+            $order->orderTrackings()->create([
+                'status' => $trackingStatus,
+                'location' => Auth::check() ? ('Updated by ' . Auth::user()->name) : 'System Update',
+                'notes' => $validated['notes'] ?? null
+            ]);
+        }
 
         // Update the order status
         $order->update(['status' => $validated['status']]);
@@ -194,10 +227,9 @@ class OrderController extends Controller
     {
         return [
             'pending' => 'bg-yellow-100 text-yellow-800',
-            'processing' => 'bg-blue-100 text-blue-800',
+            'confirmed' => 'bg-blue-100 text-blue-800',
             'shipped' => 'bg-purple-100 text-purple-800',
             'delivered' => 'bg-green-100 text-green-800',
-            'cancelled' => 'bg-red-100 text-red-800',
         ];
     }
 }

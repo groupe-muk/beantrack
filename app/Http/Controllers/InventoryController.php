@@ -4,20 +4,37 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Inventory;
+use App\Models\RawCoffee;
+use App\Models\CoffeeProduct;
+use App\Models\SupplyCenter;
+use Termwind\Components\Raw;
 
 class InventoryController extends Controller
 {
     // Get all inventory items
     public function index()
     {
-        return Inventory::all();
+        
+        $rawCoffeeInventory = Inventory::with(['rawCoffee', 'supplyCenter'])->whereNotNull('raw_coffee_id')->get();
+        $coffeeProductInventory = Inventory::with('coffeeProduct', 'supplyCenter')->whereNotNull('coffee_product_id')->get();
+        $supplyCenters = SupplyCenter::all();
+        $rawCoffeeItems = RawCoffee::all();
+        $coffeeProductItems = CoffeeProduct::all();
+
+        return view('Inventory.inventory', compact(['rawCoffeeInventory', 'coffeeProductInventory', 'supplyCenters', 'rawCoffeeItems', 'coffeeProductItems']));
     }
 
     // Store a new inventory item
     public function store(Request $request)
     {
-        $item = Inventory::create($request->all());
-        return response()->json($item, 201);
+        $data = $request->all();
+        if (isset($data['quantity'])) {
+        $data['quantity_in_stock'] = $data['quantity'];
+        unset($data['quantity']);
+        }
+
+        Inventory::create($request->all());
+        return redirect()->route('inventory.index')->with('success', 'Item added!');
     }
 
     // (Optional) Show a single item
@@ -26,7 +43,7 @@ class InventoryController extends Controller
         return Inventory::findOrFail($id);
     }
 
-    // (Optional) Update an item
+    
     public function update(Request $request, $id)
     {
         $item = Inventory::findOrFail($id);
@@ -34,11 +51,11 @@ class InventoryController extends Controller
         return response()->json($item);
     }
 
-    // (Optional) Delete an item
+    
     public function destroy($id)
     {
         Inventory::destroy($id);
-        return response()->json(null, 204);
+        return redirect()->route('inventory.index')->with('success', 'Item deleted!');
     }
 }
 

@@ -16,7 +16,9 @@ class OrderTracking extends Model
     const CREATED_AT = null; // No created_at column
     const UPDATED_AT = 'updated_at'; // Only updated_at column exists
     protected $fillable = [
-        'id', 'order_id', 'status', 'location', 'updated_at'
+
+        'id', 'order_id', 'status', 'location', 'notes', 'updated_at'
+
     ];
 
     public function order()
