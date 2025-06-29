@@ -137,58 +137,32 @@ Route::middleware(['auth'])->group(function () {
     Route::middleware(['role:vendor'])->group(function () {
         // Vendor routes
     });
-});
-
-// Report Management Routes
+    
+    // Report Management Routes - Protected by auth middleware
     Route::prefix('reports')->group(function () {
         Route::get('/', [App\Http\Controllers\ReportController::class, 'index'])->name('reports.index');
+        Route::get('/stats', [App\Http\Controllers\ReportController::class, 'getStats'])->name('reports.stats');
         Route::get('/library', [App\Http\Controllers\ReportController::class, 'getReportLibrary'])->name('reports.library');
         Route::get('/historical', [App\Http\Controllers\ReportController::class, 'getHistoricalReports'])->name('reports.historical');
         Route::get('/templates', [App\Http\Controllers\ReportController::class, 'getTemplates'])->name('reports.templates');
         Route::get('/recipients', [App\Http\Controllers\ReportController::class, 'getRecipients'])->name('reports.recipients');
         Route::post('/', [App\Http\Controllers\ReportController::class, 'store'])->name('reports.store');
         Route::post('/adhoc', [App\Http\Controllers\ReportController::class, 'generateAdhocReport'])->name('reports.adhoc');
+        Route::get('/{report}/edit', [App\Http\Controllers\ReportController::class, 'edit'])->name('reports.edit');
+        Route::put('/{report}', [App\Http\Controllers\ReportController::class, 'update'])->name('reports.update');
         Route::post('/{report}/generate', [App\Http\Controllers\ReportController::class, 'generateNow'])->name('reports.generate');
+        Route::post('/{report}/pause', [App\Http\Controllers\ReportController::class, 'pause'])->name('reports.pause');
+        Route::post('/{report}/resume', [App\Http\Controllers\ReportController::class, 'resume'])->name('reports.resume');
         Route::delete('/{report}', [App\Http\Controllers\ReportController::class, 'destroy'])->name('reports.destroy');
         Route::get('/{report}/download', [App\Http\Controllers\ReportController::class, 'download'])->name('reports.download');
         Route::get('/{report}/view', [App\Http\Controllers\ReportController::class, 'view'])->name('reports.view');
     });
+});
 
 
 
 
 /*Route::view('dashboard', 'dashboard')
-
-// Routes for authenticated users
-Route::middleware(['auth'])->group(function () {
-    Route::post('/logout',[AuthController::class, 'logout'])->name('logout');
-    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
-
-    /*Route::get('/dashboard', [AuthController::class, 'showApp'])->name('dashboard');*/
-    
-    // Role-specific routes
-    Route::middleware(['role:admin'])->group(function () {
-        //User management routes
-        Route::get('admin/users', [userManagerController::class, 'index'])->name('admin.users.index');
-        Route::post('admin/users', [userManagerController::class, 'store'])->name('admin.users.store');
-        Route::patch('admin/users/{user}', [userManagerController::class, 'update'])->name('admin.users.update');
-        Route::delete('admin/users/{user}', [userManagerController::class, 'destroy'])->name('admin.users.destroy');
-    });
-    
-    Route::middleware(['role:supplier'])->group(function () {
-        // Supplier routes
-    });
-    
-    Route::middleware(['role:vendor'])->group(function () {
-        // Vendor routes
-    });
-
-
-
-
-/*Route::view('dashboard', 'dashboard')
-
-
 
 Route::get('/SupplyCenters', function () {
     return view('SupplyCenters.SupplyCenters');
@@ -197,12 +171,9 @@ Route::get('/SupplyCenter1', [SupplyCentersController::class,  'shownSupplyCente
 Route::get('/SupplyCenter2', [SupplyCentersController::class, 'shownSupplyCenter2'])->name('show.SupplyCenter2'); 
 Route::get('/SupplyCenter3', [SupplyCentersController::class, 'shownSupplyCenter3'])->name('show.SupplyCenter3'); 
 
-
-
 //Route::post('/warehouseA', [WarehouseController::class, 'warehouseA'])->name('warehouseA');
 //Route::post('/workers/{worker}/transfer', [WarehouseController::class, 'transfer'])->name('workers.transfer');
 //Route::delete('/workers/{worker}', [WarehouseController::class, 'destroy'])->name('workers.destroy');
-
 
 Route::view('dashboard', 'dashboard')
     ->middleware(['auth', 'verified'])
@@ -211,12 +182,4 @@ Route::view('dashboard', 'dashboard')
 // Route::middleware(['auth'])->group(function () {
 //     Route::redirect('settings', 'settings/profile');
 
-
-
-
 require __DIR__.'/auth.php';
-
-
-
-
-

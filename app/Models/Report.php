@@ -14,7 +14,6 @@ class Report extends Model
     public $incrementing = false;
     
     protected $fillable = [
-        'id', 
         'name',
         'description',
         'type', 
@@ -26,9 +25,7 @@ class Report extends Model
         'schedule_day',
         'status',
         'content', 
-        'last_sent', 
-        'created_at', 
-        'updated_at'
+        'last_sent'
     ];
 
     protected $casts = [
@@ -37,6 +34,25 @@ class Report extends Model
         'created_at' => 'datetime',
         'updated_at' => 'datetime'
     ];
+
+    protected static function boot()
+    {
+        parent::boot();
+        
+        static::creating(function ($model) {
+            if (empty($model->id)) {
+                // Get the next ID from the database
+                $lastReport = static::orderBy('id', 'desc')->first();
+                if ($lastReport) {
+                    $lastNumber = (int) substr($lastReport->id, 1);
+                    $nextNumber = $lastNumber + 1;
+                } else {
+                    $nextNumber = 1;
+                }
+                $model->id = 'R' . str_pad($nextNumber, 5, '0', STR_PAD_LEFT);
+            }
+        });
+    }
 
     public function recipient()
     {
