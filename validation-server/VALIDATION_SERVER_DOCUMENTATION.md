@@ -1,8 +1,26 @@
-# BeanTrack Vendor Validation Server
+# BeanTrack Vendor Va## Overview
+
+The BeanTrack Vendor Validation Server is a Spring Boot microservice that handles vendor application document validation for the BeanTrack supply chain management system. It receives vendor applications from a Laravel backend, validates uploaded documents (bank statements and trading licenses), and manages the application workflow through document validation to pending status for manual HR approval.
+
+**Important Note**: This server performs document validation only and does not auto-approve vendors. After successful document validation, applications are set to "pending" status and a visit is scheduled for final manual approval by HR staff.
+
+### Key Features
+- **Asynchronous Document Validation**: PDF document analysis with OCR-like text extraction
+- **Financial Assessment**: Bank statement analysis for financial capacity validation
+- **License Verification**: Trading license validation with expiry date checking
+- **Email Notifications**: Professional HTML email templates for validation results and visit scheduling
+- **Visit Scheduling**: Automatic scheduling of business visits for document-validated vendors
+- **Status Tracking**: Real-time application status updates and polling endpoints
+- **Workflow Management**: Handles status transitions from submission through validation to pending HR approvalrver
 
 ## Table of Contents
 1. [Overview](#overview)
-2. [Architecture](#architecture)
+2. [Architecture](#archi3. **Status Update and Notification**
+   - Update database with validation results
+   - If validation passes: Set status to `pending` (awaiting HR approval)
+   - If validation fails: Set status to `rejected`
+   - Trigger appropriate email notification
+   - Schedule visit for successful document validationure)
 3. [User Story](#user-story)
 4. [Workflow](#workflow)
 5. [Component Documentation](#component-documentation)
@@ -16,7 +34,7 @@
 
 ## Overview
 
-The BeanTrack Vendor Validation Server is a Spring Boot microservice that handles vendor application document validation for the BeanTrack supply chain management system. It receives vendor applications from a Laravel backend, validates uploaded documents (bank statements and trading licenses), and sends email notifications with visit scheduling for approved applicants.
+The BeanTrack Vendor Validation Server is a Spring Boot microservice that handles vendor application document validation for the BeanTrack supply chain management system. It receives vendor applications from a Laravel backend, validates uploaded documents (bank statements and trading licenses), schedules business visits for document-validated applicants, and sends email notifications. **Important**: This service validates documents and schedules visits but does not auto-approve applications - final approval requires manual HR review after the scheduled visit.
 
 ### Key Features
 - **Asynchronous Document Validation**: PDF document analysis with OCR-like text extraction
@@ -62,9 +80,10 @@ com.groupe.beantrackserver/
 1. **Application Submission**: Vendor submits application through Laravel frontend
 2. **Document Upload**: Laravel backend uploads documents and calls validation server
 3. **Validation Processing**: Server validates documents asynchronously 
-4. **Status Updates**: Application status transitions through: `pending` → `under_review` → `approved/rejected`
+4. **Status Updates**: Application status transitions through: `pending` → `under_review` → `pending` (documents validated, awaiting HR approval) OR `rejected`
 5. **Email Notification**: Automated emails sent based on validation outcome
-6. **Visit Scheduling**: For approved vendors, visit date is automatically scheduled
+6. **Visit Scheduling**: For validated documents, visit date is automatically scheduled
+7. **HR Final Approval**: After scheduled visit, HR manually approves/rejects in Laravel system (`pending` → `approved`/`rejected`)
 
 ## Workflow
 
@@ -78,14 +97,19 @@ graph TD
     E --> F[Update DB Status: under_review]
     F --> G[Async Document Validation]
     G --> H{Validation Result}
-    H -->|Valid| I[Status: approved]
+    H -->|Valid| I[Status: pending - awaiting HR approval]
     H -->|Invalid| J[Status: rejected]
     I --> K[Schedule Visit]
-    I --> L[Send Approval Email]
+    I --> L[Send Document Validation Success Email]
     J --> M[Send Rejection Email]
     K --> L
-    L --> N[End]
-    M --> N
+    L --> N[HR Visit & Interview]
+    M --> O[End]
+    N --> P{HR Decision}
+    P -->|Approve| Q[Manual Status Update: approved]
+    P -->|Reject| R[Manual Status Update: rejected]
+    Q --> O
+    R --> O
 ```
 
 ### Detailed Validation Workflow
@@ -192,7 +216,8 @@ public void validateApplicationAsync(String applicationId)
 3. **Status Update and Email Notification**:
    ```java
    if (bankValid && licenseValid) {
-       application.setStatus(ApplicationStatus.approved);
+       application.setStatus(ApplicationStatus.pending);
+       application.setValidationMessage("Document validation successful. Awaiting final approval after scheduled visit.");
        emailService.sendApprovalEmailWithVisit(application);
    } else {
        application.setStatus(ApplicationStatus.rejected);
@@ -443,7 +468,9 @@ CREATE TABLE vendor_applications (
 - **Engine**: Thymeleaf template processing
 - **Format**: HTML with embedded CSS
 
-### Approval Email Template (approval.html)
+### Document Validation Success Email Template (approval.html)
+**Purpose**: Notifies applicants that their documents have been validated and a visit is scheduled. Final approval is pending HR review after the visit.
+
 **Variables**:
 - `${applicantName}` - Vendor's name
 - `${businessName}` - Business name  
@@ -452,14 +479,24 @@ CREATE TABLE vendor_applications (
 - `${visitLocation}` - Visit location name
 - `${visitAddress}` - Full visit address
 - `${applicationId}` - Application reference
+- `${visitContact}` - Contact number for visit-related queries
 
 **Content Sections**:
-1. Congratulations header
-2. Approval confirmation
-3. Visit details with date/time/location
-4. Required documents list
-5. Next steps checklist
-6. Contact information
+1. **Validation Success Header**: Celebrates document validation completion
+2. **Document Validation Confirmation**: Confirms financial and license validation passed
+3. **Visit Scheduling Information**: Date, time, location details for the business visit
+4. **Required Documents**: What to bring to the visit (originals, ID, certificates)
+5. **Next Steps Checklist**: 
+   - Confirm attendance
+   - Prepare documents
+   - Arrive early
+   - Complete HR interview
+   - Await final approval decision
+6. **Visit Agenda**: What will happen during the visit (interview, assessment, setup if approved)
+7. **Important Notice**: Clarifies this is not final approval - HR review pending
+8. **Contact Information**: Support and rescheduling details
+
+**Key Message**: "Your documents are validated, visit scheduled, final approval pending HR review."
 
 ### Rejection Email Template (rejection.html)
 **Variables**:
