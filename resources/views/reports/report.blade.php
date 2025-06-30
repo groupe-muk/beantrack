@@ -440,7 +440,7 @@
     <div class="flex items-center justify-center min-h-screen px-4">
         <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-screen overflow-y-auto">
             <div class="flex items-center justify-between p-6 border-b">
-                <h3 class="text-lg font-semibold text-gray-900">Manage Recipients</h3>
+                <h3 class="text-lg font-semibold text-dashboard-light">Manage Recipients</h3>
                 <button id="close-recipients-modal" class="text-gray-400 hover:text-gray-600">
                     <i class="fas fa-times"></i>
                 </button>
@@ -449,12 +449,12 @@
             <div class="p-6">
                 <div class="flex justify-between items-center mb-6">
                     <div>
-                        <h4 class="text-md font-medium text-gray-900">Report Recipients</h4>
-                        <p class="text-sm text-gray-500">Add, edit, or remove recipients for report deliveries</p>
+                        <h4 class="text-md font-medium text-dashboard-light">Internal Report Recipients</h4>
+                        <p class="text-sm text-gray-500">Manage internal users and roles for report deliveries</p>
                     </div>
                     <button id="add-recipient-btn" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-light-brown hover:bg-brown">
                         <i class="fas fa-plus mr-2"></i>
-                        Add Recipient
+                        Add Internal Recipient
                     </button>
                 </div>
                 
@@ -485,7 +485,7 @@
     <div class="flex items-center justify-center min-h-screen px-4">
         <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
             <div class="flex items-center justify-between p-6 border-b">
-                <h3 id="recipient-form-title" class="text-lg font-semibold text-gray-900">Add Recipient</h3>
+                <h3 id="recipient-form-title" class="text-lg font-semibold text-dashboard-light">Add Recipient</h3>
                 <button id="close-recipient-form-modal" class="text-gray-400 hover:text-gray-600">
                     <i class="fas fa-times"></i>
                 </button>
@@ -502,12 +502,12 @@
                     
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
-                        <input type="email" id="recipient-email" name="email" class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500" required>
+                        <input type="email" id="recipient-email" name="email" class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-1 focus:ring-light-brown focus:border-light-brown" required>
                     </div>
                     
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Department</label>
-                        <select id="recipient-department" name="department" class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500" required>
+                        <select id="recipient-department" name="department" class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-1 focus:ring-light-brown focus:border-light-brown" required>
                             <option value="">Select Department</option>
                             <option value="Finance">Finance</option>
                             <option value="Production">Production</option>
@@ -515,6 +515,10 @@
                             <option value="Logistics">Logistics</option>
                             <option value="Operations">Operations</option>
                             <option value="Management">Management</option>
+                            <option value="Quality Team">Quality Team</option>
+                            <option value="Compliance">Compliance</option>
+                            <option value="Warehouse Team">Warehouse Team</option>
+                            <option value="admin">Admin</option>
                         </select>
                     </div>
                     
@@ -531,7 +535,7 @@
                     <button type="button" id="cancel-recipient" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md">
                         Cancel
                     </button>
-                    <button type="submit" id="save-recipient" class="px-4 py-2 text-sm font-medium text-white bg-orange-600 hover:bg-orange-700 rounded-md">
+                    <button type="submit" id="save-recipient" class="px-4 py-2 text-sm font-medium text-white bg-light-brown hover:bg-brown rounded-md">
                         Save Recipient
                     </button>
                 </div>
@@ -556,13 +560,13 @@
                 <div id="generation-progress" class="text-center">
                     <div class="mb-4">
                         <div class="inline-flex items-center justify-center w-16 h-16 bg-orange-100 rounded-full">
-                            <i class="fas fa-cog fa-2x text-orange-600 animate-spin"></i>
+                            <i class="fas fa-cog fa-2x text-light-brown animate-spin"></i>
                         </div>
                     </div>
                     <h4 class="text-lg font-medium text-gray-900 mb-2">Generating Report...</h4>
                     <p class="text-sm text-gray-500 mb-4">Please wait while we process your request</p>
                     <div class="w-full bg-gray-200 rounded-full h-2 mb-4">
-                        <div id="progress-bar" class="bg-orange-600 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+                        <div id="progress-bar" class="bg-light-brown h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
                     </div>
                     <p id="progress-text" class="text-sm text-gray-600">Initializing...</p>
                 </div>

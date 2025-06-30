@@ -354,7 +354,11 @@ class ReportController extends Controller
         ];
 
         $suppliers = Supplier::select('id', 'name')->get();
-        $users = User::select('id', 'name', 'email')->get();
+        
+        // Only get users with 'admin' role, excluding 'supplier' and 'vendor' roles
+        $users = User::select('id', 'name', 'email', 'role')
+            ->where('role', '=', 'admin')
+            ->get();
 
         return response()->json([
             'internal_roles' => $internalRoles,
@@ -420,7 +424,11 @@ class ReportController extends Controller
     {
         try {
             $templates = $this->getReportTemplates();
-            $recipients = User::select('id', 'name', 'email')->get();
+            
+            // Only get users with 'admin' role, excluding 'supplier' and 'vendor' roles
+            $recipients = User::select('id', 'name', 'email', 'role')
+                ->where('role', '=', 'admin')
+                ->get();
             
             return response()->json([
                 'success' => true,

@@ -3,6 +3,11 @@ let currentStep = 1;
 let selectedTemplate = '';
 let selectedFormat = '';
 
+// Store current data for filtering
+let currentLibraryData = [];
+let currentHistoricalData = [];
+let currentRecipientsData = []; // Store current recipients for edit operations
+
 // Initialize page
 document.addEventListener('DOMContentLoaded', function() {
     setupTabNavigation();
@@ -59,14 +64,14 @@ function switchTab(tabName) {
 // Refresh the currently active tab
 function refreshCurrentTab() {
     // Find the currently active tab
-    const activeTabButton = document.querySelector('.tab-button.bg-orange-100');
+    const activeTabButton = document.querySelector('.tab-button.active');
     
     if (activeTabButton) {
-        const tabName = activeTabButton.textContent.trim().toLowerCase();
+        const tabName = activeTabButton.dataset.tab;
         
-        if (tabName.includes('library')) {
+        if (tabName === 'library') {
             loadReportLibrary();
-        } else if (tabName.includes('historical')) {
+        } else if (tabName === 'historical') {
             loadHistoricalReports();
         }
     } else {
@@ -88,16 +93,27 @@ function loadReportLibrary() {
     .then(response => response.json())
     .then(data => {
         if (data.data) {
-            updateLibraryTable(data.data);
+            // Store the current data for filtering
+            currentLibraryData = data.data;
+            
+            // Check if filters are active and reapply them
+            const hasActiveFilters = isLibraryFilterActive();
+            if (hasActiveFilters) {
+                filterLibraryReports();
+            } else {
+                updateLibraryTable(data.data);
+            }
         } else {
             console.error('No data received from backend');
             // Fallback to filtered mock data
+            currentLibraryData = getMockReportLibraryData();
             filterLibraryReports();
         }
     })
     .catch(error => {
         console.error('Error loading report library:', error);
         // Fallback to mock data if backend fails
+        currentLibraryData = getMockReportLibraryData();
         filterLibraryReports();
     });
 }
@@ -174,16 +190,27 @@ function loadHistoricalReports() {
     .then(response => response.json())
     .then(data => {
         if (data.data) {
-            updateHistoricalTable(data.data);
+            // Store the current data for filtering
+            currentHistoricalData = data.data;
+            
+            // Check if filters are active and reapply them
+            const hasActiveFilters = isHistoricalFilterActive();
+            if (hasActiveFilters) {
+                filterHistoricalReports();
+            } else {
+                updateHistoricalTable(data.data);
+            }
         } else {
             console.error('No historical data received from backend');
             // Fallback to filtered mock data
+            currentHistoricalData = getMockHistoricalReportsData();
             filterHistoricalReports();
         }
     })
     .catch(error => {
         console.error('Error loading historical reports:', error);
         // Fallback to mock data if backend fails
+        currentHistoricalData = getMockHistoricalReportsData();
         filterHistoricalReports();
     });
 }
@@ -277,7 +304,7 @@ function toggleEmailRecipientsSection() {
     }
 }
 
-function loadAdhocRecipients() {
+function loadAdhocRecipients(includeSuppliers = true) {
     const checkboxContainer = document.getElementById('recipients-checkbox-list');
     
     if (!checkboxContainer) return;
@@ -298,14 +325,15 @@ function loadAdhocRecipients() {
         // Transform backend data to match expected format
         const recipients = [];
         
-        // Add users as recipients
+        // Add internal users as recipients (backend already filters out supplier/vendor roles)
         if (data.users) {
             data.users.forEach(user => {
                 recipients.push({
                     id: `user_${user.id}`,
                     name: user.name,
                     email: user.email,
-                    department: 'User'
+                    department: user.role || 'User',
+                    type: 'internal'
                 });
             });
         }
@@ -317,37 +345,72 @@ function loadAdhocRecipients() {
                     id: `role_${index}`,
                     name: role,
                     email: `${role.toLowerCase().replace(/\s+/g, '')}@beantrack.com`,
-                    department: role
+                    department: role,
+                    type: 'internal'
                 });
             });
         }
         
-        // Add suppliers as recipients (optional, depending on your needs)
-        if (data.suppliers && data.suppliers.length > 0) {
+        // Add suppliers as recipients for ad-hoc delivery (external recipients)
+        if (includeSuppliers && data.suppliers && data.suppliers.length > 0) {
             data.suppliers.forEach(supplier => {
                 recipients.push({
                     id: `supplier_${supplier.id}`,
                     name: supplier.name,
                     email: `contact@${supplier.name.toLowerCase().replace(/\s+/g, '')}.com`,
-                    department: 'Supplier'
+                    department: 'Supplier',
+                    type: 'external'
                 });
             });
         }
         
-        // Populate checkboxes for recipients
-        recipients.forEach(recipient => {
-            const checkboxDiv = document.createElement('div');
-            checkboxDiv.className = 'flex items-center';
-            checkboxDiv.innerHTML = `
-                <input type="checkbox" id="recipient-${recipient.id}" name="recipients[]" value="${recipient.id}" class="mr-3 rounded border-gray-300 text-orange-600 focus:ring-orange-500">
-                <label for="recipient-${recipient.id}" class="flex-1 text-sm text-gray-700 cursor-pointer">
-                    <span class="font-medium">${recipient.name}</span>
-                    <span class="text-gray-500 ml-1">(${recipient.email})</span>
-                    <div class="text-xs text-gray-400">${recipient.department}</div>
-                </label>
-            `;
-            checkboxContainer.appendChild(checkboxDiv);
-        });
+        // Populate checkboxes for recipients, grouped by type
+        const internalRecipients = recipients.filter(r => r.type === 'internal');
+        const externalRecipients = recipients.filter(r => r.type === 'external');
+        
+        // Add internal recipients section
+        if (internalRecipients.length > 0) {
+            const internalHeader = document.createElement('div');
+            internalHeader.className = 'text-sm font-medium text-gray-700 mt-4 mb-2';
+            internalHeader.textContent = 'Internal Recipients';
+            checkboxContainer.appendChild(internalHeader);
+            
+            internalRecipients.forEach(recipient => {
+                const checkboxDiv = document.createElement('div');
+                checkboxDiv.className = 'flex items-center ml-2';
+                checkboxDiv.innerHTML = `
+                    <input type="checkbox" id="recipient-${recipient.id}" name="recipients[]" value="${recipient.id}" class="mr-3 rounded border-gray-300 text-orange-600 focus:ring-orange-500">
+                    <label for="recipient-${recipient.id}" class="flex-1 text-sm text-gray-700 cursor-pointer">
+                        <span class="font-medium">${recipient.name}</span>
+                        <span class="text-gray-500 ml-1">(${recipient.email})</span>
+                        <div class="text-xs text-gray-400">${recipient.department}</div>
+                    </label>
+                `;
+                checkboxContainer.appendChild(checkboxDiv);
+            });
+        }
+        
+        // Add external recipients section
+        if (externalRecipients.length > 0) {
+            const externalHeader = document.createElement('div');
+            externalHeader.className = 'text-sm font-medium text-gray-700 mt-4 mb-2';
+            externalHeader.textContent = 'External Recipients';
+            checkboxContainer.appendChild(externalHeader);
+            
+            externalRecipients.forEach(recipient => {
+                const checkboxDiv = document.createElement('div');
+                checkboxDiv.className = 'flex items-center ml-2';
+                checkboxDiv.innerHTML = `
+                    <input type="checkbox" id="recipient-${recipient.id}" name="recipients[]" value="${recipient.id}" class="mr-3 rounded border-gray-300 text-orange-600 focus:ring-orange-500">
+                    <label for="recipient-${recipient.id}" class="flex-1 text-sm text-gray-700 cursor-pointer">
+                        <span class="font-medium">${recipient.name}</span>
+                        <span class="text-gray-500 ml-1">(${recipient.email})</span>
+                        <div class="text-xs text-gray-400">${recipient.department}</div>
+                    </label>
+                `;
+                checkboxContainer.appendChild(checkboxDiv);
+            });
+        }
         
         // Setup select all / clear all functionality
         setupRecipientCheckboxControls();
@@ -680,8 +743,6 @@ function generateRandomFileSize() {
 }
 
 function addToHistoricalReports(reportType, format, deliveryMethod) {
-    // This would normally add the report to the backend
-    // For demo purposes, we'll just refresh the historical tab if it's active
     const activeTab = document.querySelector('.tab-button.active');
     if (activeTab && activeTab.dataset.tab === 'historical') {
         filterHistoricalReports();
@@ -1217,7 +1278,7 @@ function createEditModal() {
             <div class="flex items-center justify-center min-h-screen px-4">
                 <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-screen overflow-y-auto">
                     <div class="flex items-center justify-between p-6 border-b">
-                        <h3 class="text-lg font-semibold text-gray-900">Edit Report</h3>
+                        <h3 class="text-lg font-semibold text-dashboard-light">Edit Report</h3>
                         <button id="close-edit-modal" class="text-gray-400 hover:text-gray-600">
                             <i class="fas fa-times"></i>
                         </button>
@@ -1276,7 +1337,7 @@ function createEditModal() {
                             <button type="button" id="cancel-edit" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md">
                                 Cancel
                             </button>
-                            <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-orange-600 hover:bg-orange-700 rounded-md">
+                            <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-light-brown hover:bg-brown rounded-md">
                                 Update Report
                             </button>
                         </div>
@@ -1405,15 +1466,14 @@ function openRecipientFormModal(recipientId = null) {
     
     if (recipientId) {
         title.textContent = 'Edit Recipient';
-        // Load recipient data for editing
-        const recipients = getExtendedMockRecipients();
-        const recipient = recipients.find(r => r.id == recipientId);
+        // Load recipient data for editing from current recipients data
+        const recipient = currentRecipientsData.find(r => r.id == recipientId);
         if (recipient) {
             document.getElementById('recipient-id').value = recipient.id;
             document.getElementById('recipient-name').value = recipient.name;
             document.getElementById('recipient-email').value = recipient.email;
             document.getElementById('recipient-department').value = recipient.department;
-            document.getElementById('recipient-status').value = recipient.status;
+            document.getElementById('recipient-status').value = recipient.status || 'active';
         }
     } else {
         title.textContent = 'Add Recipient';
@@ -1428,7 +1488,7 @@ function closeRecipientFormModal() {
     document.getElementById('recipientFormModal').classList.add('hidden');
 }
 
-function loadRecipients() {
+function loadRecipients(includeSuppliers = false) {
     // Load real data from backend instead of using mock data
     fetch('/reports/recipients', {
         method: 'GET',
@@ -1442,14 +1502,14 @@ function loadRecipients() {
         // Transform backend data to match expected format
         const recipients = [];
         
-        // Add users as recipients
+        // Add users as recipients (backend already filters out supplier/vendor roles)
         if (data.users) {
             data.users.forEach(user => {
                 recipients.push({
                     id: `user_${user.id}`,
                     name: user.name,
                     email: user.email,
-                    department: 'User',
+                    department: user.role || 'User',
                     status: 'active',
                     type: 'user'
                 });
@@ -1470,8 +1530,8 @@ function loadRecipients() {
             });
         }
         
-        // Add suppliers as recipients
-        if (data.suppliers) {
+        // Only include suppliers/vendors if explicitly requested (for report delivery, not admin management)
+        if (includeSuppliers && data.suppliers) {
             data.suppliers.forEach(supplier => {
                 recipients.push({
                     id: `supplier_${supplier.id}`,
@@ -1485,12 +1545,16 @@ function loadRecipients() {
         }
         
         updateRecipientsTable(recipients);
+        
+        // Store recipients data globally for edit operations
+        currentRecipientsData = recipients;
     })
     .catch(error => {
         console.error('Error loading recipients:', error);
         // Fallback to mock data if backend fails
         const recipients = getExtendedMockRecipients();
         updateRecipientsTable(recipients);
+        currentRecipientsData = recipients;
     });
 }
 
@@ -1518,15 +1582,31 @@ function updateRecipientsTable(recipients) {
                 </span>
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                <button class="text-orange-600 hover:text-orange-900 mr-3" onclick="openRecipientFormModal(${recipient.id})" title="Edit">
+                <button class="edit-recipient-btn text-orange-600 hover:text-orange-900 mr-3" data-recipient-id="${recipient.id}" title="Edit">
                     <i class="fas fa-edit"></i>
                 </button>
-                <button class="text-red-600 hover:text-red-900" onclick="deleteRecipient(${recipient.id}, '${recipient.name}')" title="Delete">
+                <button class="delete-recipient-btn text-red-600 hover:text-red-900" data-recipient-id="${recipient.id}" data-recipient-name="${recipient.name}" title="Delete">
                     <i class="fas fa-trash"></i>
                 </button>
             </td>
         `;
         tbody.appendChild(row);
+    });
+
+    // Add event listeners for edit and delete buttons
+    document.querySelectorAll('.edit-recipient-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const recipientId = this.getAttribute('data-recipient-id');
+            openRecipientFormModal(recipientId);
+        });
+    });
+
+    document.querySelectorAll('.delete-recipient-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const recipientId = this.getAttribute('data-recipient-id');
+            const recipientName = this.getAttribute('data-recipient-name');
+            deleteRecipient(recipientId, recipientName);
+        });
     });
 }
 
@@ -1544,9 +1624,14 @@ function deleteRecipient(recipientId, recipientName) {
         return;
     }
 
+    // For now, simulate deletion since there's no backend endpoint for individual recipient deletion
+    // In a real implementation, you would call: DELETE /reports/recipients/{id}
     try {
+        // Remove from current data
+        currentRecipientsData = currentRecipientsData.filter(r => r.id !== recipientId);
+        updateRecipientsTable(currentRecipientsData);
+        
         showNotification(`Recipient "${recipientName}" has been deleted`, 'success');
-        loadRecipients(); // Refresh the table
     } catch (error) {
         console.error('Delete recipient error:', error);
         showNotification('Error deleting recipient', 'error');
@@ -1574,21 +1659,31 @@ function setupRecipientsModal() {
         const isEdit = recipientId && recipientId !== '';
         
         const recipientData = {
+            id: recipientId || `user_${Date.now()}`, // Generate ID for new recipients
             name: formData.get('name'),
             email: formData.get('email'),
             department: formData.get('department'),
-            status: formData.get('status')
+            status: formData.get('status') || 'active',
+            type: 'user'
         };
         
         try {
             if (isEdit) {
+                // Update existing recipient in current data
+                const index = currentRecipientsData.findIndex(r => r.id == recipientId);
+                if (index !== -1) {
+                    currentRecipientsData[index] = { ...currentRecipientsData[index], ...recipientData };
+                }
                 showNotification(`Recipient "${recipientData.name}" has been updated`, 'success');
             } else {
+                // Add new recipient to current data
+                currentRecipientsData.push(recipientData);
                 showNotification(`Recipient "${recipientData.name}" has been added`, 'success');
             }
             
+            // Update the table with new data
+            updateRecipientsTable(currentRecipientsData);
             closeRecipientFormModal();
-            loadRecipients(); // Refresh the table
         } catch (error) {
             console.error('Save recipient error:', error);
             showNotification('Error saving recipient', 'error');
@@ -1803,17 +1898,17 @@ function filterLibraryReports() {
     const typeFilter = document.getElementById('library-type-filter')?.value || 'all';
     const frequencyFilter = document.getElementById('library-frequency-filter')?.value || 'all';
     
-    // Get original mock data with more entries for better filtering demo
-    const mockReports = getMockReportLibraryData();
+    // Use the current data that was loaded from backend
+    const reportsToFilter = currentLibraryData.length > 0 ? currentLibraryData : getMockReportLibraryData();
     
-    // Apply filters (removed state overrides since we now use real backend data)
-    let filteredReports = mockReports.filter(report => {
+    // Apply filters
+    let filteredReports = reportsToFilter.filter(report => {
         const matchesSearch = !searchTerm || 
             report.name.toLowerCase().includes(searchTerm) ||
-            report.description.toLowerCase().includes(searchTerm) ||
-            report.recipients.toLowerCase().includes(searchTerm);
+            (report.description && report.description.toLowerCase().includes(searchTerm)) ||
+            (report.recipients && report.recipients.toLowerCase().includes(searchTerm));
             
-        const matchesType = typeFilter === 'all' || report.type === typeFilter;
+        const matchesType = typeFilter === 'all' || report.type === typeFilter || report.format === typeFilter;
         
         const matchesFrequency = frequencyFilter === 'all' || 
             report.frequency.toLowerCase() === frequencyFilter.toLowerCase();
@@ -1830,70 +1925,25 @@ function filterHistoricalReports() {
     const fromDate = document.getElementById('historical-from-date')?.value || '';
     const toDate = document.getElementById('historical-to-date')?.value || '';
     
-    // Get original mock data with more entries
-    const mockHistoricalReports = [
-        {
-            id: 'R00001',
-            name: 'Monthly Supplier Demand Forecast',
-            generated_for: 'Finance Dept',
-            date_generated: '2024-01-15',
-            format: 'PDF',
-            size: '2.3 MB',
-            status: 'completed'
-        },
-        {
-            id: 'R00002',
-            name: 'Weekly Production Efficiency',
-            generated_for: 'Production Team',
-            date_generated: '2024-01-20',
-            format: 'Excel',
-            size: '1.8 MB',
-            status: 'completed'
-        },
-        {
-            id: 'R00003',
-            name: 'Daily Sales Summary',
-            generated_for: 'Sales Team',
-            date_generated: '2024-01-22',
-            format: 'PDF',
-            size: '0.9 MB',
-            status: 'completed'
-        },
-        {
-            id: 'R00004',
-            name: 'Monthly Financial Report',
-            generated_for: 'Finance Dept',
-            date_generated: '2024-01-10',
-            format: 'Excel',
-            size: '3.1 MB',
-            status: 'completed'
-        },
-        {
-            id: 'R00005',
-            name: 'Quarterly Inventory Analysis',
-            generated_for: 'Production Team',
-            date_generated: '2024-01-05',
-            format: 'PDF',
-            size: '2.7 MB',
-            status: 'completed'
-        }
-    ];
+    // Use the current data that was loaded from backend
+    const reportsToFilter = currentHistoricalData.length > 0 ? currentHistoricalData : getMockHistoricalReportsData();
     
     // Apply filters
-    let filteredReports = mockHistoricalReports.filter(report => {
+    let filteredReports = reportsToFilter.filter(report => {
         const matchesSearch = !searchTerm || 
             report.name.toLowerCase().includes(searchTerm) ||
-            report.generated_for.toLowerCase().includes(searchTerm);
+            (report.generated_for && report.generated_for.toLowerCase().includes(searchTerm));
             
         const matchesRecipient = recipientFilter === 'all' || 
-            report.generated_for.toLowerCase().includes(recipientFilter.toLowerCase());
+            (report.generated_for && report.generated_for.toLowerCase().includes(recipientFilter.toLowerCase()));
         
         let matchesDateRange = true;
-        if (fromDate) {
-            matchesDateRange = matchesDateRange && report.date_generated >= fromDate;
+        const reportDate = report.date_generated || report.created_at;
+        if (fromDate && reportDate) {
+            matchesDateRange = matchesDateRange && reportDate >= fromDate;
         }
-        if (toDate) {
-            matchesDateRange = matchesDateRange && report.date_generated <= toDate;
+        if (toDate && reportDate) {
+            matchesDateRange = matchesDateRange && reportDate <= toDate;
         }
         
         return matchesSearch && matchesRecipient && matchesDateRange;
@@ -1971,6 +2021,56 @@ function getMockReportLibraryData() {
     ];
 }
 
+function getMockHistoricalReportsData() {
+    return [
+        {
+            id: 'R00001',
+            name: 'Monthly Supplier Demand Forecast',
+            generated_for: 'Finance Dept',
+            date_generated: '2024-01-15',
+            format: 'PDF',
+            size: '2.3 MB',
+            status: 'completed'
+        },
+        {
+            id: 'R00002',
+            name: 'Weekly Production Efficiency',
+            generated_for: 'Production Team',
+            date_generated: '2024-01-20',
+            format: 'Excel',
+            size: '1.8 MB',
+            status: 'completed'
+        },
+        {
+            id: 'R00003',
+            name: 'Daily Sales Summary',
+            generated_for: 'Sales Team',
+            date_generated: '2024-01-22',
+            format: 'PDF',
+            size: '0.9 MB',
+            status: 'completed'
+        },
+        {
+            id: 'R00004',
+            name: 'Monthly Financial Report',
+            generated_for: 'Finance Dept',
+            date_generated: '2024-01-10',
+            format: 'Excel',
+            size: '3.1 MB',
+            status: 'completed'
+        },
+        {
+            id: 'R00005',
+            name: 'Quarterly Inventory Analysis',
+            generated_for: 'Production Team',
+            date_generated: '2024-01-05',
+            format: 'PDF',
+            size: '2.7 MB',
+            status: 'completed'
+        }
+    ];
+}
+
 function getMockTemplates() {
     return [
         { id: 1, name: 'Default Template', description: 'Standard report template' },
@@ -2013,4 +2113,22 @@ function setupRecipientCheckboxControls() {
             });
         });
     }
+}
+
+// Helper functions to check if filters are active
+function isLibraryFilterActive() {
+    const searchTerm = document.getElementById('library-search')?.value || '';
+    const typeFilter = document.getElementById('library-type-filter')?.value || 'all';
+    const frequencyFilter = document.getElementById('library-frequency-filter')?.value || 'all';
+    
+    return searchTerm !== '' || typeFilter !== 'all' || frequencyFilter !== 'all';
+}
+
+function isHistoricalFilterActive() {
+    const searchTerm = document.getElementById('historical-search')?.value || '';
+    const recipientFilter = document.getElementById('historical-recipient-filter')?.value || 'all';
+    const fromDate = document.getElementById('historical-from-date')?.value || '';
+    const toDate = document.getElementById('historical-to-date')?.value || '';
+    
+    return searchTerm !== '' || recipientFilter !== 'all' || fromDate !== '' || toDate !== '';
 }
