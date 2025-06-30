@@ -123,6 +123,10 @@ public class VendorApplications {
         this.email = email;
     }
 
+    public String getApplicantEmail() {
+        return email;
+    }
+
     public String getBankStatementPath() {
         return bankStatementPath;
     }

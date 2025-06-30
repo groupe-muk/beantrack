@@ -5,6 +5,7 @@ import org.apache.pdfbox.text.PDFTextStripper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.groupe.beantrackserver.models.VendorValidationResponse;
@@ -31,6 +32,9 @@ public class VendorValidationService {
     
     @Autowired
     private VendorApplicationsRepository vendorApplicationsRepository;
+
+    @Autowired
+    private EmailService emailService;
 
     public VendorValidationResponse validateAndStore(String name, String email, MultipartFile bank, MultipartFile license, String businessName) throws IOException {
         // Save files
@@ -293,7 +297,7 @@ public class VendorValidationService {
         }
     }
 
-    // Method that accepts application data, saves it immediately, and validates asynchronously
+    // Method that retrieves existing application and validates it asynchronously
     public VendorValidationResponse submitApplication(String applicantId, String name, String email, String phoneNumber, String bankPath, String licensePath, String businessName) throws IOException {
         // Validate that files exist
         if (!Files.exists(Paths.get(bankPath))) {
@@ -303,32 +307,42 @@ public class VendorValidationService {
             throw new IOException("Trading license file not found: " + licensePath);
         }
 
-        // Create vendor application record immediately with pending status
-        VendorApplications application = new VendorApplications();
-        application.setId(generateApplicationId());
-        application.setApplicantName(name);
-        application.setBusinessName(businessName);
-        application.setEmail(email);
-        application.setPhoneNumber(phoneNumber);
+        // Retrieve existing vendor application record by ID
+        VendorApplications application = vendorApplicationsRepository.findById(applicantId)
+            .orElseThrow(() -> new IOException("Application not found with ID: " + applicantId));
+        
+        // Update the application with file paths and set status to under review
         application.setBankStatementPath(bankPath);
         application.setTradingLicensePath(licensePath);
-        application.setCreatedAt(LocalDateTime.now());
+        application.setStatus(VendorApplications.ApplicationStatus.under_review);
+        application.setValidationMessage("Documents received. Validation in progress...");
         application.setUpdatedAt(LocalDateTime.now());
-        application.setStatus(VendorApplications.ApplicationStatus.pending);
-        application.setValidationMessage("Application submitted successfully. Validation in progress.");
         
-        // Save the application immediately
-        VendorApplications savedApplication = vendorApplicationsRepository.save(application);
+        // Save the updated application
+        vendorApplicationsRepository.save(application);
         
-        // Start async validation
-        validateApplicationAsync(savedApplication.getId());
+        // Start async validation with a slight delay to avoid race condition
+        validateApplicationAsyncWithDelay(applicantId);
         
-        return new VendorValidationResponse("submitted", 
+        return new VendorValidationResponse("under_review", 
             "Application submitted successfully. You will be notified once validation is complete.", 
             bankPath, licensePath);
     }
 
     @Async
+    public void validateApplicationAsyncWithDelay(String applicationId) {
+        try {
+            // Small delay to ensure the initial transaction is committed
+            Thread.sleep(1000);
+            validateApplicationAsync(applicationId);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            System.err.println("Async validation was interrupted for application: " + applicationId);
+        }
+    }
+
+    @Async
+    @Transactional
     public void validateApplicationAsync(String applicationId) {
         try {
             // Retrieve the application
@@ -351,8 +365,8 @@ public class VendorValidationService {
 
             // Update application with validation results
             if (bankValid && licenseValid) {
-                application.setStatus(VendorApplications.ApplicationStatus.approved);
-                application.setValidationMessage("Vendor application approved.");
+                application.setStatus(VendorApplications.ApplicationStatus.pending);
+                application.setValidationMessage("Document validation successful. Awaiting final approval after scheduled visit.");
             } else {
                 // Build detailed failure message
                 StringBuilder failureMessage = new StringBuilder("Validation failed: ");
@@ -369,6 +383,13 @@ public class VendorValidationService {
             application.setValidatedAt(LocalDateTime.now());
             application.setUpdatedAt(LocalDateTime.now());
             vendorApplicationsRepository.save(application);
+            
+            // Send email notification based on status
+            if (application.getStatus() == VendorApplications.ApplicationStatus.pending) {
+                emailService.sendApprovalEmailWithVisit(application);
+            } else if (application.getStatus() == VendorApplications.ApplicationStatus.rejected) {
+                emailService.sendRejectionEmail(application);
+            }
             
             System.out.println("Validation completed for application: " + applicationId + 
                 " - Status: " + application.getStatus());
@@ -395,11 +416,6 @@ public class VendorValidationService {
 
     public VendorApplications getApplicationStatus(String applicationId) {
         return vendorApplicationsRepository.findById(applicationId).orElse(null);
-    }
-
-    private String generateApplicationId() {
-        // Generate a 7-character application ID
-        return "VA" + UUID.randomUUID().toString().substring(0, 5).toUpperCase();
     }
 }
 

@@ -38,7 +38,39 @@ class VendorValidationService
                 'status' => 'pending'
             ]);
 
-            Log::info("Created application in DB", [$application]);
+            Log::info("Created application in DB (before refresh)", [
+                'id' => $application->id,
+                'attributes' => $application->getAttributes()
+            ]);
+
+            // Try to refresh the model to get the actual database ID (triggers might modify it)
+            try {
+                $application->refresh();
+                Log::info("Successfully refreshed application", [
+                    'id' => $application->id,
+                    'attributes' => $application->getAttributes()
+                ]);
+            } catch (Exception $e) {
+                Log::warning("Could not refresh application, using original", [
+                    'error' => $e->getMessage(),
+                    'original_id' => $application->id
+                ]);
+                
+                // Try to find by email as fallback
+                $freshApplication = VendorApplication::where('email', $data['email'])
+                    ->orderBy('created_at', 'desc')
+                    ->first();
+                    
+                if ($freshApplication) {
+                    $application = $freshApplication;
+                    Log::info("Found application by email", [
+                        'id' => $application->id,
+                        'attributes' => $application->getAttributes()
+                    ]);
+                }
+            }
+
+            Log::info("Final application to use", [$application]);
 
             // Store the files with proper naming
             $bankStatementPath = $application->storeBankStatement($bankStatement);
@@ -88,16 +120,17 @@ class VendorValidationService
                 'server_url' => $this->validationServerUrl
             ]);
 
-            // Prepare the data to send - use absolute paths for Java server
+            // Prepare the data to send - use absolute paths for Java server  
+            // Send the actual database ID so Java server can fetch the record
             $storagePath = storage_path('app/private/');
             $requestData = [
-                'applicantId' => $application->id,  // Changed from applicationId
-                'name' => $application->applicant_name,  // Changed from applicantName
+                'applicantId' => $application->id,  // Java server needs this to fetch the record
+                'name' => $application->applicant_name,
                 'businessName' => $application->business_name,
                 'email' => $application->email,
-                'phoneNumber' => $application->phone_number,  // Add missing phone number
-                'bankStatement' => $storagePath . $application->bank_statement_path,  // Full absolute path
-                'tradingLicense' => $storagePath . $application->trading_license_path,  // Full absolute path
+                'phoneNumber' => $application->phone_number,
+                'bankStatement' => $storagePath . $application->bank_statement_path,
+                'tradingLicense' => $storagePath . $application->trading_license_path,
             ];
 
             Log::info('Sending data to validation server', [
