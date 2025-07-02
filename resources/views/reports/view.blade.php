@@ -162,8 +162,10 @@
 <div class="px-4 sm:px-6 lg:px-8 py-6">
     <!-- Back Navigation -->
     <div class="mb-6 no-print">
-        
-        <a href="{{ route('reports.index') }}" class="inline-flex items-center text-sm text-white bg-light-brown p-2 rounded">
+        @php
+            $backRoute = Auth::user()->role === 'supplier' ? 'reports.supplier' : 'reports.index';
+        @endphp
+        <a href="{{ route($backRoute) }}" class="inline-flex items-center text-sm text-white bg-light-brown p-2 rounded">
             <i class="fas fa-arrow-left mr-2"></i>
             Back to Reports
         </a>

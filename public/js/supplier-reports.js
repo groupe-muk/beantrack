@@ -51,6 +51,10 @@ document.addEventListener('DOMContentLoaded', function() {
         setupCreateScheduleModal();
         setupActionButtonHandlers();
         setupSearchAndFilters();
+        
+        // Update stats cards on page load
+        updateStatsCards();
+        
         console.log('All setup functions completed successfully');
     } catch (error) {
         console.error('Error during initialization:', error);
@@ -424,7 +428,7 @@ function updateHistoricalTable(reports) {
                 ${getFormatBadge(report.format || 'pdf')}
             </td>
             <td class="px-4 py-4">
-                <div class="text-sm text-gray-900">${report.file_size || 'Unknown'}</div>
+                <div class="text-sm text-gray-900">${report.size || report.file_size || 'Unknown'}</div>
             </td>
             <td class="px-4 py-4">
                 ${getStatusBadge(report.status || 'completed')}
@@ -552,28 +556,61 @@ async function simulateReportGeneration(reportType, format, deliveryMethod) {
     const progressText = document.getElementById('progress-text');
     
     try {
-        // Simulate progress steps
-        const steps = [
-            { progress: 20, text: 'Validating request...' },
-            { progress: 40, text: 'Fetching your data...' },
-            { progress: 60, text: 'Processing data...' },
-            { progress: 80, text: 'Generating report...' },
-            { progress: 100, text: 'Finalizing...' }
-        ];
+        // Prepare form data
+        const formData = new FormData();
+        formData.append('report_type', reportType);
+        formData.append('format', format);
+        formData.append('from_date', document.getElementById('from-date').value);
+        formData.append('to_date', document.getElementById('to-date').value);
+        formData.append('delivery_method', deliveryMethod);
         
-        for (const step of steps) {
-            await new Promise(resolve => setTimeout(resolve, 800));
-            progressBar.style.width = `${step.progress}%`;
-            progressText.textContent = step.text;
+        // For suppliers, they can only send to themselves
+        formData.append('recipients[]', 'supplier'); // Will be handled by backend to map to current user
+        
+        // Add CSRF token
+        formData.append('_token', document.querySelector('meta[name="csrf-token"]').getAttribute('content'));
+        
+        // Step 1: Initialize
+        progressText.textContent = 'Initializing report generation...';
+        progressBar.style.width = '10%';
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Step 2: Send request to backend
+        progressText.textContent = 'Processing request...';
+        progressBar.style.width = '30%';
+        
+        const response = await fetch('/supplier-reports/adhoc', {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                'Accept': 'application/json'
+            },
+            body: formData
+        });
+        
+        progressText.textContent = 'Generating report content...';
+        progressBar.style.width = '70%';
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            progressText.textContent = 'Finalizing report...';
+            progressBar.style.width = '100%';
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            // Store the report ID for download/view actions
+            window.currentReportId = result.report_id;
+            
+            // Show success
+            showGenerationSuccess(reportType, format, deliveryMethod);
+        } else {
+            throw new Error(result.message || 'Failed to generate report');
         }
         
-        // Show success
-        await new Promise(resolve => setTimeout(resolve, 500));
-        showGenerationSuccess(reportType, format, deliveryMethod);
-        
     } catch (error) {
-        console.error('Report generation failed:', error);
-        showGenerationError('Failed to generate report. Please try again.');
+        console.error('Report generation error:', error);
+        showGenerationError(error.message || 'Failed to generate report. Please try again.');
     }
 }
 
@@ -605,15 +642,38 @@ function setupAdhocModalHandlers() {
 
 // Missing modal handler functions
 function downloadGeneratedReport() {
-    // For now, just show a message since this is a simulation
-    showNotification('Report download would start here', 'info');
+    if (!window.currentReportId) {
+        showNotification('No report available for download', 'error');
+        return;
+    }
+    
+    // Create a temporary link to trigger download
+    const downloadUrl = `/supplier-reports/${window.currentReportId}/download`;
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.download = ''; // Let server determine filename
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    showNotification('Download started...', 'info');
     closeAdhocModal();
 }
 
 function viewGeneratedReport() {
-    // For now, just show a message since this is a simulation
-    showNotification('Report viewer would open here', 'info');
-    closeAdhocModal();
+    console.log('viewGeneratedReport called, currentReportId:', window.currentReportId);
+    
+    if (!window.currentReportId) {
+        showNotification('No report available for viewing', 'error');
+        return;
+    }
+    
+    // Open report in new tab
+    const viewUrl = `/supplier-reports/${window.currentReportId}/view`;
+    console.log('Opening view URL:', viewUrl);
+    window.open(viewUrl, '_blank');
+    
+    showNotification('Opening report in new window...', 'info');
 }
 
 function retryReportGeneration() {
@@ -660,7 +720,7 @@ function showGenerationSuccess(reportType, format, deliveryMethod) {
     successSection.classList.remove('hidden');
     
     // Update result details
-    document.getElementBy
+    document.getElementById('result-type').textContent = formatReportTypeName(reportType);
     document.getElementById('result-format').textContent = format.toUpperCase();
     document.getElementById('result-size').textContent = generateRandomFileSize();
     document.getElementById('result-time').textContent = 'Just now';
@@ -674,6 +734,14 @@ function showGenerationSuccess(reportType, format, deliveryMethod) {
     
     // Add to historical reports
     addToHistoricalReports(reportType, format, deliveryMethod);
+}
+
+function addToHistoricalReports(reportType, format, deliveryMethod) {
+    // Refresh historical reports if we're on that tab
+    const activeTab = document.querySelector('.tab-button.active');
+    if (activeTab && activeTab.dataset.tab === 'historical') {
+        loadHistoricalReports();
+    }
 }
 
 function showGenerationError(message) {
@@ -794,9 +862,63 @@ async function handleViewReport(reportId, reportName) {
 // Additional Action Handler Functions for Suppliers
 async function handleEditReport(reportId) {
     try {
-        showNotification('Edit functionality coming soon...', 'info');
-        // TODO: Implement edit modal for suppliers
-        console.log('Edit report:', reportId);
+        showNotification('Loading report data...', 'info');
+        
+        // Try to fetch the report data from the backend
+        try {
+            const response = await fetch(`/supplier-reports/${reportId}/edit`, {
+                method: 'GET',
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            const result = await response.json();
+            
+            if (result.success) {
+                // Open edit modal with backend data
+                openEditModal(result.data.report, result.data.templates, result.data.recipients);
+            } else {
+                throw new Error(result.message || 'Backend request failed');
+            }
+        } catch (backendError) {
+            console.log('Using mock data for demo:', backendError.message);
+            
+            // Find the report in current library data
+            const report = currentLibraryData.find(r => r.id == reportId);
+            
+            if (!report) {
+                showNotification('Report not found', 'error');
+                return;
+            }
+            
+            // Create mock report data for editing
+            const mockReport = {
+                id: report.id,
+                name: report.name,
+                description: report.description || '',
+                type: 'supplier_performance',
+                format: report.format || 'pdf',
+                frequency: report.frequency ? report.frequency.toLowerCase() : 'weekly',
+                recipients: [1], // Default to supplier as recipient
+                status: report.status
+            };
+            
+            // Get mock data for the dropdowns
+            const mockTemplates = [
+                { id: 'supplier_performance', name: 'Supplier Performance Report' },
+                { id: 'inventory_status', name: 'Inventory Status Report' },
+                { id: 'delivery_tracking', name: 'Delivery Tracking Report' }
+            ];
+            
+            const mockRecipients = [
+                { id: 1, name: 'Current User', email: 'supplier@example.com' }
+            ];
+            
+            openEditModal(mockReport, mockTemplates, mockRecipients);
+        }
     } catch (error) {
         console.error('Error editing report:', error);
         showNotification('Failed to edit report', 'error');
@@ -1095,7 +1217,7 @@ function updateWizardStep() {
         }
     });
 
-    // Update step content
+    // Update content
     document.querySelectorAll('.wizard-step').forEach(step => {
         step.classList.remove('active');
         step.style.display = 'none'; // Force hide all steps
@@ -1368,16 +1490,13 @@ function resetSaveButton() {
 
 // Ad-hoc Modal Functions
 function openAdhocModal() {
-    document.getElementById('adhocReportModal').classList.remove('hidden');
-}
-
-function closeAdhocModal() {
-    document.getElementById('adhocReportModal').classList.add('hidden');
+    document.getElementById('adhocGenerationModal').classList.remove('hidden');
 }
 
 // Unified Stats Card Management Functions
 async function updateStatsCards() {
     try {
+        console.log('Updating supplier stats cards...');
         const response = await fetch('/supplier-reports/stats?supplier_only=true', {
             method: 'GET',
             headers: {
@@ -1391,15 +1510,19 @@ async function updateStatsCards() {
         }
 
         const data = await response.json();
+        console.log('Supplier stats API response:', data);
         
         if (data.success && data.data) {
+            console.log('Updating supplier stats cards with:', data.data);
             updateStatsCard('active-reports-card', data.data.activeReports || 0);
             updateStatsCard('generated-today-card', data.data.generatedToday || 0);
             updateStatsCard('total-reports-card', data.data.totalReports || 0);
             updateStatsCard('latest-report-card', data.data.lastGenerated || 'None');
+        } else {
+            console.warn('Supplier stats update failed:', data.message);
         }
     } catch (error) {
-        console.error('Error updating stats cards:', error);
+        console.error('Error updating supplier stats cards:', error);
     }
 }
 
@@ -1411,6 +1534,8 @@ function updateStatsCard(cardId, newValue) {
         const valueElement = card.querySelector('p[data-value]');
         
         if (valueElement) {
+            console.log(`Updating supplier ${cardId} from ${valueElement.getAttribute('data-value')} to ${newValue}`);
+            
             valueElement.textContent = newValue;
             valueElement.setAttribute('data-value', newValue);
             
@@ -1419,7 +1544,11 @@ function updateStatsCard(cardId, newValue) {
             setTimeout(() => {
                 card.classList.remove('transform', 'scale-105');
             }, 200);
+        } else {
+            console.warn(`No p[data-value] element found in supplier card ${cardId}`);
         }
+    } else {
+        console.warn(`Supplier card ${cardId} not found`);
     }
 }
 
@@ -1630,3 +1759,198 @@ function formatReportTypeName(reportType) {
     return typeNames[reportType] || reportType;
 }
 
+// Edit Modal Functions
+function openEditModal(report, templates, recipients) {
+    // Create edit modal if it doesn't exist
+    let editModal = document.getElementById('supplier-edit-report-modal');
+    if (!editModal) {
+        createSupplierEditModal();
+        editModal = document.getElementById('supplier-edit-report-modal');
+    }
+    
+    // Populate form with report data
+    populateSupplierEditForm(report, templates, recipients);
+    
+    // Show modal
+    editModal.classList.remove('hidden');
+}
+
+function createSupplierEditModal() {
+    const modalHTML = `
+        <div id="supplier-edit-report-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden z-50">
+            <div class="flex items-center justify-center min-h-screen px-4">
+                <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-screen overflow-y-auto">
+                    <div class="flex items-center justify-between p-6 border-b">
+                        <h3 class="text-lg font-semibold text-dashboard-light">Edit Report</h3>
+                        <button id="close-supplier-edit-modal" class="text-gray-400 hover:text-gray-600">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <form id="supplier-edit-report-form" class="p-6">
+                        <input type="hidden" id="supplier-edit-report-id" name="report_id">
+                        
+                        <div class="grid grid-cols-1 gap-6">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Report Name</label>
+                                <input type="text" id="supplier-edit-report-name" name="name" class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500" required>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Description</label>
+                                <textarea id="supplier-edit-report-description" name="description" rows="3" class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500"></textarea>
+                            </div>
+                            
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Report Type</label>
+                                    <select id="supplier-edit-report-type" name="type" class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500" required>
+                                        <option value="">Select Type</option>
+                                    </select>
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Format</label>
+                                    <select id="supplier-edit-report-format" name="format" class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500" required>
+                                        <option value="">Select Format</option>
+                                        <option value="pdf">PDF</option>
+                                        <option value="excel">Excel</option>
+                                        <option value="csv">CSV</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Frequency</label>
+                                <select id="supplier-edit-report-frequency" name="frequency" class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500" required>
+                                    <option value="">Select Frequency</option>
+                                    <option value="daily">Daily</option>
+                                    <option value="weekly">Weekly</option>
+                                    <option value="monthly">Monthly</option>
+                                    <option value="quarterly">Quarterly</option>
+                                </select>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Recipients</label>
+                                <div id="supplier-edit-recipients-container" class="space-y-2">
+                                    <!-- Recipients will be populated here -->
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="flex justify-end space-x-3 mt-8 pt-6 border-t">
+                            <button type="button" id="cancel-supplier-edit" class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50">
+                                Cancel
+                            </button>
+                            <button type="submit" class="px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700">
+                                Save Changes
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+    
+    // Add event listeners
+    document.getElementById('close-supplier-edit-modal').addEventListener('click', closeSupplierEditModal);
+    document.getElementById('cancel-supplier-edit').addEventListener('click', closeSupplierEditModal);
+    document.getElementById('supplier-edit-report-form').addEventListener('submit', handleSupplierEditSubmit);
+}
+
+function populateSupplierEditForm(report, templates, recipients) {
+    // Fill basic fields
+    document.getElementById('supplier-edit-report-id').value = report.id;
+    document.getElementById('supplier-edit-report-name').value = report.name;
+    document.getElementById('supplier-edit-report-description').value = report.description || '';
+    
+    // Populate templates dropdown
+    const typeSelect = document.getElementById('supplier-edit-report-type');
+    typeSelect.innerHTML = '<option value="">Select Type</option>';
+    templates.forEach(template => {
+        const option = document.createElement('option');
+        option.value = template.id;
+        option.textContent = template.name;
+        if (template.id === report.type) {
+            option.selected = true;
+        }
+        typeSelect.appendChild(option);
+    });
+    
+    // Set format and frequency
+    document.getElementById('supplier-edit-report-format').value = report.format;
+    document.getElementById('supplier-edit-report-frequency').value = report.frequency;
+    
+    // Populate recipients
+    const recipientsContainer = document.getElementById('supplier-edit-recipients-container');
+    recipientsContainer.innerHTML = '';
+    
+    recipients.forEach(recipient => {
+        const isSelected = report.recipients && report.recipients.includes(recipient.id);
+        const recipientHTML = `
+            <label class="flex items-center space-x-2">
+                <input type="checkbox" name="recipients[]" value="${recipient.id}" ${isSelected ? 'checked' : ''} 
+                       class="rounded border-gray-300 text-orange-600 focus:ring-orange-500">
+                <span class="text-sm text-gray-700">${recipient.name} (${recipient.email})</span>
+            </label>
+        `;
+        recipientsContainer.insertAdjacentHTML('beforeend', recipientHTML);
+    });
+}
+
+function closeSupplierEditModal() {
+    const modal = document.getElementById('supplier-edit-report-modal');
+    if (modal) {
+        modal.classList.add('hidden');
+    }
+}
+
+async function handleSupplierEditSubmit(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(e.target);
+    const reportId = formData.get('report_id');
+    
+    // Get selected recipients
+    const selectedRecipients = Array.from(document.querySelectorAll('input[name="recipients[]"]:checked'))
+        .map(checkbox => parseInt(checkbox.value));
+    
+    const reportData = {
+        name: formData.get('name'),
+        description: formData.get('description'),
+        type: formData.get('type'),
+        format: formData.get('format'),
+        frequency: formData.get('frequency'),
+        recipients: selectedRecipients
+    };
+    
+    try {
+        showNotification('Updating report...', 'info');
+        
+        const response = await fetch(`/supplier-reports/${reportId}`, {
+            method: 'PUT',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(reportData)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showNotification('Report updated successfully', 'success');
+            closeSupplierEditModal();
+            loadReportLibrary(); // Refresh the library table
+            updateStatsCards(); // Update stats
+        } else {
+            showNotification(result.message || 'Failed to update report', 'error');
+        }
+    } catch (error) {
+        console.error('Error updating report:', error);
+        showNotification('Error updating report', 'error');
+    }
+}

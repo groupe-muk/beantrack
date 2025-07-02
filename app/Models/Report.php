@@ -25,6 +25,7 @@ class Report extends Model
         'schedule_time',
         'schedule_day',
         'status',
+        'file_size',
         'content', 
         'last_sent'
     ];

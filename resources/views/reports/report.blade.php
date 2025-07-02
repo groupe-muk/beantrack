@@ -645,5 +645,6 @@
 
 @push('scripts')
 <script src="{{ asset('js/reports.js') }}"></script>
+<script src="{{ asset('js/wizard-recipients.js') }}"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.2.1/flowbite.min.js"></script>
 @endpush
