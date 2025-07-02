@@ -899,8 +899,6 @@ async function saveReportSchedule() {
             recipients.push(checkbox.value);
         });
 
-        console.log('Recipients:', recipients); // Debug log
-
         // Validate required fields
         if (!template) {
             console.log('Validation failed: no template');
