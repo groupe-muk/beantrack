@@ -19,6 +19,7 @@
         @vite(['resources/css/app.css', 'resources/js/app.js'])
          {{-- For chat --}}
         <script src="https://js.pusher.com/7.0/pusher.min.js"></script>
+        @stack('styles')
     </head>
 
     <body class = "font-serif">        
@@ -73,6 +74,8 @@
             @endif
         </script>
         @endif
+
+        @stack('scripts')
     </body>
 
    

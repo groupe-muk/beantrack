@@ -238,7 +238,8 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('🔌 Setting up real-time connection...');
         
         let echoConnectionEstablished = false;
-        let pusherFallbackTimer = null;
+        let pusherFallbackEnabled = false;
+        let echoTestTimer = null;
         
         try {
             // Method 1: Primary - Laravel Echo
@@ -250,42 +251,58 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Primary listener - use .listen() method
                 channel.listen('.message.sent', function(data) {
                     console.log('👂 Echo listen triggered:', data);
-                    echoConnectionEstablished = true;
                     
-                    // Cancel Pusher fallback since Echo is working
-                    if (pusherFallbackTimer) {
-                        clearTimeout(pusherFallbackTimer);
-                        pusherFallbackTimer = null;
-                        console.log('✅ Echo working, Pusher fallback cancelled');
+                    // Mark Echo as working
+                    if (!echoConnectionEstablished) {
+                        echoConnectionEstablished = true;
+                        console.log('✅ Echo connection confirmed working');
+                        
+                        // Cancel any pending Pusher fallback
+                        if (echoTestTimer) {
+                            clearTimeout(echoTestTimer);
+                            echoTestTimer = null;
+                        }
                     }
                     
-                    handleIncomingMessage(data);
+                    // Only process if Pusher fallback is not active
+                    if (!pusherFallbackEnabled) {
+                        handleIncomingMessage(data);
+                    } else {
+                        console.log('🔄 Echo message ignored - Pusher fallback is active');
+                    }
                 });
                 
                 // Alternative listener for notifications (backup)
                 channel.notification((notification) => {
                     console.log('🔔 Echo notification received:', notification);
                     if (notification.type === 'App\\Events\\MessageSent') {
-                        echoConnectionEstablished = true;
-                        handleIncomingMessage(notification);
+                        if (!echoConnectionEstablished) {
+                            echoConnectionEstablished = true;
+                            console.log('✅ Echo connection confirmed working (via notification)');
+                        }
+                        
+                        if (!pusherFallbackEnabled) {
+                            handleIncomingMessage(notification);
+                        }
                     }
                 });
                 
-                console.log('✅ Laravel Echo connection established');
-            }
-            
-            // Method 2: Fallback - Direct Pusher binding (only if Echo fails)
-            if (window.Pusher && window.pusher) {
-                // Set up fallback timer - activate Pusher if Echo doesn't receive messages within 10 seconds
-                pusherFallbackTimer = setTimeout(() => {
+                // Set up a test timer - if no messages received in 15 seconds, enable Pusher fallback
+                // NOTE: Timer disabled to prevent duplicate messages from Pusher fallback
+                /*
+                echoTestTimer = setTimeout(() => {
                     if (!echoConnectionEstablished) {
-                        console.log('⚠️ Echo not responding, activating Pusher fallback...');
-                        setupPusherFallback();
+                        console.log('⚠️ Echo not responding after 15 seconds, enabling Pusher fallback...');
+                        enablePusherFallback();
                     }
-                }, 10000);
+                }, 15000);
+                */
                 
-                // Also set up immediate Pusher fallback for critical scenarios
-                setupPusherFallback();
+                console.log('✅ Laravel Echo setup complete');
+            } else {
+                console.log('⚠️ Laravel Echo not available, Pusher fallback is disabled to prevent duplicates');
+                console.log('ℹ️ If real-time messaging is needed, enable Pusher fallback in enablePusherFallback()');
+                // enablePusherFallback(); // Commented out to prevent duplicate messages
             }
             
             // Check if any real-time method is available
@@ -301,51 +318,58 @@ document.addEventListener('DOMContentLoaded', function() {
             console.error('❌ Error setting up real-time connection:', error);
             showErrorNotification('Real-time connection failed', error.message);
             
-            // Try Pusher fallback on error
-            if (window.pusher) {
-                setupPusherFallback();
-            }
+            // Enable Pusher fallback on error
+            enablePusherFallback();
         }
-    }
-    
-    /**
-     * Setup Pusher fallback connection
-     */
-    function setupPusherFallback() {
-        if (!window.pusher) return;
         
-        console.log('📡 Setting up Pusher fallback connection...');
-        
-        try {
-            const channelName = `private-chat.${currentUserId}`;
-            const channel = window.pusher.subscribe(channelName);
+        /**
+         * Enable Pusher fallback connection
+         * 
+         * NOTE: Currently disabled to prevent duplicate messages.
+         * This fallback can be re-enabled if Echo reliability issues occur.
+         * Simply uncomment the binding code below.
+         */
+        function enablePusherFallback() {
+            if (!window.pusher || pusherFallbackEnabled) return;
             
-            // Bind to the Laravel event (primary)
-            channel.bind('App\\Events\\MessageSent', function(data) {
-                console.log('📨 Pusher fallback - MessageSent received:', data);
-                handleIncomingMessage(data);
-            });
+            pusherFallbackEnabled = true;
+            console.log('📡 Pusher fallback available but disabled to prevent duplicates');
+            console.log('ℹ️ To enable Pusher fallback, uncomment the binding code in enablePusherFallback()');
             
-            // Bind to alternative event name (backup)
-            channel.bind('message.sent', function(data) {
-                console.log('📨 Pusher fallback - message.sent received:', data);
-                handleIncomingMessage(data);
-            });
-            
-            // Success callback
-            channel.bind('pusher:subscription_succeeded', function(members) {
-                console.log('✅ Pusher fallback subscription successful for:', channelName);
-            });
-            
-            // Error callback
-            channel.bind('pusher:subscription_error', function(error) {
-                console.error('❌ Pusher fallback subscription error:', error);
-            });
-            
-            console.log('✅ Pusher fallback binding established');
-            
-        } catch (error) {
-            console.error('❌ Error setting up Pusher fallback:', error);
+            // DISABLED: Uncomment the code below to enable Pusher fallback
+            /*
+            try {
+                const channelName = `private-chat.${currentUserId}`;
+                const channel = window.pusher.subscribe(channelName);
+                
+                // Bind to the Laravel event (primary)
+                channel.bind('App\\Events\\MessageSent', function(data) {
+                    console.log('📨 Pusher fallback - MessageSent received:', data);
+                    handleIncomingMessage(data);
+                });
+                
+                // Bind to alternative event name (backup)
+                channel.bind('message.sent', function(data) {
+                    console.log('📨 Pusher fallback - message.sent received:', data);
+                    handleIncomingMessage(data);
+                });
+                
+                // Success callback
+                channel.bind('pusher:subscription_succeeded', function(members) {
+                    console.log('✅ Pusher fallback subscription successful for:', channelName);
+                });
+                
+                // Error callback
+                channel.bind('pusher:subscription_error', function(error) {
+                    console.error('❌ Pusher fallback subscription error:', error);
+                });
+                
+                console.log('✅ Pusher fallback enabled successfully');
+                
+            } catch (error) {
+                console.error('❌ Error enabling Pusher fallback:', error);
+            }
+            */
         }
     }
     

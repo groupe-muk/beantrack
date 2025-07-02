@@ -112,21 +112,129 @@ class dashboardController extends Controller
  
     private function getSupplierDashboardData(): array
     {
-        // Example:
-        // return [
-        //     'supplierOrders' => Order::where('supplier_id', Auth::id())->get(),
-        //     'supplierMetrics' => someSupplierService::getMetrics(),
-        // ];
-        return []; // Return an empty array if no specific data yet
+        return [
+        'pendingOrders' => [
+            [
+                'name' => 'Coffee House Roasters',
+                'order_id' => 'CMD-1842',
+                'quantity' => 200,
+                'date' => '2025-05-28',
+                'productName' => 'Arabica Grade A',
+            ],
+            [
+                'name' => 'Bean & Brew Inc.',
+                'order_id' => 'ES-903',
+                'quantity' => 180,
+                'date' => '2025-06-03',
+                'productName' => 'Arabica Medium Roast',
+            ],
+            [
+                'name' => 'Coffee House Roasters',
+                'order_id' => 'CMD-1842',
+                'quantity' => 200,
+                'date' => '2025-05-28',
+                'productName' => 'Arabica Grade A',
+            ],
+        ],
+        'productsTableHeaders' => ['Product Name', 'Price (UGX)', 'Stock', 'Status'],
+            'productsTableData' => [
+            ['Product Name' => 'Ugandan Coffee Beans', 'Price (UGX)' => '25,000', 'Stock' => 150, 'Status' => 'In Stock'],
+            ['Product Name' => 'Organic Tea Leaves', 'Price (UGX)' => '12,500', 'Stock' => 0, 'Status' => 'Out of Stock'],
+            ['Product Name' => 'Local Honey', 'Price (UGX)' => '18,000', 'Stock' => 75, 'Status' => 'Limited Stock'],
+            ['Product Name' => 'Dried Fruits Mix', 'Price (UGX)' => '30,000', 'Stock' => 200, 'Status' => 'In Stock'],
+        ],
+        
+        'inventoryItems' => [
+            [
+                'name' => 'Arabica Grade A',
+                'available' => 1000,
+                'allocated' => 1340,
+                'statusLabel' => 'Healthy',
+            ],
+            [
+                'name' => 'Arabica Grade B',
+                'available' => 400,
+                'allocated' => 640,
+                'statusLabel' => 'Healthy',
+            ],
+            [
+                'name' => 'Robusta Grade A',
+                'available' => 150,
+                'allocated' => 360,
+                'statusLabel' => 'Low',
+            ],
+            [
+                'name' => 'Colombia Supremo',
+                'available' => 20,
+                'allocated' => 180,
+                'statusLabel' => 'Critical',
+            ],
+        ],
+
+        ]; 
     }
 
 
     private function getVendorDashboardData(): array
     {
-        // Example:
-        // return [
-        //     'vendorSales' => Sale::where('vendor_id', Auth::id())->get(),
-        // ];
-        return []; // Return an empty array if no specific data yet
+        return [
+            'pendingOrders' => [
+                [
+                    'name' => 'Coffee House Roasters',
+                    'order_id' => 'CMD-1842',
+                    'quantity' => 200,
+                    'date' => '2025-05-28',
+                    'productName' => 'Arabica Grade A',
+                ],
+                [
+                    'name' => 'Bean & Brew Inc.',
+                    'order_id' => 'ES-903',
+                    'quantity' => 180,
+                    'date' => '2025-06-03',
+                    'productName' => 'Arabica Medium Roast',
+                ],
+                [
+                    'name' => 'Coffee House Roasters',
+                    'order_id' => 'CMD-1842',
+                    'quantity' => 200,
+                    'date' => '2025-05-28',
+                    'productName' => 'Arabica Grade A',
+                ],
+                [
+                    'name' => 'Bean & Brew Inc.',
+                    'order_id' => 'ES-903',
+                    'quantity' => 180,
+                    'date' => '2025-06-03',
+                    'productName' => 'Arabica Medium Roast',
+                ],
+            ],
+            
+            'inventoryItems' => [
+            [
+                'name' => 'Arabica Grade A',
+                'available' => 1000,
+                'allocated' => 1340,
+                'statusLabel' => 'Healthy',
+            ],
+            [
+                'name' => 'Arabica Grade B',
+                'available' => 400,
+                'allocated' => 640,
+                'statusLabel' => 'Healthy',
+            ],
+            [
+                'name' => 'Robusta Grade A',
+                'available' => 150,
+                'allocated' => 360,
+                'statusLabel' => 'Low',
+            ],
+            [
+                'name' => 'Colombia Supremo',
+                'available' => 20,
+                'allocated' => 180,
+                'statusLabel' => 'Critical',
+            ],
+        ],
+        ]; 
     }
 }
