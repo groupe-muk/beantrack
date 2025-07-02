@@ -18,6 +18,8 @@ use App\Http\Controllers\tableCardController;
 
 use App\Http\Controllers\SupplyCentersController;
 use App\Http\Controllers\InventoryController;
+use App\Http\Controllers\supplierInventoryController;
+use App\Http\Controllers\vendorInventoryController;
 
 Route::get('/sample', [columnChartController::class, 'showColumnChart'])->name('column.chart');
 
@@ -126,19 +128,46 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/inventory', [InventoryController::class, 'index'])->name('inventory.index');
         Route::post('/inventory', [InventoryController::class, 'store'])->name('inventory.store');
         Route::patch('/inventory/{rawCoffee}', [InventoryController::class, 'update'])->name('inventory.update');
-        //Route::patch('/inventory/{coffeeProduct}', [InventoryController::class, 'update'])->name('inventory.update');
+        Route::patch('/inventory/{coffeeProduct}', [InventoryController::class, 'update'])->name('inventory.update');
         Route::delete('/inventory/{rawCoffee}', [InventoryController::class, 'destroy'])->name('inventory.destroy');
+        Route::delete('inventory/{coffeeProduct}', [InventoryController::class, 'destroy'])->name('inventory.destroy');
+        
+
+
+        //suplier inventory routes
+       
 
    
     
-    Route::middleware(['role:supplier'])->group(function () {
-        // Supplier routes
-    });
     
-    Route::middleware(['role:vendor'])->group(function () {
-        // Vendor routes
-    });
+    
+    
 });
+ Route::middleware(['role:vendor'])->group(function () {
+        // Vendor routes
+        Route::get('/vendorInventory', [vendorInventoryController::class, 'index'])->name('vendorInventory.index');
+         Route::post('/vendorInventory', [InventoryController::class, 'store'])->name('vendorInventory.store');
+          Route::patch('/vendorInventory/{processedCoffee}', [vendorInventoryController::class, 'update'])->name('vendorInventory.update');
+        //Route::patch('/inventory/{coffeeProduct}', [InventoryController::class, 'update'])->name('inventory.update');
+        Route::delete('/inventoryInventory/{processedCoffee}', [supplierInventoryController::class, 'destroy'])->name('vendorInventory.destroy');
+        Route::get('/inventory/{coffeeProduct}/edit', [InventoryController::class, 'edit'])->name('inventory.edit');
+        
+
+    
+    
+    });
+
+
+Route::middleware(['role:supplier'])->group(function () {
+        // Supplier routes
+         Route::get('/supplierInventory', [supplierInventoryController::class, 'index'])->name('supplierInventory.index');
+          Route::post('/supplierInventory', [supplierInventoryController::class, 'store'])->name('supplierInventory.store');
+           Route::patch('/supplierInventory/{rawCoffee}', [supplierInventoryController::class, 'update'])->name('supplierInventory.update');
+        //Route::patch('/inventory/{coffeeProduct}', [InventoryController::class, 'update'])->name('inventory.update');
+        Route::delete('/supplierInventory/{rawCoffee}', [supplierInventoryController::class, 'destroy'])->name('supplierInventory.destroy');
+
+    
+    });
 
 // Report Management Routes
     Route::prefix('reports')->group(function () {
