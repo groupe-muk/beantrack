@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vendor Application Approved</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background-color: #28a745;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            border-radius: 8px 8px 0 0;
+        }
+        .content {
+            background-color: #f8f9fa;
+            padding: 30px;
+            border-radius: 0 0 8px 8px;
+        }
+        .visit-info {
+            background-color: #e7f3ff;
+            border-left: 4px solid #007bff;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .important {
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .footer {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #dee2e6;
+            font-size: 14px;
+            color: #6c757d;
+        }
+        .btn {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🎉 Great News!</h1>
+        <h2>Your Documents Have Been Validated</h2>
+    </div>
+    
+    <div class="content">
+        <p>Dear <strong th:text="${applicantName}">Applicant Name</strong>,</p>
+        
+        <p>We are pleased to inform you that your vendor application documents for <strong th:text="${businessName}">Business Name</strong> have been <strong>successfully validated</strong>!</p>
+        
+        <p>Your application (ID: <span th:text="${applicationId}">APP123</span>) has successfully passed all our document verification requirements including financial assessment and license validation.</p>
+        
+        <div class="visit-info">
+            <h3>📅 Scheduled Visit Details</h3>
+            <p><strong>Date:</strong> <span th:text="${visitDate}">Monday, July 7, 2025</span></p>
+            <p><strong>Time:</strong> <span th:text="${visitTime}">9:00 AM</span></p>
+            <p><strong>Location:</strong> <span th:text="${visitLocation}">BeanTrack Office, Kampala</span></p>
+            <p><strong>Address:</strong> <span th:text="${visitAddress}">Plot 123, Coffee Avenue, Kampala, Uganda</span></p>
+        </div>
+        
+        <div class="important">
+            <h3>📋 What to Bring to Your Visit</h3>
+            <ul>
+                <li>Original copies of your trading license and bank statement</li>
+                <li>Valid government-issued ID (National ID or Passport)</li>
+                <li>Business registration certificate</li>
+                <li>Any additional business documentation</li>
+                <li>A notebook for taking notes during the onboarding session</li>
+            </ul>
+        </div>
+        
+        <h3>🚀 Next Steps</h3>
+        <ol>
+            <li><strong>Confirm your attendance</strong> by replying to this email</li>
+            <li><strong>Prepare your documents</strong> as listed above</li>
+            <li><strong>Arrive 15 minutes early</strong> for check-in and setup</li>
+            <li><strong>Complete the final interview</strong> with our HR team</li>
+            <li><strong>Await final approval decision</strong> after the visit</li>
+        </ol>
+        
+        <p>During your visit, our team will:</p>
+        <ul>
+            <li>Conduct a final interview and assessment</li>
+            <li>Review your business operations and capacity</li>
+            <li>Complete your vendor profile setup (if approved)</li>
+            <li>Provide training on our platform (if approved)</li>
+            <li>Set up your product catalog (if approved)</li>
+            <li>Explain payment and delivery processes (if approved)</li>
+            <li>Answer any questions you may have</li>
+        </ul>
+        
+        <div class="important">
+            <h3>📋 Important Note</h3>
+            <p><strong>This visit is the final step in our vendor approval process.</strong> While your documents have been validated, final approval will be determined by our HR team after the scheduled visit and interview.</p>
+        </div>
+        
+        <p>If you need to reschedule or have any questions, please contact us immediately at <strong th:text="${visitContact}">+256 700 123456</strong>.</p>
+        
+        <p>We look forward to meeting you and completing the final steps of our vendor evaluation process!</p>
+        
+        <p>Best regards,<br>
+        <strong>The BeanTrack Vendor Assessment Team</strong></p>
+    </div>
+    
+    <div class="footer">
+        <p>This is an automated message. Please do not reply directly to this email address.</p>
+        <p>For support, contact us at <span th:text="${visitContact}">+256 700 123456</span></p>
+        <p>&copy; 2025 BeanTrack. All rights reserved.</p>
+    </div>
+</body>
+</html>

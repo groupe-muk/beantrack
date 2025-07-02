@@ -6,6 +6,7 @@ BeanTrack is a Supply Chain Management System (SCMS) for coffee beans, built wit
 - [Features](#features)
 - [Tech Stack](#tech-stack)
 - [Project Structure](#project-structure)
+- [Validation Server](#validation-server)
 - [Setup Instructions](#setup-instructions)
 - [Database Schema](#database-schema)
 - [Contributing](#contributing)
@@ -21,13 +22,14 @@ BeanTrack is a Supply Chain Management System (SCMS) for coffee beans, built wit
 - **Inventory Management**: Real-time tracking of raw and roasted coffee beans.
 - **Order Processing**: Handle incoming (supplier) and outgoing (wholesaler) orders with status updates.
 - **Workforce Management**: Assign workers to supply centers with role-based assignments (e.g., packer, supervisor).
-- **Vendor Validation**: Manage applications with JSON data and visit scheduling.
+- **Vendor Validation**: Automated document validation using Spring Boot microservice for bank statements and trading licenses, with JSON data management and visit scheduling.
 - **Demand Analytics**: ML-driven demand predictions and customer segmentation using Chart.js.
 - **Real-Time Chat**: User messaging via Laravel Echo and Pusher.
 - **Reports**: Scheduled inventory, order, and performance reports.
 
 ## Tech Stack
 - **Backend**: Laravel 10.x, MySQL 8.x
+- **Validation Service**: Spring Boot 3.5.3, Java 17, Apache PDFBox
 - **Frontend**: Flowbite, Tailwind CSS, Blade templates
 - **Analytics**: Chart.js
 - **Real-Time Features**: Laravel Echo, Pusher
@@ -46,6 +48,12 @@ BeanTrack/
 │   ├── js/                 # Flowbite and custom JS
 │   └── views/              # Blade templates
 ├── routes/                 # Web and API routes
+├── validation-server/      # Spring Boot validation microservice
+│   ├── src/                # Java source files
+│   ├── target/             # Compiled Java classes
+│   ├── uploads/            # File storage for validation documents
+│   ├── pom.xml             # Maven dependencies
+│   └── README.md           # Validation server documentation
 ├── scms_schema.sql         # MySQL schema with entities
 ├── tailwind.config.js      # Tailwind/Flowbite configuration
 ├── vite.config.js          # Vite build configuration
@@ -59,6 +67,8 @@ BeanTrack/
 - Composer
 - Node.js 16+ and npm
 - MySQL 8.x
+- Java 17+ (for validation server)
+- Maven 3.6+ (for validation server)
 - Git
 
 ### Installation
@@ -117,11 +127,91 @@ BeanTrack/
    ```
    - For production: `npm run build`
 
-7. **Start the Server**:
+7. **Start the Laravel Server**:
    ```bash
    php artisan serve
    ```
    - Access at `http://localhost:8000`.
+
+8. **Set Up Validation Server** (Optional):
+   - Navigate to the validation server directory:
+     ```bash
+     cd validation-server
+     ```
+   - Configure database connection in `src/main/resources/application.properties`
+   - Build and run the validation service:
+     ```bash
+     mvn clean install
+     mvn spring-boot:run
+     ```
+   - The validation server will be available at `http://localhost:8080`
+   - For detailed setup, see [`validation-server/README.md`](validation-server/README.md)
+
+## Validation Server
+
+BeanTrack includes a dedicated Spring Boot microservice for automated vendor validation. This service handles document verification for vendor applications, including bank statement and trading license validation.
+
+### Key Features
+- **Document Validation**: Automated validation of PDF bank statements and trading licenses
+- **Smart Text Extraction**: Uses Apache PDFBox for extracting text from PDF documents
+- **Registration Number Verification**: Validates trading license registration numbers (CM format)
+- **License Expiry Checking**: Automatically checks if trading licenses are still valid
+- **Account Holder Verification**: Validates bank statement account holder names
+- **RESTful API**: Clean REST endpoints for vendor application processing
+
+### Technology Stack
+- **Java 17** - Programming language
+- **Spring Boot 3.5.3** - Application framework
+- **Spring Data JPA** - Database access layer
+- **Apache PDFBox** - PDF document processing
+- **MySQL** - Database for storing application data
+- **Maven** - Dependency management and build tool
+
+### API Endpoint
+**POST** `/api/vendors/apply`
+- Validates vendor applications with bank statements and trading licenses
+- Returns approval/rejection status with detailed validation messages
+- Stores uploaded documents securely in the file system
+
+### Quick Start
+1. Navigate to the validation server directory:
+   ```bash
+   cd validation-server
+   ```
+
+2. Configure database connection in `src/main/resources/application.properties`
+
+3. Build and run the service:
+   ```bash
+   mvn clean install
+   mvn spring-boot:run
+   ```
+
+4. The validation server will be available at `http://localhost:8080`
+
+For detailed setup instructions and API documentation, see [`validation-server/README.md`](validation-server/README.md).
+
+## System Architecture
+
+BeanTrack follows a microservices architecture with two main components:
+
+### 1. Laravel Web Application (Main Application)
+- **Port**: `http://localhost:8000`
+- **Role**: Main web interface, user management, inventory, orders, chat, analytics
+- **Database**: MySQL (`scms` database)
+- **Technology**: PHP, Laravel 10.x, Blade templates, Tailwind CSS
+
+### 2. Spring Boot Validation Service (Microservice)
+- **Port**: `http://localhost:8080`
+- **Role**: Document validation for vendor applications
+- **Database**: MySQL (separate tables for vendor applications)
+- **Technology**: Java 17, Spring Boot 3.5.3, Apache PDFBox
+
+### Integration
+The Laravel application communicates with the validation service via REST API calls when:
+- Vendor applicants submit their applications through the web interface
+- The Laravel app forwards documents to the validation service for processing
+- Validation results are returned and stored in the main application database
 
 ## Database Schema
 The `scms` database includes 12 entities (see `scms_schema.sql`):

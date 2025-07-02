@@ -4,6 +4,7 @@ use App\Http\Controllers\dashboardController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ChatController;
 use App\Http\Controllers\MessageAttachmentController;
+use App\Http\Controllers\VendorApplicationController;
 use App\Livewire\Settings\Appearance;
 use App\Livewire\Settings\Password;
 use App\Livewire\Settings\Profile;
@@ -27,6 +28,15 @@ Route::get('/', [AuthController::class, 'showOnboarding'])->name('onboarding');
 
 // Role selection from onboarding page
 Route::post('/role-select', [AuthController::class, 'roleSelection'])->name('role.select');
+
+// Vendor Application Routes (Public - no authentication required)
+Route::controller(VendorApplicationController::class)->group(function () {
+    Route::get('/vendor', 'vendorOnboarding')->name('vendor.onboarding');
+    Route::get('/apply', 'create')->name('vendor.apply');
+    Route::post('/apply', 'store')->name('vendor.apply.store');
+    Route::get('/check-status', 'checkStatus')->name('vendor.check-status');
+    Route::get('/application/status', 'status')->name('vendor.application.status');
+});
 
 // Authentication routes for guests
 Route::middleware(['guest'])->controller(AuthController::class)->group(function () {
@@ -128,6 +138,17 @@ Route::middleware(['auth'])->group(function () {
         Route::patch('/inventory/{rawCoffee}', [InventoryController::class, 'update'])->name('inventory.update');
         //Route::patch('/inventory/{coffeeProduct}', [InventoryController::class, 'update'])->name('inventory.update');
         Route::delete('/inventory/{rawCoffee}', [InventoryController::class, 'destroy'])->name('inventory.destroy');
+
+        // Vendor Application Management Routes (Admin only)
+        Route::prefix('admin/vendor-applications')->name('admin.vendor-applications.')->controller(VendorApplicationController::class)->group(function () {
+            Route::get('/', 'index')->name('index');
+            Route::get('/{application}', 'show')->name('show');
+            Route::post('/{application}/approve', 'approve')->name('approve');
+            Route::post('/{application}/reject', 'reject')->name('reject');
+            Route::post('/{application}/schedule-visit', 'scheduleVisit')->name('schedule-visit');
+            Route::get('/{application}/download/{type}', 'downloadDocument')->name('download-document');
+            Route::post('/{application}/retry-validation', 'retryValidation')->name('retry-validation');
+        });
 
    
     
