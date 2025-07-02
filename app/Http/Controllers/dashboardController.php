@@ -71,7 +71,7 @@ class dashboardController extends Controller
             'lineChartData' => $this->getDefectCountData()['data'],
             'lineChartCategories' => $this->getDefectCountData()['categories'],
 
-            'pendingOrders' => $this->getPendingOrders(5),
+            'pendingOrders' => $this->getPendingOrders(2),
             'inventoryData' => $this->getInventoryData()['rawCoffeeData'],
             'inventoryData2' => $this->getInventoryData()['coffeeProductData'],
             'inventoryCategories' => $this->getInventoryData()['categories'],
@@ -307,7 +307,7 @@ class dashboardController extends Controller
     /**
      * Get pending orders from the database
      */
-    private function getPendingOrders($limit = 5): array
+    private function getPendingOrders($limit = 2): array
     {
         try {
             $orders = Order::with(['supplier', 'wholesaler', 'rawCoffee', 'coffeeProduct'])

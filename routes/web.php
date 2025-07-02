@@ -50,7 +50,7 @@ Route::middleware(['guest'])->controller(AuthController::class)->group(function 
 // Routes for authenticated users
 Route::middleware(['auth'])->group(function () {
     Route::post('/logout',[AuthController::class, 'logout'])->name('logout');
-    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/dashboard', [dashboardController::class, 'index'])->name('dashboard');
     // Chat Routes
     Route::get('/chat', [ChatController::class, 'index'])->name('chat.index');
     Route::get('/chat/unread', [ChatController::class, 'getUnreadCount'])->name('chat.unread');
@@ -109,9 +109,7 @@ Route::middleware(['auth'])->group(function () {
 
     /*Route::get('/dashboard', [AuthController::class, 'showApp'])->name('dashboard');*/
     
-    // Role-specific routes
-});
-
+    // Role-specific routes - Admin routes (require auth)
     Route::middleware(['role:admin'])->group(function () {
         //User management routes
         Route::get('admin/users', [userManagerController::class, 'index'])->name('admin.users.index');
@@ -171,7 +169,8 @@ Route::middleware(['auth'])->group(function () {
         });
     });
 
-Route::middleware(['role:supplier'])->group(function () {
+    // Supplier routes - also require auth
+    Route::middleware(['role:supplier'])->group(function () {
     // Supplier-specific reports routes
     Route::get('/reports/supplier', [App\Http\Controllers\ReportController::class, 'supplierIndex'])->name('reports.supplier');
     
@@ -195,9 +194,11 @@ Route::middleware(['role:supplier'])->group(function () {
     });
 });
 
-Route::middleware(['role:vendor'])->group(function () {
-    // Vendor routes
-});
+    // Vendor routes - also require auth  
+    Route::middleware(['role:vendor'])->group(function () {
+        // Vendor routes
+    });
+}); // Close auth middleware group
 
 /*Route::view('dashboard', 'dashboard')
 

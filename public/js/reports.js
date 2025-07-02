@@ -18,6 +18,9 @@ document.addEventListener('DOMContentLoaded', function() {
     setupActionButtonHandlers();
     setupSearchAndFilters();
     setupRecipientsModal();
+    
+    // Update stats cards on page load
+    updateStatsCards();
 });
 
 // Tab Navigation
@@ -547,12 +550,15 @@ async function simulateReportGeneration(reportType, format, deliveryMethod) {
         formData.append('to_date', document.getElementById('to-date').value);
         formData.append('delivery_method', deliveryMethod);
         
-        // Add selected recipients if email delivery
+        // Add selected recipients if email delivery, or default recipient for download
         if (deliveryMethod === 'email' || deliveryMethod === 'both') {
             const selectedCheckboxes = document.querySelectorAll('#recipients-checkbox-list input[type="checkbox"]:checked');
             selectedCheckboxes.forEach(checkbox => {
                 formData.append('recipients[]', checkbox.value);
             });
+        } else {
+            // For download delivery, send current user as default recipient
+            formData.append('recipients[]', 'admin'); // Default to admin role
         }
         
         // Add CSRF token
@@ -663,8 +669,10 @@ function showGenerationSuccess(reportType, format, deliveryMethod) {
     // Add to historical reports
     addToHistoricalReports(reportType, format, deliveryMethod);
     
-    // Update stats cards to reflect the generated report
-    updateStatsCards();
+    // Update stats cards to reflect the generated report (with small delay to ensure backend is updated)
+    setTimeout(() => {
+        updateStatsCards();
+    }, 1000);
 }
 
 function showGenerationError(message) {
@@ -776,6 +784,7 @@ function openCreateReportModal() {
     document.getElementById('createReportModal').classList.remove('hidden');
     currentStep = 1;
     updateWizardStep();
+    loadRecipientsForWizard(); // Load recipients dynamically
 }
 
 function closeCreateReportModal() {
@@ -872,12 +881,93 @@ function updateReviewData() {
     });
 }
 
-function saveReportSchedule() {
-    showNotification('Report schedule saved successfully!', 'success');
-    closeCreateReportModal();
-    refreshCurrentTab();
-    // Update stats cards to reflect the new report
-    updateStatsCards();
+async function saveReportSchedule() {
+    console.log('saveReportSchedule() called'); // Debug log
+    try {
+        // Collect form data
+        const template = selectedTemplate;
+        const format = selectedFormat;
+        const frequency = document.getElementById('frequency')?.value;
+        const scheduleTime = document.getElementById('schedule-time')?.value;
+        const scheduleDay = document.getElementById('schedule-day')?.value;
+        
+        console.log('Collected data:', { template, format, frequency, scheduleTime, scheduleDay }); // Debug log
+        
+        // Collect selected recipients
+        const recipients = [];
+        document.querySelectorAll('input[name="recipients[]"]:checked').forEach(checkbox => {
+            recipients.push(checkbox.value);
+        });
+
+        console.log('Recipients:', recipients); // Debug log
+
+        // Validate required fields
+        if (!template) {
+            console.log('Validation failed: no template');
+            showNotification('Please select a template', 'error');
+            return;
+        }
+        if (!format) {
+            console.log('Validation failed: no format');
+            showNotification('Please select a format', 'error');
+            return;
+        }
+        if (!frequency) {
+            console.log('Validation failed: no frequency');
+            showNotification('Please select a frequency', 'error');
+            return;
+        }
+        if (recipients.length === 0) {
+            console.log('Validation failed: no recipients');
+            showNotification('Please select at least one recipient', 'error');
+            return;
+        }
+
+        console.log('Validation passed, preparing form data'); // Debug log
+
+        // Prepare form data
+        const formData = new FormData();
+        formData.append('template', template);
+        formData.append('format', format);
+        formData.append('frequency', frequency);
+        formData.append('schedule_time', scheduleTime || '');
+        formData.append('schedule_day', scheduleDay || '');
+        recipients.forEach(recipient => {
+            formData.append('recipients[]', recipient);
+        });
+
+        console.log('Sending request to /reports'); // Debug log
+
+        // Submit to backend
+        const response = await fetch('/reports', {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                'Accept': 'application/json'
+            },
+            body: formData
+        });
+
+        console.log('Response received:', response.status); // Debug log
+
+        const result = await response.json();
+        console.log('Response data:', result); // Debug log
+
+        if (result.success) {
+            showNotification('Report schedule created successfully!', 'success');
+            closeCreateReportModal();
+            refreshCurrentTab();
+            // Update stats cards to reflect the new report
+            updateStatsCards();
+        } else {
+            const errorMessage = result.message || 'Failed to create report schedule';
+            showNotification(errorMessage, 'error');
+        }
+
+    } catch (error) {
+        console.error('Error creating report:', error);
+        showNotification('An error occurred while creating the report schedule', 'error');
+    }
 }
 
 // Action Button Event Handlers
@@ -1694,6 +1784,7 @@ function setupRecipientsModal() {
 // Stats Card Update Functions
 async function updateStatsCards() {
     try {
+        console.log('Updating stats cards...');
         const response = await fetch('/reports/stats', {
             method: 'GET',
             headers: {
@@ -1707,12 +1798,14 @@ async function updateStatsCards() {
         }
 
         const result = await response.json();
+        console.log('Stats API response:', result);
         
         if (result.success && result.data) {
-            updateActiveReportsCard(result.data.activeReports);
-            updateGeneratedTodayCard(result.data.generatedToday);
-            updatePendingReportsCard(result.data.pendingReports);
-            updateSuccessRateCard(result.data.successRate);
+            console.log('Updating stats cards with:', result.data);
+            updateActiveReportsCard(result.data.activeReports || 0);
+            updateGeneratedTodayCard(result.data.generatedToday || 0);
+            updatePendingReportsCard(result.data.pendingReports || 0);
+            updateSuccessRateCard(result.data.successRate || 0);
         } else {
             console.warn('Stats update failed:', result.message);
         }
@@ -1740,11 +1833,12 @@ function updateSuccessRateCard(newValue) {
 // Generic function to update any stats card
 function updateStatsCard(cardId, newValue) {
     const card = document.getElementById(cardId);
-    
     if (card) {
         const valueElement = card.querySelector('[data-value]');
         
         if (valueElement) {
+            console.log(`Updating ${cardId} from ${valueElement.getAttribute('data-value')} to ${newValue}`);
+            
             // Add animation class
             valueElement.style.transition = 'all 0.3s ease';
             valueElement.style.transform = 'scale(1.1)';
@@ -1757,10 +1851,15 @@ function updateStatsCard(cardId, newValue) {
             setTimeout(() => {
                 valueElement.style.transform = 'scale(1)';
             }, 300);
+        } else {
+            console.warn(`No [data-value] element found in card ${cardId}`);
         }
+    } else {
+        console.warn(`Card ${cardId} not found`);
     }
 }
 
+// Stats Card Update Functions
 // Utility Functions
 function getFormatBadge(format) {
     const formatClasses = {

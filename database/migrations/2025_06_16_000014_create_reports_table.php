@@ -21,6 +21,7 @@ return new class extends Migration {
             $table->time('schedule_time')->nullable();
             $table->string('schedule_day')->nullable();
             $table->enum('status', ['active', 'paused', 'failed', 'processing', 'completed'])->default('active');
+            $table->string('file_size')->nullable(); // File size of generated reports
             $table->json('content');
             $table->timestamp('last_sent')->nullable();
             $table->timestamps();

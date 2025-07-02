@@ -45,30 +45,11 @@
     <!-- Step 2: Configure Recipients -->
     <div class="wizard-step" data-step="2">
         <h4 class="text-lg font-medium text-dashboard-light mb-4">Configure Recipients</h4>
-        <div class="space-y-3">
-            <div class="flex items-center">
-                <input type="checkbox" name="recipients[]" value="Finance Dept" class="h-4 w-4 text-light-brown focus:ring-light-brown border-gray-300 rounded">
-                <label class="ml-2 text-sm text-gray-700">Finance Department</label>
-            </div>
-            <div class="flex items-center">
-                <input type="checkbox" name="recipients[]" value="Logistics Team" class="h-4 w-4 text-light-brown focus:ring-light-brown border-gray-300 rounded">
-                <label class="ml-2 text-sm text-gray-700">Logistics Team</label>
-            </div>
-            <div class="flex items-center">
-                <input type="checkbox" name="recipients[]" value="Production Team" class="h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded">
-                <label class="ml-2 text-sm text-gray-700">Production Team</label>
-            </div>
-            <div class="flex items-center">
-                <input type="checkbox" name="recipients[]" value="Sales Team" class="h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded">
-                <label class="ml-2 text-sm text-gray-700">Sales Team</label>
-            </div>
-            <div class="flex items-center">
-                <input type="checkbox" name="recipients[]" value="Management" class="h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded">
-                <label class="ml-2 text-sm text-gray-700">Management</label>
-            </div>
-            <div class="flex items-center">
-                <input type="checkbox" name="recipients[]" value="Quality Team" class="h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded">
-                <label class="ml-2 text-sm text-gray-700">Quality Team</label>
+        <div id="recipients-container" class="space-y-3">
+            <!-- Recipients will be loaded dynamically via JavaScript -->
+            <div class="text-center py-4">
+                <i class="fas fa-spinner fa-spin text-gray-400"></i>
+                <p class="text-gray-500 mt-2">Loading recipients...</p>
             </div>
         </div>
     </div>
