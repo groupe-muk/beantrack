@@ -1441,9 +1441,9 @@ class ReportController extends Controller
     /**
      * Map department names to actual user IDs
      */
-    private function mapRecipientsToUserIds(array $departmentNames)
+    private function mapRecipientsToUserIds(array $recipients)
     {
-        $mapping = [
+        $departmentMapping = [
             'admin' => 'U00001', // Default admin user
             'supplier' => null, // Will be set to current supplier user
             'Finance Dept' => 'U00001', // Admin user for now
@@ -1459,12 +1459,19 @@ class ReportController extends Controller
         $userIds = [];
         $currentUser = Auth::user();
         
-        foreach ($departmentNames as $dept) {
-            if ($dept === 'supplier') {
+        foreach ($recipients as $recipient) {
+            // Check if recipient is already a user ID (starts with 'U' and is 6 chars)
+            if (preg_match('/^U\d{5}$/', $recipient)) {
+                // It's already a user ID, validate it exists
+                if (User::where('id', $recipient)->exists()) {
+                    $userIds[] = $recipient;
+                }
+            } elseif ($recipient === 'supplier') {
                 // Map to current user for suppliers
                 $userIds[] = $currentUser->id;
-            } elseif (isset($mapping[$dept])) {
-                $userIds[] = $mapping[$dept];
+            } elseif (isset($departmentMapping[$recipient])) {
+                // Map department name to user ID
+                $userIds[] = $departmentMapping[$recipient];
             }
         }
         
