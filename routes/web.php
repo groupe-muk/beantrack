@@ -150,39 +150,54 @@ Route::middleware(['auth'])->group(function () {
             Route::post('/{application}/retry-validation', 'retryValidation')->name('retry-validation');
         });
 
-   
-    
-    Route::middleware(['role:supplier'])->group(function () {
-        // Supplier routes
+        // Report Management Routes for Admins - Protected by admin middleware
+        Route::prefix('reports')->group(function () {
+            Route::get('/', [App\Http\Controllers\ReportController::class, 'index'])->name('reports.index');
+            Route::get('/stats', [App\Http\Controllers\ReportController::class, 'getStats'])->name('reports.stats');
+            Route::get('/library', [App\Http\Controllers\ReportController::class, 'getReportLibrary'])->name('reports.library');
+            Route::get('/historical', [App\Http\Controllers\ReportController::class, 'getHistoricalReports'])->name('reports.historical');
+            Route::get('/templates', [App\Http\Controllers\ReportController::class, 'getTemplates'])->name('reports.templates');
+            Route::get('/recipients', [App\Http\Controllers\ReportController::class, 'getRecipients'])->name('reports.recipients');
+            Route::post('/', [App\Http\Controllers\ReportController::class, 'store'])->name('reports.store');
+            Route::post('/adhoc', [App\Http\Controllers\ReportController::class, 'generateAdhocReport'])->name('reports.adhoc');
+            Route::get('/{report}/edit', [App\Http\Controllers\ReportController::class, 'edit'])->name('reports.edit');
+            Route::put('/{report}', [App\Http\Controllers\ReportController::class, 'update'])->name('reports.update');
+            Route::post('/{report}/generate', [App\Http\Controllers\ReportController::class, 'generateNow'])->name('reports.generate');
+            Route::post('/{report}/pause', [App\Http\Controllers\ReportController::class, 'pause'])->name('reports.pause');
+            Route::post('/{report}/resume', [App\Http\Controllers\ReportController::class, 'resume'])->name('reports.resume');
+            Route::delete('/{report}', [App\Http\Controllers\ReportController::class, 'destroy'])->name('reports.destroy');
+            Route::get('/{report}/download', [App\Http\Controllers\ReportController::class, 'download'])->name('reports.download');
+            Route::get('/{report}/view', [App\Http\Controllers\ReportController::class, 'view'])->name('reports.view');
+        });
     });
+
+Route::middleware(['role:supplier'])->group(function () {
+    // Supplier-specific reports routes
+    Route::get('/reports/supplier', [App\Http\Controllers\ReportController::class, 'supplierIndex'])->name('reports.supplier');
     
-    Route::middleware(['role:vendor'])->group(function () {
-        // Vendor routes
-    });
-    
-    // Report Management Routes - Protected by auth middleware
-    Route::prefix('reports')->group(function () {
-        Route::get('/', [App\Http\Controllers\ReportController::class, 'index'])->name('reports.index');
-        Route::get('/stats', [App\Http\Controllers\ReportController::class, 'getStats'])->name('reports.stats');
-        Route::get('/library', [App\Http\Controllers\ReportController::class, 'getReportLibrary'])->name('reports.library');
-        Route::get('/historical', [App\Http\Controllers\ReportController::class, 'getHistoricalReports'])->name('reports.historical');
-        Route::get('/templates', [App\Http\Controllers\ReportController::class, 'getTemplates'])->name('reports.templates');
-        Route::get('/recipients', [App\Http\Controllers\ReportController::class, 'getRecipients'])->name('reports.recipients');
-        Route::post('/', [App\Http\Controllers\ReportController::class, 'store'])->name('reports.store');
-        Route::post('/adhoc', [App\Http\Controllers\ReportController::class, 'generateAdhocReport'])->name('reports.adhoc');
-        Route::get('/{report}/edit', [App\Http\Controllers\ReportController::class, 'edit'])->name('reports.edit');
-        Route::put('/{report}', [App\Http\Controllers\ReportController::class, 'update'])->name('reports.update');
-        Route::post('/{report}/generate', [App\Http\Controllers\ReportController::class, 'generateNow'])->name('reports.generate');
-        Route::post('/{report}/pause', [App\Http\Controllers\ReportController::class, 'pause'])->name('reports.pause');
-        Route::post('/{report}/resume', [App\Http\Controllers\ReportController::class, 'resume'])->name('reports.resume');
-        Route::delete('/{report}', [App\Http\Controllers\ReportController::class, 'destroy'])->name('reports.destroy');
-        Route::get('/{report}/download', [App\Http\Controllers\ReportController::class, 'download'])->name('reports.download');
-        Route::get('/{report}/view', [App\Http\Controllers\ReportController::class, 'view'])->name('reports.view');
+    // API endpoints for supplier reports (with supplier_only filtering) - use different URLs
+    Route::prefix('supplier-reports')->group(function () {
+        Route::get('/stats', [App\Http\Controllers\ReportController::class, 'getStats'])->name('reports.supplier.stats');
+        Route::get('/library', [App\Http\Controllers\ReportController::class, 'getReportLibrary'])->name('reports.supplier.library');
+        Route::get('/historical', [App\Http\Controllers\ReportController::class, 'getHistoricalReports'])->name('reports.supplier.historical');
+        Route::get('/templates', [App\Http\Controllers\ReportController::class, 'getTemplates'])->name('reports.supplier.templates');
+        Route::get('/recipients', [App\Http\Controllers\ReportController::class, 'getRecipients'])->name('reports.supplier.recipients');
+        Route::post('/', [App\Http\Controllers\ReportController::class, 'store'])->name('reports.supplier.store');
+        Route::post('/adhoc', [App\Http\Controllers\ReportController::class, 'generateAdhocReport'])->name('reports.supplier.adhoc');
+        Route::get('/{report}/edit', [App\Http\Controllers\ReportController::class, 'edit'])->name('reports.supplier.edit');
+        Route::put('/{report}', [App\Http\Controllers\ReportController::class, 'update'])->name('reports.supplier.update');
+        Route::post('/{report}/generate', [App\Http\Controllers\ReportController::class, 'generateNow'])->name('reports.supplier.generate');
+        Route::post('/{report}/pause', [App\Http\Controllers\ReportController::class, 'pause'])->name('reports.supplier.pause');
+        Route::post('/{report}/resume', [App\Http\Controllers\ReportController::class, 'resume'])->name('reports.supplier.resume');
+        Route::delete('/{report}', [App\Http\Controllers\ReportController::class, 'destroy'])->name('reports.supplier.destroy');
+        Route::get('/{report}/download', [App\Http\Controllers\ReportController::class, 'download'])->name('reports.supplier.download');
+        Route::get('/{report}/view', [App\Http\Controllers\ReportController::class, 'view'])->name('reports.supplier.view');
     });
 });
 
-
-
+Route::middleware(['role:vendor'])->group(function () {
+    // Vendor routes
+});
 
 /*Route::view('dashboard', 'dashboard')
 
