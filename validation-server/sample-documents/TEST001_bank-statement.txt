@@ -1,0 +1,52 @@
+CENTENARY BANK
+ACCOUNT STATEMENT
+
+Account Holder: John Doe Coffee Enterprise
+Account Number: 1234567890
+Statement Period: January 1, 2025 - June 30, 2025
+
+===================================
+ACCOUNT SUMMARY
+===================================
+
+AVAILABLE BALANCE: 8500000.00
+TOTAL CREDITS: 15000000.00
+TOTAL DEBITS: 6500000.00
+
+===================================
+TRANSACTION HISTORY
+===================================
+
+Date        Description                     Debit       Credit      Balance
+01/01/2025  Opening Balance                             0.00        0.00
+15/01/2025  Coffee Sales Payment                        2500000.00  2500000.00
+20/01/2025  Equipment Purchase              500000.00               2000000.00
+25/01/2025  Supplier Payment                            3000000.00  5000000.00
+10/02/2025  Rent Payment                   1200000.00               3800000.00
+15/02/2025  Coffee Export Payment                       4500000.00  8300000.00
+20/02/2025  Utilities                      150000.00                8150000.00
+05/03/2025  Raw Coffee Purchase            800000.00                7350000.00
+12/03/2025  International Sale                          2800000.00  10150000.00
+18/03/2025  Staff Salaries                 600000.00                9550000.00
+25/03/2025  Equipment Maintenance          50000.00                 9500000.00
+01/04/2025  Coffee Sales                                1200000.00  10700000.00
+08/04/2025  Transportation Costs           200000.00                10500000.00
+15/04/2025  Bulk Order Payment                          1800000.00  12300000.00
+22/04/2025  Insurance Premium              300000.00                12000000.00
+30/04/2025  Month End Processing                        500000.00   12500000.00
+05/05/2025  Quality Certification          100000.00                12400000.00
+12/05/2025  Export Sales                                2000000.00  14400000.00
+20/05/2025  Raw Material Purchase          1200000.00               13200000.00
+28/05/2025  Marketing Expenses             150000.00                13050000.00
+05/06/2025  Seasonal Bonus Payment         550000.00                12500000.00
+15/06/2025  Coffee Festival Sales                       3000000.00  15500000.00
+22/06/2025  Equipment Upgrade              2000000.00               13500000.00
+30/06/2025  Month End Adjustment                        5000000.00  18500000.00
+30/06/2025  Outstanding Cheques            10000000.00              8500000.00
+
+===================================
+END OF STATEMENT
+===================================
+
+For inquiries, contact: +256 414 123456
+Centenary Bank - Building your future

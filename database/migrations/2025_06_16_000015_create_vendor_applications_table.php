@@ -10,14 +10,37 @@ return new class extends Migration {
     {
         Schema::create('vendor_applications', function (Blueprint $table) {
             $table->string('id', 7)->primary();
-            $table->string('applicant_id', 6);
-            $table->json('financial_data')->nullable();
-            $table->json('references')->nullable();
-            $table->json('license_data')->nullable();
-            $table->enum('status', ['pending', 'under_review', 'approved', 'rejected']);
+            
+            // Applicant information (no user account required yet)
+            $table->string('applicant_name');
+            $table->string('business_name');
+            $table->string('phone_number');
+            $table->string('email');
+            
+            // File paths for uploaded documents
+            $table->string('bank_statement_path')->nullable();
+            $table->string('trading_license_path')->nullable();
+            
+            // Application status and workflow
+            $table->enum('status', ['pending', 'under_review', 'approved', 'rejected'])->default('pending');
             $table->date('visit_scheduled')->nullable();
+            
+            // Validation server response data
+            $table->json('financial_data')->nullable(); // Bank statement validation results
+            $table->json('references')->nullable();     // Reference data from validation
+            $table->json('license_data')->nullable();   // Trading license validation results
+            $table->text('validation_message')->nullable(); // Detailed validation response
+            $table->timestamp('validated_at')->nullable();  // When validation was completed
+            
+            // User account creation tracking
+            $table->string('created_user_id', 6)->nullable(); // Link to user account after approval
+            $table->string('status_token', 32)->nullable();   // Token for checking application status
+            
             $table->timestamps();
-            $table->foreign('applicant_id')->references('id')->on('users')->onDelete('cascade');
+            
+            // Foreign key to user account (only set after approval)
+            $table->foreign('created_user_id')->references('id')->on('users')->onDelete('set null');
+            $table->index(['email', 'status_token']); // For status checking
         });
         DB::unprepared("CREATE TRIGGER before_vendorapplications_insert BEFORE INSERT ON vendor_applications FOR EACH ROW BEGIN DECLARE last_id INT; SELECT CAST(SUBSTRING(id, 3) AS UNSIGNED) INTO last_id FROM vendor_applications ORDER BY id DESC LIMIT 1; SET NEW.id = CONCAT('VA', LPAD(COALESCE(last_id + 1, 1), 5, '0')); END");
     }
