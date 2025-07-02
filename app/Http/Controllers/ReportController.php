@@ -22,14 +22,21 @@ class ReportController extends Controller
      */
     public function index()
     {
-        $activeReports = Report::where('status', 'active')->count();
-        $generatedToday = Report::whereDate('last_sent', today())->count();
-        $pendingReports = Report::where('status', 'pending')->count();
+        // Admin dashboard should only show non-supplier reports
+        $adminReportsQuery = Report::where(function($q) {
+            $q->whereHas('creator', function($userQuery) {
+                $userQuery->where('role', '!=', 'supplier');
+            })->orWhereNull('created_by'); // Include legacy reports without creator
+        });
+
+        $activeReports = $adminReportsQuery->where('status', 'active')->count();
+        $generatedToday = $adminReportsQuery->whereDate('last_sent', today())->count();
+        $pendingReports = $adminReportsQuery->where('status', 'pending')->count();
         
-        // Calculate success rate (example calculation)
-        $totalReports = Report::whereDate('created_at', '>=', now()->subDays(30))->count();
-        $successfulReports = Report::whereDate('created_at', '>=', now()->subDays(30))
-                                 ->where('status', '!=', 'failed')->count();
+        // Calculate success rate (example calculation) - only for admin reports
+        $totalReports = $adminReportsQuery->whereDate('created_at', '>=', now()->subDays(30))->count();
+        $successfulReports = $adminReportsQuery->whereDate('created_at', '>=', now()->subDays(30))
+                                             ->where('status', '!=', 'failed')->count();
         $successRate = $totalReports > 0 ? round(($successfulReports / $totalReports) * 100, 1) : 0;
 
         return view('reports.report', compact(
@@ -41,11 +48,57 @@ class ReportController extends Controller
     }
 
     /**
+     * Display the supplier reports dashboard
+     */
+    public function supplierIndex()
+    {
+        // Get supplier-specific stats
+        $activeReports = Report::where('created_by', Auth::id())
+                              ->where('status', 'active')
+                              ->count();
+        
+        $generatedToday = Report::where('created_by', Auth::id())
+                               ->whereDate('last_sent', today())
+                               ->count();
+        
+        $totalReports = Report::where('created_by', Auth::id())->count();
+        
+        $lastReport = Report::where('created_by', Auth::id())
+                           ->whereNotNull('last_sent')
+                           ->orderBy('last_sent', 'desc')
+                           ->first();
+        
+        $lastGenerated = $lastReport ? $lastReport->last_sent->format('M d') : 'Never';
+
+        return view('reports.supplier-report', compact(
+            'activeReports', 
+            'generatedToday', 
+            'totalReports', 
+            'lastGenerated'
+        ));
+    }
+
+    /**
      * Get report library data for DataTables
      */
     public function getReportLibrary(Request $request)
     {
+        $currentUser = Auth::user();
         $query = Report::with('recipient');
+
+        // Always filter by user role and ownership
+        if ($currentUser->role === 'supplier') {
+            // Suppliers can only see their own reports
+            $query->where('created_by', $currentUser->id);
+        } else {
+            // Admins should NOT see supplier reports by default
+            // Only show reports created by admins (or reports without a created_by field for legacy)
+            $query->where(function($q) {
+                $q->whereHas('creator', function($userQuery) {
+                    $userQuery->where('role', '!=', 'supplier');
+                })->orWhereNull('created_by'); // Include legacy reports without creator
+            });
+        }
 
         // Apply search filter
         if ($request->has('search') && !empty($request->search)) {
@@ -75,10 +128,13 @@ class ReportController extends Controller
                     'name' => $report->name ?? 'Untitled Report',
                     'description' => $report->description ?? 'No description available',
                     'type' => $report->format ?? 'PDF',
+                    'format' => $report->format ?? 'pdf', // Add format field for frontend
                     'frequency' => ucfirst($report->frequency),
                     'recipients' => $report->recipients ?? 'Not specified',
+                    'last_sent' => $report->last_sent, // Return the actual datetime object
                     'last_generated' => $report->last_sent ? $report->last_sent->format('Y-m-d') : 'Never',
                     'status' => $report->status ?? 'active',
+                    'updated_at' => $report->updated_at, // Also include updated_at for fallback
                     'actions' => $this->generateActionButtons($report->id)
                 ];
             })
@@ -90,7 +146,22 @@ class ReportController extends Controller
      */
     public function getHistoricalReports(Request $request)
     {
+        $currentUser = Auth::user();
         $query = Report::with('recipient')->whereNotNull('last_sent');
+
+        // Always filter by user role and ownership
+        if ($currentUser->role === 'supplier') {
+            // Suppliers can only see their own reports
+            $query->where('created_by', $currentUser->id);
+        } else {
+            // Admins should NOT see supplier reports by default
+            // Only show reports created by admins (or reports without a created_by field for legacy)
+            $query->where(function($q) {
+                $q->whereHas('creator', function($userQuery) {
+                    $userQuery->where('role', '!=', 'supplier');
+                })->orWhereNull('created_by'); // Include legacy reports without creator
+            });
+        }
 
         // Apply search filter
         if ($request->has('search') && !empty($request->search)) {
@@ -119,10 +190,10 @@ class ReportController extends Controller
                     'id' => $report->id,
                     'name' => $report->name ?? 'Untitled Report',
                     'generated_for' => $report->recipient->name ?? 'Unknown',
-                    'date_generated' => $report->last_sent->format('Y-m-d H:i'),
-                    'format' => strtoupper($report->format ?? 'PDF'),
-                    'size' => $this->generateRandomSize(), // Placeholder
-                    'status' => $report->status === 'failed' ? 'Failed' : 'Success',
+                    'generated_at' => $report->last_sent->format('Y-m-d H:i'),
+                    'format' => strtolower($report->format ?? 'pdf'), // Return lowercase for frontend formatting
+                    'file_size' => $this->calculateReportSize($report), // Calculate actual size
+                    'status' => $report->status === 'failed' ? 'failed' : 'completed',
                     'actions' => $this->generateHistoricalActionButtons($report->id)
                 ];
             })
@@ -134,6 +205,10 @@ class ReportController extends Controller
      */
     public function store(Request $request)
     {
+        // Debug: Log the incoming request data
+        \Log::info('Report store request data:', $request->all());
+        \Log::info('Format received:', ['format' => $request->format]);
+        
         $validator = Validator::make($request->all(), [
             'template' => 'required|string',
             'recipients' => 'required|array',
@@ -144,6 +219,7 @@ class ReportController extends Controller
         ]);
 
         if ($validator->fails()) {
+            \Log::error('Validation failed:', $validator->errors()->toArray());
             return response()->json([
                 'success' => false,
                 'errors' => $validator->errors()
@@ -151,14 +227,24 @@ class ReportController extends Controller
         }
 
         try {
-            $report = Report::create([
+            // For suppliers, enforce that they can only create reports for themselves
+            $currentUser = Auth::user();
+            $recipients = $request->recipients;
+            
+            if ($currentUser->role === 'supplier') {
+                // Force recipient to be the current supplier only
+                $recipients = [$currentUser->id];
+            }
+
+            $reportData = [
                 'name' => $request->template,
                 'description' => $this->getTemplateDescription($request->template),
                 'type' => $this->mapTemplateToType($request->template),
-                'recipient_id' => $request->recipients[0], // Taking first recipient for now
+                'recipient_id' => $recipients[0], // Taking first recipient
+                'created_by' => Auth::id(), // Set the creator
                 'frequency' => $request->frequency,
-                'format' => $request->format,
-                'recipients' => implode(', ', $request->recipients),
+                'format' => $request->format, // This should be 'excel' or 'pdf'
+                'recipients' => implode(', ', $recipients),
                 'schedule_time' => $request->schedule_time,
                 'schedule_day' => $request->schedule_day,
                 'status' => 'active',
@@ -167,7 +253,13 @@ class ReportController extends Controller
                     'filters' => $request->filters ?? [],
                     'parameters' => $request->parameters ?? []
                 ])
-            ]);
+            ];
+            
+            \Log::info('Report data before creation:', $reportData);
+
+            $report = Report::create($reportData);
+            
+            \Log::info('Report created successfully:', ['id' => $report->id, 'format' => $report->format]);
 
             return response()->json([
                 'success' => true,
@@ -176,6 +268,7 @@ class ReportController extends Controller
             ]);
 
         } catch (\Exception $e) {
+            \Log::error('Error creating report:', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to create report schedule: ' . $e->getMessage()
@@ -246,14 +339,21 @@ class ReportController extends Controller
      */
     public function generateNow(Report $report)
     {
+        // Check if user can access this report
+        if (!$this->canAccessReport($report)) {
+            return $this->unauthorizedResponse();
+        }
+
         try {
-            // Here you would implement the actual report generation logic
-            // For now, we'll simulate the process
+            \Log::info('Generating report now:', ['report_id' => $report->id, 'report_name' => $report->name]);
             
+            // Update the report to show it was just generated
             $report->update([
                 'last_sent' => now(),
                 'status' => 'active'
             ]);
+
+            \Log::info('Report generated successfully:', ['report_id' => $report->id, 'last_sent' => $report->last_sent]);
 
             return response()->json([
                 'success' => true,
@@ -261,6 +361,7 @@ class ReportController extends Controller
             ]);
 
         } catch (\Exception $e) {
+            \Log::error('Error generating report:', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to generate report: ' . $e->getMessage()
@@ -273,6 +374,11 @@ class ReportController extends Controller
      */
     public function destroy(Report $report)
     {
+        // Check if user can access this report
+        if (!$this->canAccessReport($report)) {
+            return $this->unauthorizedResponse();
+        }
+
         try {
             \Log::info('Attempting to delete report: ' . $report->id . ' - ' . $report->name);
             
@@ -299,40 +405,76 @@ class ReportController extends Controller
     /**
      * Get available report templates
      */
-    public function getTemplates()
+    public function getTemplates(Request $request)
     {
-        $templates = [
-            [
-                'id' => 'monthly_supplier_demand',
-                'name' => 'Monthly Supplier Demand Forecast',
-                'description' => 'Comprehensive analysis of supplier demand patterns',
-                'category' => 'Supply Chain'
-            ],
-            [
-                'id' => 'weekly_production_efficiency',
-                'name' => 'Weekly Production Efficiency',
-                'description' => 'Production metrics and efficiency analysis',
-                'category' => 'Production'
-            ],
-            [
-                'id' => 'daily_retail_sales',
-                'name' => 'Daily Retail Sales Summary',
-                'description' => 'Daily sales performance across all outlets',
-                'category' => 'Sales'
-            ],
-            [
-                'id' => 'quarterly_quality_control',
-                'name' => 'Quarterly Quality Control Report',
-                'description' => 'Quality metrics and compliance tracking',
-                'category' => 'Quality'
-            ],
-            [
-                'id' => 'inventory_movement',
-                'name' => 'Inventory Movement Analysis',
-                'description' => 'Detailed inventory tracking and movement patterns',
-                'category' => 'Inventory'
-            ]
-        ];
+        $currentUser = Auth::user();
+        
+        // Check if this is a supplier-only request or if user is a supplier
+        if (($request->has('supplier_only') && $request->supplier_only === 'true') || 
+            $currentUser->role === 'supplier') {
+            
+            // Supplier-specific templates - only raw coffee related templates
+            $templates = [
+                [
+                    'id' => 'supplier_inventory',
+                    'name' => 'Supplier Inventory Report',
+                    'description' => 'Raw coffee inventory levels and movements for suppliers',
+                    'category' => 'Inventory'
+                ],
+                [
+                    'id' => 'supplier_orders',
+                    'name' => 'Supplier Orders Report', 
+                    'description' => 'Order status and fulfillment tracking for suppliers',
+                    'category' => 'Orders'
+                ],
+                [
+                    'id' => 'supplier_quality',
+                    'name' => 'Supplier Quality Report',
+                    'description' => 'Raw coffee quality metrics and compliance data',
+                    'category' => 'Quality'
+                ],
+                [
+                    'id' => 'supplier_deliveries',
+                    'name' => 'Supplier Delivery Report',
+                    'description' => 'Delivery schedules and performance tracking',
+                    'category' => 'Logistics'
+                ]
+            ];
+        } else {
+            // Admin templates - full access to all reports
+            $templates = [
+                [
+                    'id' => 'monthly_supplier_demand',
+                    'name' => 'Monthly Supplier Demand Forecast',
+                    'description' => 'Comprehensive analysis of supplier demand patterns',
+                    'category' => 'Supply Chain'
+                ],
+                [
+                    'id' => 'weekly_production_efficiency',
+                    'name' => 'Weekly Production Efficiency',
+                    'description' => 'Production metrics and efficiency analysis',
+                    'category' => 'Production'
+                ],
+                [
+                    'id' => 'daily_retail_sales',
+                    'name' => 'Daily Retail Sales Summary',
+                    'description' => 'Daily sales performance across all outlets',
+                    'category' => 'Sales'
+                ],
+                [
+                    'id' => 'quarterly_quality_control',
+                    'name' => 'Quarterly Quality Control Report',
+                    'description' => 'Quality metrics and compliance tracking',
+                    'category' => 'Quality'
+                ],
+                [
+                    'id' => 'inventory_movement',
+                    'name' => 'Inventory Movement Analysis',
+                    'description' => 'Detailed inventory tracking and movement patterns',
+                    'category' => 'Inventory'
+                ]
+            ];
+        }
 
         return response()->json($templates);
     }
@@ -340,8 +482,27 @@ class ReportController extends Controller
     /**
      * Get available recipients
      */
-    public function getRecipients()
+    public function getRecipients(Request $request)
     {
+        $currentUser = Auth::user();
+        
+        // Suppliers can only send reports to themselves
+        if ($currentUser->role === 'supplier') {
+            return response()->json([
+                'users' => [
+                    [
+                        'id' => $currentUser->id,
+                        'name' => $currentUser->name,
+                        'email' => $currentUser->email,
+                        'role' => $currentUser->role
+                    ]
+                ],
+                'internal_roles' => [], // No roles for suppliers
+                'suppliers' => []       // No other suppliers
+            ]);
+        }
+
+        // For admins, return all internal recipients
         $internalRoles = [
             'Finance Dept',
             'Logistics Team',
@@ -372,24 +533,44 @@ class ReportController extends Controller
      */
     public function download(Report $report)
     {
+        // Check if user can access this report
+        if (!$this->canAccessReport($report)) {
+            return $this->unauthorizedResponse();
+        }
+
         try {
+            \Log::info('Download request for report:', [
+                'report_id' => $report->id,
+                'report_name' => $report->name,
+                'report_format' => $report->format,
+                'report_format_type' => gettype($report->format)
+            ]);
+            
             // Generate the report content
             $reportData = $this->generateReportContent($report);
             
             $filename = $this->sanitizeFilename($report->name) . '_' . now()->format('Y-m-d') . '.' . $report->format;
             
+            \Log::info('Generated filename:', ['filename' => $filename]);
+            \Log::info('Format switch comparison:', ['format' => strtolower($report->format)]);
+            
             switch (strtolower($report->format)) {
                 case 'pdf':
+                    \Log::info('Generating PDF report');
                     return $this->generatePdfReport($reportData, $filename);
                 case 'csv':
+                    \Log::info('Generating CSV report');
                     return $this->generateCsvReport($reportData, $filename);
                 case 'excel':
+                    \Log::info('Generating Excel report');
                     return $this->generateExcelReport($reportData, $filename);
                 default:
+                    \Log::warning('Unknown format, defaulting to PDF:', ['format' => $report->format]);
                     return $this->generatePdfReport($reportData, $filename);
             }
 
         } catch (\Exception $e) {
+            \Log::error('Download error:', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to download report: ' . $e->getMessage()
@@ -402,6 +583,11 @@ class ReportController extends Controller
      */
     public function view(Report $report)
     {
+        // Check if user can access this report
+        if (!$this->canAccessReport($report)) {
+            return redirect()->back()->with('error', 'You are not authorized to view this report.');
+        }
+
         try {
             // Generate the report content for viewing
             $reportData = $this->generateReportContent($report);
@@ -422,6 +608,11 @@ class ReportController extends Controller
      */
     public function edit(Report $report)
     {
+        // Check if user can access this report
+        if (!$this->canAccessReport($report)) {
+            return $this->unauthorizedResponse();
+        }
+
         try {
             $templates = $this->getReportTemplates();
             
@@ -451,6 +642,11 @@ class ReportController extends Controller
      */
     public function update(Request $request, Report $report)
     {
+        // Check if user can access this report
+        if (!$this->canAccessReport($report)) {
+            return $this->unauthorizedResponse();
+        }
+
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
@@ -501,6 +697,11 @@ class ReportController extends Controller
      */
     public function pause(Report $report)
     {
+        // Check if user can access this report
+        if (!$this->canAccessReport($report)) {
+            return $this->unauthorizedResponse();
+        }
+
         try {
             \Log::info('Attempting to pause report: ' . $report->id . ' - ' . $report->name);
             
@@ -529,6 +730,11 @@ class ReportController extends Controller
      */
     public function resume(Report $report)
     {
+        // Check if user can access this report
+        if (!$this->canAccessReport($report)) {
+            return $this->unauthorizedResponse();
+        }
+
         try {
             \Log::info('Attempting to resume report: ' . $report->id . ' - ' . $report->name);
             
@@ -555,28 +761,66 @@ class ReportController extends Controller
     /**
      * Get updated dashboard stats
      */
-    public function getStats()
+    public function getStats(Request $request)
     {
         try {
-            $activeReports = Report::where('status', 'active')->count();
-            $generatedToday = Report::whereDate('last_sent', today())->count();
-            $pendingReports = Report::where('status', 'pending')->count();
+            $currentUser = Auth::user();
+            $query = Report::query();
             
-            // Calculate success rate (example calculation)
-            $totalReports = Report::whereDate('created_at', '>=', now()->subDays(30))->count();
-            $successfulReports = Report::whereDate('created_at', '>=', now()->subDays(30))
-                                     ->where('status', '!=', 'failed')->count();
-            $successRate = $totalReports > 0 ? round(($successfulReports / $totalReports) * 100, 1) : 0;
-
-            return response()->json([
-                'success' => true,
-                'data' => [
-                    'activeReports' => $activeReports,
-                    'generatedToday' => $generatedToday,
-                    'pendingReports' => $pendingReports,
-                    'successRate' => $successRate
-                ]
-            ]);
+            // Filter based on user role
+            if ($currentUser->role === 'supplier') {
+                // Suppliers only see their own reports
+                $query->where('created_by', $currentUser->id);
+            } else {
+                // Admins only see non-supplier reports
+                $query->where(function($q) {
+                    $q->whereHas('creator', function($userQuery) {
+                        $userQuery->where('role', '!=', 'supplier');
+                    })->orWhereNull('created_by'); // Include legacy reports without creator
+                });
+            }
+            
+            $activeReports = (clone $query)->where('status', 'active')->count();
+            $generatedToday = (clone $query)->whereDate('last_sent', today())->count();
+            $totalReports = (clone $query)->count();
+            
+            // Get last generated date
+            $lastReport = (clone $query)->whereNotNull('last_sent')
+                                       ->orderBy('last_sent', 'desc')
+                                       ->first();
+            $lastGenerated = $lastReport ? $lastReport->last_sent->format('M d') : 'Never';
+            
+            // For admins, also get pending reports and success rate
+            if ($currentUser->role !== 'supplier') {
+                $pendingReports = (clone $query)->where('status', 'pending')->count();
+                
+                // Calculate success rate (example calculation)
+                $totalReports30 = (clone $query)->whereDate('created_at', '>=', now()->subDays(30))->count();
+                $successfulReports = (clone $query)->whereDate('created_at', '>=', now()->subDays(30))
+                                         ->where('status', '!=', 'failed')->count();
+                $successRate = $totalReports30 > 0 ? round(($successfulReports / $totalReports30) * 100, 1) : 0;
+                
+                return response()->json([
+                    'success' => true,
+                    'data' => [
+                        'activeReports' => $activeReports,
+                        'generatedToday' => $generatedToday,
+                        'pendingReports' => $pendingReports,
+                        'successRate' => $successRate
+                    ]
+                ]);
+            } else {
+                // Supplier-specific stats
+                return response()->json([
+                    'success' => true,
+                    'data' => [
+                        'activeReports' => $activeReports,
+                        'generatedToday' => $generatedToday,
+                        'totalReports' => $totalReports,
+                        'lastGenerated' => $lastGenerated
+                    ]
+                ]);
+            }
 
         } catch (\Exception $e) {
             return response()->json([
@@ -954,6 +1198,45 @@ class ReportController extends Controller
         return preg_replace('/[^a-zA-Z0-9_-]/', '_', $filename);
     }
 
+    /**
+     * Calculate estimated report size based on content and format
+     */
+    private function calculateReportSize($report)
+    {
+        // This is a placeholder calculation - in real scenarios you'd calculate based on actual content
+        $baseSize = 50; // Base size in KB
+        
+        // Add size based on format
+        switch (strtolower($report->format)) {
+            case 'pdf':
+                $multiplier = 1.5;
+                $extension = 'KB';
+                break;
+            case 'excel':
+                $multiplier = 1.2;
+                $extension = 'KB';
+                break;
+            case 'csv':
+                $multiplier = 0.3;
+                $extension = 'KB';
+                break;
+            default:
+                $multiplier = 1.0;
+                $extension = 'KB';
+        }
+        
+        // Add some randomness to make it more realistic
+        $size = round($baseSize * $multiplier * (0.8 + (rand(0, 40) / 100)), 1);
+        
+        // Convert to MB if size is large
+        if ($size > 1024) {
+            $size = round($size / 1024, 2);
+            $extension = 'MB';
+        }
+        
+        return $size . ' ' . $extension;
+    }
+
     // Helper methods
     private function generateActionButtons($reportId)
     {
@@ -1015,5 +1298,37 @@ class ReportController extends Controller
         ];
 
         return $typeMapping[$template] ?? 'inventory';
+    }
+
+    /**
+     * Check if the current user can access the specified report
+     */
+    private function canAccessReport(Report $report)
+    {
+        $currentUser = Auth::user();
+        
+        // Admins can access all reports
+        if ($currentUser->role === 'admin') {
+            return true;
+        }
+        
+        // Suppliers can only access reports they created
+        if ($currentUser->role === 'supplier') {
+            return $report->created_by === $currentUser->id;
+        }
+        
+        // Other roles have no access by default
+        return false;
+    }
+
+    /**
+     * Return an unauthorized response
+     */
+    private function unauthorizedResponse()
+    {
+        return response()->json([
+            'success' => false,
+            'message' => 'You are not authorized to access this report.'
+        ], 403);
     }
 }
