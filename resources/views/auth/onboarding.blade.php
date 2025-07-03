@@ -69,19 +69,15 @@
         </form>
 
         <!-- Vendor Card -->
-        <form action="{{ route('role.select') }}" method="POST">
-            @csrf
-            <input type="hidden" name="role" value="vendor">
-            <button type="submit" class="w-full">
-                <div class="cursor-pointer transition hover:scale-110 bg-white shadow rounded-lg overflow-hidden text-center">
-                    <img src="/images/landing-page-image-3.jpg" alt="Vendor" class="w-full h-48 object-cover">
-                    <div class="p-4">
-                        <h3 class="font-semibold text-lg">Vendor</h3>
-                        <p class="text-sm text-gray-600 mt-2">View inventory, place orders, and track deliveries.</p>
-                    </div>
+        <a href="{{ route('vendor.onboarding') }}" class="w-full">
+            <div class="cursor-pointer transition hover:scale-110 bg-white shadow rounded-lg overflow-hidden text-center">
+                <img src="/images/landing-page-image-3.jpg" alt="Vendor" class="w-full h-48 object-cover">
+                <div class="p-4">
+                    <h3 class="font-semibold text-lg">Vendor</h3>
+                    <p class="text-sm text-gray-600 mt-2">View inventory, place orders, and track deliveries.</p>
                 </div>
-            </button>
-        </form>
+            </div>
+        </a>
     </section>
 
     <script src="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.js"></script>

@@ -16,6 +16,11 @@ class RawCoffee extends Model
         'id', 'supplier_id', 'coffee_type', 'grade', 'screen_size', 'defect_count', 'harvest_date', 'created_at', 'updated_at'
     ];
 
+    protected $casts = [
+        'defect_count' => 'integer',
+        'harvest_date' => 'date',
+    ];
+
     public function supplier()
     {
         return $this->belongsTo(Supplier::class, 'supplier_id');
