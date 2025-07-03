@@ -4,7 +4,7 @@
 <div class="flex min-h-screen bg-white">
     <img src="{{ asset('/images/Login-page-image.jpg') }}" alt = "coffee" class = "w-1/2 h-full object-cover sticky top-0 left-0" >
         <div class ="w-1/2 flex items-start justify-center">
-        <div class="w-full p flex flex-col items-left">
+        <div class="w-full flex flex-col items-left">
             <div class = "flex items-center justify-end border-b h-17 pr-3">
                 <img src="{{ asset('/images/logo/beantrack-color-logo.png') }}" alt="BeanTrack Logo" class="w-7 h-7">
                 <h1 class = "text-coffee-brown text-3xl font-semibold ml-2">BeanTrack</h1>
