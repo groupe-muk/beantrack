@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\User; 
+use App\Models\VendorApplication;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
@@ -137,6 +139,297 @@ class userManagerController extends Controller
         $user->delete();
 
         return redirect()->route('admin.users.index')->with('success', "User '{$userName}' has been deleted successfully.");
+    }
+
+    /**
+     * Get vendor applications for API (AJAX)
+     */
+    public function getVendorApplications(Request $request)
+    {
+        if (!Auth::check() || !Auth::user()->isAdmin()) {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+
+        $query = VendorApplication::query()->orderBy('created_at', 'desc');
+
+        // Filter by status
+        if ($request->has('status') && $request->status !== 'all') {
+            $query->where('status', $request->status);
+        }
+
+        // Filter for vendors not yet added to system
+        if ($request->has('not_added') && $request->boolean('not_added')) {
+            $query->whereNull('created_user_id');
+        }
+
+        $applications = $query->get();
+
+        return response()->json([
+            'success' => true,
+            'applications' => $applications
+        ]);
+    }
+
+    /**
+     * Get single vendor application details for API (AJAX)
+     */
+    public function getVendorApplicationDetails($applicationId)
+    {
+        if (!Auth::check() || !Auth::user()->isAdmin()) {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+
+        try {
+            $application = VendorApplication::findOrFail($applicationId);
+
+            return response()->json([
+                'success' => true,
+                'application' => $application
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Application not found'
+            ], 404);
+        }
+    }
+
+    /**
+     * Update vendor application status
+     */
+    public function updateVendorApplicationStatus(Request $request, $applicationId)
+    {
+        if (!Auth::check() || !Auth::user()->isAdmin()) {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+
+        $validatedData = $request->validate([
+            'status' => 'required|in:pending,under_review,approved,rejected'
+        ]);
+
+        try {
+            $application = VendorApplication::findOrFail($applicationId);
+            
+            $application->update([
+                'status' => $validatedData['status'],
+                'validation_message' => 'Status updated by administrator'
+            ]);
+
+            // Send email notification if rejected
+            if ($validatedData['status'] === 'rejected') {
+                $this->sendRejectionEmail($application, $request->input('rejection_reason'));
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Application status updated successfully'
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update application status'
+            ], 500);
+        }
+    }
+
+    /**
+     * Reject vendor application with reason
+     */
+    public function rejectVendorApplication(Request $request, $applicationId)
+    {
+        if (!Auth::check() || !Auth::user()->isAdmin()) {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+
+        $validatedData = $request->validate([
+            'rejection_reason' => 'nullable|string|max:1000'
+        ]);
+
+        try {
+            $application = VendorApplication::findOrFail($applicationId);
+            
+            $application->update([
+                'status' => 'rejected',
+                'validation_message' => $validatedData['rejection_reason'] ?? 'Application rejected by administrator'
+            ]);
+
+            // Send rejection email
+            $this->sendRejectionEmail($application, $validatedData['rejection_reason']);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Application rejected successfully'
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to reject application'
+            ], 500);
+        }
+    }
+
+    /**
+     * Add approved vendor to system with user account
+     */
+    public function addVendorToSystem(Request $request, $applicationId)
+    {
+        if (!Auth::check() || !Auth::user()->isAdmin()) {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+
+        $validatedData = $request->validate([
+            'default_password' => 'required|string|min:8',
+            'confirm_password' => 'required|string|same:default_password'
+        ]);
+
+        try {
+            $application = VendorApplication::findOrFail($applicationId);
+
+            // Check if application is approved
+            if ($application->status !== 'approved') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Application must be approved before adding to system'
+                ], 400);
+            }
+
+            // Check if user already exists
+            if ($application->created_user_id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'User account already created for this application'
+                ], 400);
+            }
+
+            // Generate next user ID
+            $lastUser = User::orderBy('id', 'desc')->first();
+            $nextIdNumber = $lastUser ? intval(substr($lastUser->id, 1)) + 1 : 1;
+            $nextUserId = 'U' . str_pad($nextIdNumber, 5, '0', STR_PAD_LEFT);
+
+            // Create user account
+            $user = User::create([
+                'id' => $nextUserId,
+                'name' => $application->applicant_name,
+                'email' => $application->email,
+                'password' => Hash::make($validatedData['default_password']),
+                'role' => 'vendor',
+                'phone' => $application->phone_number
+            ]);
+
+            // Link application to user
+            $application->update([
+                'created_user_id' => $user->id
+            ]);
+
+            // Send welcome email with login credentials
+            $this->sendWelcomeEmail($application, $user, $validatedData['default_password']);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Vendor added to system successfully',
+                'user' => [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to add vendor to system: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Send rejection email notification
+     */
+    private function sendRejectionEmail(VendorApplication $application, $reason = null)
+    {
+        try {
+            // Send email to Java validation server for processing
+            $emailData = [
+                'applicantId' => $application->id,
+                'email' => $application->email,
+                'applicantName' => $application->applicant_name,
+                'businessName' => $application->business_name,
+                'reason' => $reason ?? 'Your application did not meet our requirements.',
+                'type' => 'rejection'
+            ];
+
+            \Log::info('Sending rejection email data to Java server', $emailData);
+
+            // Call Java server email endpoint using JSON data
+            $response = Http::timeout(10)->post('http://localhost:8081/api/vendors/send-email', $emailData);
+
+            \Log::info('Java server response for rejection email', [
+                'status' => $response->status(),
+                'body' => $response->body()
+            ]);
+
+            if ($response->failed()) {
+                \Log::error('Java server returned error for rejection email', [
+                    'status' => $response->status(),
+                    'body' => $response->body()
+                ]);
+            }
+
+        } catch (\Exception $e) {
+            \Log::error('Failed to send rejection email', [
+                'application_id' => $application->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+        }
+    }
+
+    /**
+     * Send welcome email with login credentials
+     */
+    private function sendWelcomeEmail(VendorApplication $application, User $user, $password)
+    {
+        try {
+            // Send email to Java validation server for processing
+            $emailData = [
+                'applicantId' => $application->id,
+                'email' => $user->email,
+                'applicantName' => $user->name,
+                'businessName' => $application->business_name,
+                'userId' => $user->id,
+                'password' => $password,
+                'loginUrl' => url('/login'),
+                'type' => 'welcome'
+            ];
+
+            \Log::info('Sending welcome email data to Java server', $emailData);
+
+            // Call Java server email endpoint using JSON data
+            $response = Http::timeout(10)->post('http://localhost:8081/api/vendors/send-email', $emailData);
+
+            \Log::info('Java server response for welcome email', [
+                'status' => $response->status(),
+                'body' => $response->body()
+            ]);
+
+            if ($response->failed()) {
+                \Log::error('Java server returned error for welcome email', [
+                    'status' => $response->status(),
+                    'body' => $response->body()
+                ]);
+            }
+
+        } catch (\Exception $e) {
+            \Log::error('Failed to send welcome email', [
+                'application_id' => $application->id,
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+        }
     }
 }
 

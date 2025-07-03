@@ -118,6 +118,12 @@ Route::middleware(['auth'])->group(function () {
         Route::post('admin/users', [userManagerController::class, 'store'])->name('admin.users.store');
         Route::patch('admin/users/{user}', [userManagerController::class, 'update'])->name('admin.users.update');
         Route::delete('admin/users/{user}', [userManagerController::class, 'destroy'])->name('admin.users.destroy');
+
+        // Vendor Application Management API Routes
+        Route::get('api/vendor-applications', [userManagerController::class, 'getVendorApplications'])->name('api.vendor-applications');
+        Route::post('admin/vendor-applications/{application}/update-status', [userManagerController::class, 'updateVendorApplicationStatus'])->name('admin.vendor-applications.update-status');
+        Route::post('admin/vendor-applications/{application}/reject', [userManagerController::class, 'rejectVendorApplication'])->name('admin.vendor-applications.reject-status');
+        Route::post('admin/vendor-applications/{application}/add-to-system', [userManagerController::class, 'addVendorToSystem'])->name('admin.vendor-applications.add-to-system');
       
        // Order routes
         Route::prefix('orders')->name('orders.')->group(function () {

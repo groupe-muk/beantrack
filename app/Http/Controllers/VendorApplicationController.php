@@ -195,9 +195,38 @@ class VendorApplicationController extends Controller
      */
     public function show(VendorApplication $application)
     {
-        $this->authorize('view', $application);
+        try {
+            $this->authorize('view', $application);
 
-        return view('admin.vendor-applications.show', compact('application'));
+            // Handle AJAX requests with JSON response
+            if (request()->wantsJson() || request()->ajax()) {
+                return response()->json([
+                    'success' => true,
+                    'application' => $application->load(['createdUser'])
+                ]);
+            }
+
+            // Handle regular web requests with view
+            return view('admin.vendor-applications.show', compact('application'));
+            
+        } catch (\Illuminate\Auth\Access\AuthorizationException $e) {
+            if (request()->wantsJson() || request()->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized access'
+                ], 403);
+            }
+            abort(403, 'Unauthorized access');
+        } catch (\Exception $e) {
+            \Log::error('Error in VendorApplicationController@show: ' . $e->getMessage());
+            if (request()->wantsJson() || request()->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Error loading application details: ' . $e->getMessage()
+                ], 500);
+            }
+            abort(500, 'Error loading application');
+        }
     }
 
     /**

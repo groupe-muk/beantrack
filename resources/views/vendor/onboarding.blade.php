@@ -25,29 +25,25 @@
                     <img src="{{ asset('images/logo/beantrack-color-logo.png') }}" class="h-8" alt="BeanTrack Logo" />
                     <span class="self-center text-2xl font-semibold whitespace-nowrap text-coffee-brown">BeanTrack</span>
                 </a>
-                <div class="text-sm">
-                    <a href="{{ route('onboarding') }}" class="text-brown hover:text-coffee-brown">← Back to Home</a>
+                <div>
+                    <a href="{{ route('onboarding') }}" class="text-light-brown hover:text-coffee-brown font-bold">← Back to Home</a>
                 </div>
             </div>
         </nav>
 
         <!-- Hero Section -->
-        <section class="relative bg-gradient-to-br from-coffee-brown to-hover-brown text-white py-20">
-            <div class="absolute inset-0 bg-black opacity-10"></div>
+        <section class="relative bg-gradient-to-br from-coffee-brown to-hover-brown text-white min-h-[300px] flex items-center" 
+                 style="background-image: linear-gradient(rgba(139, 69, 19, 0.7), rgba(101, 67, 33, 0.7)), url('{{ asset('/warehouse.image.webp') }}'); background-size: cover; background-position: center; background-repeat: no-repeat;">
             <div class="relative max-w-6xl mx-auto px-6 text-center">
-                <h1 class="text-4xl md:text-5xl font-bold mb-6">Welcome to BeanTrack Vendor Portal</h1>
+                <h1 class="text-4xl md:text-5xl font-bold mb-6 pt-7">Welcome to BeanTrack Vendor Portal</h1>
                 <p class="text-xl md:text-2xl mb-8 opacity-90 max-w-3xl mx-auto">
                     Your gateway to joining our trusted network of coffee suppliers or accessing your vendor dashboard
                 </p>
-                <div class="flex justify-center">
-                    <img src="{{ asset('images/warehouse.image.webp') }}" alt="Coffee Supply Chain" 
-                         class="rounded-lg shadow-2xl max-w-md w-full opacity-90">
-                </div>
             </div>
         </section>
 
         <!-- Main Content -->
-        <section class="py-16 px-6">
+        <section class="py-10 px-6">
             <div class="max-w-6xl mx-auto">
                 <!-- Existing Vendors Section -->
                 <div class="text-center mb-16">
@@ -58,7 +54,7 @@
                     
                     <div class="max-w-md mx-auto">
                         <a href="{{ route('show.login', ['role' => 'vendor']) }}" 
-                           class="block bg-coffee-brown hover:bg-hover-brown text-white rounded-lg p-6 transition-all duration-300 transform hover:scale-105 shadow-lg">
+                           class="block bg-light-brown hover:bg-brown text-white rounded-lg p-6 transition-all duration-300 transform hover:scale-105 shadow-lg">
                             <div class="flex items-center justify-center mb-3">
                                 <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"></path>
@@ -71,7 +67,7 @@
                 </div>
 
                 <!-- Divider -->
-                <div class="flex items-center my-16">
+                <div class="flex items-center my-16 pt-5">
                     <div class="flex-grow border-t border-soft-gray"></div>
                     <div class="flex-shrink-0 px-4">
                         <span class="text-brown font-medium">New to BeanTrack?</span>
@@ -80,7 +76,7 @@
                 </div>
 
                 <!-- New Vendor Application Section -->
-                <div class="text-center mb-16">
+                <div class="text-center mb-16 pt-5">
                     <h2 class="text-3xl md:text-4xl font-bold text-coffee-brown mb-6">Become a BeanTrack Vendor</h2>
                     <p class="text-brown text-lg mb-12 max-w-3xl mx-auto">
                         Join our trusted network of coffee suppliers. Apply today to become a verified vendor 
@@ -88,9 +84,9 @@
                         process includes automated verification for faster approval.
                     </p>
                     
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto pt-5">
                         <a href="{{ route('vendor.apply') }}" 
-                           class="block bg-coffee-brown hover:bg-hover-brown text-white rounded-lg p-8 transition-all duration-300 transform hover:scale-105 shadow-lg">
+                           class="block bg-light-brown hover:bg-brown text-white rounded-lg p-8 transition-all duration-300 transform hover:scale-105 shadow-lg">
                             <div class="flex items-center justify-center mb-4">
                                 <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
@@ -128,22 +124,22 @@
                     <h3 class="text-2xl font-bold text-coffee-brown text-center mb-8">Application Process</h3>
                     <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
                         <div class="text-center">
-                            <div class="w-12 h-12 bg-coffee-brown text-white rounded-full flex items-center justify-center mx-auto mb-3 font-bold">1</div>
+                            <div class="w-12 h-12 bg-light-brown text-white rounded-full flex items-center justify-center mx-auto mb-3 font-bold">1</div>
                             <h4 class="font-semibold text-coffee-brown mb-2">Submit Application</h4>
                             <p class="text-sm text-brown">Fill out the form and upload required documents</p>
                         </div>
                         <div class="text-center">
-                            <div class="w-12 h-12 bg-coffee-brown text-white rounded-full flex items-center justify-center mx-auto mb-3 font-bold">2</div>
+                            <div class="w-12 h-12 bg-light-brown text-white rounded-full flex items-center justify-center mx-auto mb-3 font-bold">2</div>
                             <h4 class="font-semibold text-coffee-brown mb-2">Automated Review</h4>
                             <p class="text-sm text-brown">Our system validates your documents and information</p>
                         </div>
                         <div class="text-center">
-                            <div class="w-12 h-12 bg-coffee-brown text-white rounded-full flex items-center justify-center mx-auto mb-3 font-bold">3</div>
+                            <div class="w-12 h-12 bg-light-brown text-white rounded-full flex items-center justify-center mx-auto mb-3 font-bold">3</div>
                             <h4 class="font-semibold text-coffee-brown mb-2">Admin Verification</h4>
                             <p class="text-sm text-brown">Final review and approval by our team</p>
                         </div>
                         <div class="text-center">
-                            <div class="w-12 h-12 bg-coffee-brown text-white rounded-full flex items-center justify-center mx-auto mb-3 font-bold">4</div>
+                            <div class="w-12 h-12 bg-light-brown text-white rounded-full flex items-center justify-center mx-auto mb-3 font-bold">4</div>
                             <h4 class="font-semibold text-coffee-brown mb-2">Account Creation</h4>
                             <p class="text-sm text-brown">Get access to your vendor dashboard</p>
                         </div>

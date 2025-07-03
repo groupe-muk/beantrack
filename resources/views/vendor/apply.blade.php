@@ -3,157 +3,151 @@
 @section('content')
 <div class="flex min-h-screen bg-white">
     <!-- Left side - Image -->
-    <div class="w-1/2 relative">
-        <img src="{{ asset('/images/warehouse.image.webp') }}" alt="warehouse" class="w-full h-full object-cover sticky top-0 left-0">
-        <div class="absolute inset-0 bg-coffee-brown bg-opacity-20"></div>
-        <div class="absolute top-8 left-8">
-            <div class="flex items-center">
-                <img src="{{ asset('/images/logo/beantrack-color-logo.png') }}" alt="BeanTrack Logo" class="w-8 h-8">
-                <h1 class="text-white text-2xl font-semibold ml-2">BeanTrack</h1>
-            </div>
-        </div>
-        <div class="absolute bottom-8 left-8 text-white">
-            <h2 class="text-3xl font-bold mb-2">Join Our Supply Network</h2>
-            <p class="text-lg opacity-90">Become a trusted vendor in our coffee supply chain</p>
-        </div>
-    </div>
+    <img src="{{ asset('/warehouse.image.webp') }}" alt="warehouse" class="w-1/2 h-full object-cover sticky top-0 left-0">
 
-    <!-- Right side - Form -->
-    <div class="w-1/2 flex items-start justify-center overflow-y-auto">
-        <div class="w-full max-w-md px-8 py-12">
-            <!-- Header -->
-            <div class="text-center mb-8">
-                <h1 class="text-4xl font-semibold text-light-brown mb-3">Vendor Application</h1>
-                <p class="text-brown">Submit your application to become a BeanTrack vendor</p>
-            </div>
-
-            <!-- Application Form -->
-            <form id="vendorApplicationForm" class="space-y-6">
-                @csrf
+        <!-- Right side - Form -->
+        <div class="w-1/2 flex items-start justify-center">
+                <div class="w-full flex flex-col items-left">
+                    <div class="flex items-center justify-end border-b h-17 pr-3">
+                        <img src="{{ asset('/images/logo/beantrack-color-logo.png') }}" alt="BeanTrack Logo" class="w-8 h-8">
+                        <h1 class="text-coffee-brown text-2xl font-semibold ml-2">BeanTrack</h1>
+                    </div>
                 
-                <!-- Applicant Information -->
-                <div class="space-y-4">
-                    <h3 class="text-xl font-semibold text-coffee-brown">Personal Information</h3>
-                    
-                    <div>
-                        <label for="applicant_name" class="block mb-2 text-coffee-brown font-semibold">Full Name *</label>
-                        <input type="text" id="applicant_name" name="applicant_name" required 
-                               class="w-full border-soft-gray rounded border-2 h-12 px-3 focus:border-light-brown focus:outline-none transition-colors">
+                    <!-- Header -->
+                    <div class="text-center mb-8 w-full pt-5 pl-10 pr-10">
+                        <h1 class="text-4xl font-semibold text-light-brown mb-3">Vendor Application</h1>
+                        <p class="text-brown">Submit your application to become a BeanTrack vendor</p>
                     </div>
+                
 
-                    <div>
-                        <label for="email" class="block mb-2 text-coffee-brown font-semibold">Email Address *</label>
-                        <input type="email" id="email" name="email" required 
-                               class="w-full border-soft-gray rounded border-2 h-12 px-3 focus:border-light-brown focus:outline-none transition-colors">
-                    </div>
+                    <!-- Application Form -->
+                    <form id="vendorApplicationForm" class="space-y-6 pl-10 pr-10">
+                        @csrf
+                        
+                        <!-- Applicant Information -->
+                        <div class="space-y-4">
+                            <h3 class="text-xl font-semibold text-coffee-brown">Personal Information</h3>
+                            
+                            <div>
+                                <label for="applicant_name" class="block mb-2 text-coffee-brown font-semibold">Full Name *</label>
+                                <input type="text" id="applicant_name" name="applicant_name" required 
+                                    class="w-full border-soft-gray rounded border-2 h-12 px-3 focus:border-light-brown focus:outline-none transition-colors">
+                            </div>
 
-                    <div>
-                        <label for="phone_number" class="block mb-2 text-coffee-brown font-semibold">Phone Number *</label>
-                        <input type="tel" id="phone_number" name="phone_number" required 
-                               class="w-full border-soft-gray rounded border-2 h-12 px-3 focus:border-light-brown focus:outline-none transition-colors">
-                    </div>
-                </div>
+                            <div>
+                                <label for="email" class="block mb-2 text-coffee-brown font-semibold">Email Address *</label>
+                                <input type="email" id="email" name="email" required 
+                                    class="w-full border-soft-gray rounded border-2 h-12 px-3 focus:border-light-brown focus:outline-none transition-colors">
+                            </div>
 
-                <!-- Business Information -->
-                <div class="space-y-4">
-                    <h3 class="text-xl font-semibold text-coffee-brown">Business Information</h3>
-                    
-                    <div>
-                        <label for="business_name" class="block mb-2 text-coffee-brown font-semibold">Business Name *</label>
-                        <input type="text" id="business_name" name="business_name" required 
-                               class="w-full border-soft-gray rounded border-2 h-12 px-3 focus:border-light-brown focus:outline-none transition-colors">
-                    </div>
-                </div>
-
-                <!-- Document Uploads -->
-                <div class="space-y-4">
-                    <h3 class="text-xl font-semibold text-coffee-brown">Required Documents</h3>
-                    
-                    <div>
-                        <label for="bank_statement" class="block mb-2 text-coffee-brown font-semibold">Bank Statement (PDF) *</label>
-                        <div class="relative">
-                            <input type="file" id="bank_statement" name="bank_statement" accept=".pdf" required 
-                                   class="w-full border-soft-gray rounded border-2 h-12 px-3 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-light-gray file:text-coffee-brown hover:file:bg-soft-gray">
-                            <div class="mt-2 p-3 bg-status-background-blue rounded-lg border border-blue-200">
-                                <p class="text-sm text-status-text-blue font-medium mb-1">📋 Document Requirements:</p>
-                                <ul class="text-xs text-status-text-blue space-y-1">
-                                    <li>• File must contain "bank-statement" in the filename</li>
-                                    <li>• PDF format only, maximum 10MB</li>
-                                    <li>• Must be recent (within last 3 months)</li>
-                                </ul>
+                            <div>
+                                <label for="phone_number" class="block mb-2 text-coffee-brown font-semibold">Phone Number *</label>
+                                <input type="tel" id="phone_number" name="phone_number" required 
+                                    class="w-full border-soft-gray rounded border-2 h-12 px-3 focus:border-light-brown focus:outline-none transition-colors">
                             </div>
                         </div>
-                    </div>
 
+                        <!-- Business Information -->
+                        <div class="space-y-4">
+                            <h3 class="text-xl font-semibold text-coffee-brown">Business Information</h3>
+                            
+                            <div>
+                                <label for="business_name" class="block mb-2 text-coffee-brown font-semibold">Business Name *</label>
+                                <input type="text" id="business_name" name="business_name" required 
+                                    class="w-full border-soft-gray rounded border-2 h-12 px-3 focus:border-light-brown focus:outline-none transition-colors">
+                            </div>
+                        </div>
+
+                        <!-- Document Uploads -->
+                        <div class="space-y-4">
+                            <h3 class="text-xl font-semibold text-coffee-brown">Required Documents</h3>
+                            
+                            <div>
+                                <label for="bank_statement" class="block mb-2 text-coffee-brown font-semibold">Bank Statement (PDF) *</label>
+                                <div class="relative">
+                                    <input type="file" id="bank_statement" name="bank_statement" accept=".pdf" required 
+                                        class="w-full border-soft-gray rounded border-2 h-10 px-3 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-light-gray file:text-coffee-brown hover:file:bg-soft-gray">
+                                    <div class="mt-2 p-3 bg-status-background-blue rounded-lg border border-blue-200">
+                                        <p class="text-sm text-status-text-blue font-medium mb-1">📋 Document Requirements:</p>
+                                        <ul class="text-xs text-status-text-blue space-y-1">
+                                            <li>• File must contain "bank-statement" in the filename</li>
+                                            <li>• PDF format only, maximum 10MB</li>
+                                            <li>• Must be recent (within last 3 months)</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label for="trading_license" class="block mb-2 text-coffee-brown font-semibold">Trading License (PDF) *</label>
+                                <div class="relative">
+                                    <input type="file" id="trading_license" name="trading_license" accept=".pdf" required 
+                                        class="w-full border-soft-gray rounded border-2 h-10 px-3 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-light-gray file:text-coffee-brown hover:file:bg-soft-gray">
+                                    <div class="mt-2 p-3 bg-status-background-blue rounded-lg border border-blue-200">
+                                        <p class="text-sm text-status-text-blue font-medium mb-1">📋 Document Requirements:</p>
+                                        <ul class="text-xs text-status-text-blue space-y-1">
+                                            <li>• File must contain "trading-license" in the filename</li>
+                                            <li>• PDF format only, maximum 10MB</li>
+                                            <li>• Must be valid and current</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Error Messages -->
+                        <div id="errorMessages" class="hidden bg-status-background-red border border-red-300 rounded-lg p-4">
+                            <div class="flex">
+                                <div class="flex-shrink-0">
+                                    <svg class="h-5 w-5 text-status-text-red" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                                    </svg>
+                                </div>
+                                <div class="ml-3">
+                                    <h3 class="text-sm font-medium text-status-text-red">Please correct the following errors:</h3>
+                                    <div id="errorList" class="mt-2 text-sm text-status-text-red">
+                                        <ul class="list-disc list-inside space-y-1"></ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Submit Button -->
+                        <button type="submit" id="submitBtn" 
+                                class="w-full text-white rounded-lg p-3 font-semibold mt-8 bg-coffee-brown hover:bg-hover-brown focus:outline-none focus:ring-4 focus:ring-coffee-brown transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed">
+                            <span id="submitText">Submit Application</span>
+                            <span id="loadingText" class="hidden">
+                                <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                Submitting...
+                            </span>
+                        </button>
+
+                        <!-- Additional Info -->
+                        <div class="text-center text-sm text-brown mt-6">
+                            <p>By submitting this application, you agree to our terms and conditions.</p>
+                            <p class="mt-2">All information will be kept confidential and used solely for application review.</p>
+                        </div>
+                    </form>
+
+                <!-- Back to Home -->
+                <div class="text-center mt-8 space-y-2">
                     <div>
-                        <label for="trading_license" class="block mb-2 text-coffee-brown font-semibold">Trading License (PDF) *</label>
-                        <div class="relative">
-                            <input type="file" id="trading_license" name="trading_license" accept=".pdf" required 
-                                   class="w-full border-soft-gray rounded border-2 h-12 px-3 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-light-gray file:text-coffee-brown hover:file:bg-soft-gray">
-                            <div class="mt-2 p-3 bg-status-background-blue rounded-lg border border-blue-200">
-                                <p class="text-sm text-status-text-blue font-medium mb-1">📋 Document Requirements:</p>
-                                <ul class="text-xs text-status-text-blue space-y-1">
-                                    <li>• File must contain "trading-license" in the filename</li>
-                                    <li>• PDF format only, maximum 10MB</li>
-                                    <li>• Must be valid and current</li>
-                                </ul>
-                            </div>
-                        </div>
+                        
+                        <a href="{{ route('vendor.check-status') }}" class="text-light-brown hover:text-coffee-brown font-semibold">
+                            Already Applied? Check Application Status
+                        </a>
+                    </div>
+                    <div class="pt-5 pb-5">
+                        <a href="{{ route('vendor.onboarding') }}" class="bg-light-brown hover:bg-brown text-white hover:text-off-white font-bold p-3 rounded">
+                            ← Back to Vendor Portal
+                        </a>
                     </div>
                 </div>
-
-                <!-- Error Messages -->
-                <div id="errorMessages" class="hidden bg-status-background-red border border-red-300 rounded-lg p-4">
-                    <div class="flex">
-                        <div class="flex-shrink-0">
-                            <svg class="h-5 w-5 text-status-text-red" viewBox="0 0 20 20" fill="currentColor">
-                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
-                            </svg>
-                        </div>
-                        <div class="ml-3">
-                            <h3 class="text-sm font-medium text-status-text-red">Please correct the following errors:</h3>
-                            <div id="errorList" class="mt-2 text-sm text-status-text-red">
-                                <ul class="list-disc list-inside space-y-1"></ul>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Submit Button -->
-                <button type="submit" id="submitBtn" 
-                        class="w-full text-white rounded-lg p-3 font-semibold mt-8 bg-coffee-brown hover:bg-hover-brown focus:outline-none focus:ring-4 focus:ring-coffee-brown transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed">
-                    <span id="submitText">Submit Application</span>
-                    <span id="loadingText" class="hidden">
-                        <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        Submitting...
-                    </span>
-                </button>
-
-                <!-- Additional Info -->
-                <div class="text-center text-sm text-brown mt-6">
-                    <p>By submitting this application, you agree to our terms and conditions.</p>
-                    <p class="mt-2">All information will be kept confidential and used solely for application review.</p>
-                </div>
-            </form>
-
-            <!-- Back to Home -->
-            <div class="text-center mt-8 space-y-2">
-                <div>
-                    <a href="{{ route('vendor.check-status') }}" class="text-coffee-brown hover:text-hover-brown font-medium">
-                        Check Application Status
-                    </a>
-                </div>
-                <div>
-                    <a href="{{ route('vendor.onboarding') }}" class="text-brown hover:text-coffee-brown">
-                        ← Back to Vendor Portal
-                    </a>
-                </div>
-            </div>
+        
         </div>
-    </div>
 </div>
 
 <!-- Success Modal -->
@@ -240,7 +234,6 @@ document.addEventListener('DOMContentLoaded', function() {
             });
             
             const data = await response.json();
-            console.log(data);
             
             if (data.success) {
                 // Show success modal with application details
@@ -294,8 +287,29 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function showSuccessModal() {
+        const modal = document.getElementById('successModal');
+        
         successModal.classList.remove('hidden');
         document.body.style.overflow = 'hidden';
+        
+        // Ensure the modal is visible with proper styling
+        modal.style.display = 'block';
+        modal.style.zIndex = '9999';
+        modal.style.position = 'fixed';
+        modal.style.top = '0';
+        modal.style.left = '0';
+        modal.style.width = '100%';
+        modal.style.height = '100%';
+        modal.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+        
+        // Ensure the inner modal content is visible
+        const modalContent = modal.querySelector('.bg-white');
+        if (modalContent) {
+            modalContent.style.position = 'relative';
+            modalContent.style.zIndex = '10000';
+            modalContent.style.margin = '50px auto';
+            modalContent.style.maxWidth = '500px';
+        }
     }
 
     // File upload validation
