@@ -308,25 +308,25 @@ function updateLibraryTable(reports) {
 function generateSupplierActionButtons(report) {
     let buttons = [];
     
-    // Edit button - suppliers can edit their own reports
+    // Edit button - suppliers can edit their own reports (always visible)
     buttons.push(`
         <button class="text-blue-600 hover:text-blue-900 text-sm" data-action="edit" data-report-id="${report.id}" data-report-name="${report.name}" title="Edit Schedule">
             <i class="fas fa-edit"></i>
         </button>
     `);
     
-    // Status-based buttons (pause/resume)
+    // Generate Now button (always visible)
+    buttons.push(`
+        <button class="text-green-600 hover:text-green-900 text-sm" data-action="generate" data-report-id="${report.id}" data-report-name="${report.name}" title="Generate Now">
+            <i class="fas fa-cog"></i>
+        </button>
+    `);
+    
+    // Status-based buttons (pause/resume) - only this changes based on status
     if (report.status === 'active') {
         buttons.push(`
             <button class="text-yellow-600 hover:text-yellow-900 text-sm" data-action="pause" data-report-id="${report.id}" data-report-name="${report.name}" title="Pause Schedule">
                 <i class="fas fa-pause"></i>
-            </button>
-        `);
-        
-        // Generate Now button (if active)
-        buttons.push(`
-            <button class="text-green-600 hover:text-green-900 text-sm" data-action="generate" data-report-id="${report.id}" data-report-name="${report.name}" title="Generate Now">
-                <i class="fas fa-cog"></i>
             </button>
         `);
     } else if (report.status === 'paused') {
@@ -335,9 +335,16 @@ function generateSupplierActionButtons(report) {
                 <i class="fas fa-play"></i>
             </button>
         `);
+    } else {
+        // For any other status, show resume button as default
+        buttons.push(`
+            <button class="text-blue-600 hover:text-blue-900 text-sm" data-action="resume" data-report-id="${report.id}" data-report-name="${report.name}" title="Resume Schedule">
+                <i class="fas fa-play"></i>
+            </button>
+        `);
     }
     
-    // Delete button - suppliers can delete their own report schedules
+    // Delete button - suppliers can delete their own report schedules (always visible)
     buttons.push(`
         <button class="text-red-600 hover:text-red-900 text-sm" data-action="delete" data-report-id="${report.id}" data-report-name="${report.name}" title="Delete Schedule">
             <i class="fas fa-trash"></i>
