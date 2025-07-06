@@ -82,6 +82,11 @@ class MenuHelper
 ',
                         'label' => 'Inbox'
 
+                    ],
+                    [
+                        'href' => '/supplycenters',
+                        'icon' => '<svg class="w-6 h-6 text-dashboard-text-light flex-shrink-0 transition duration-75 group-hover:text-dashboard-text-light dark:text-gray-400 dark:group-hover:text-white" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M10 2a8 8 0 100 16 8 8 0 000-16zm1 11h-2v2h2v-2zm0-4h-2v3h2V9z"></path></svg>',
+                        'label' => 'Workforce Distribution'
                     ]
                 ]);
 

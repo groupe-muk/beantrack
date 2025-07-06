@@ -14,7 +14,7 @@ use App\Http\Controllers\userManagerController;
 use App\Http\Controllers\tableCardController;
 use App\Http\Controllers\SupplyCentersController;
 use App\Http\Controllers\WorkerController;
-
+use App\Models\SupplyCenter;
 
 Route::get('/sample', [columnChartController::class, 'showColumnChart'])->name('column.chart');
 
@@ -102,6 +102,8 @@ Route::middleware(['role:admin'])->group(function () {
 
 
 
+
+
 /*Route::view('dashboard', 'dashboard')
 
 // Routes for authenticated users
@@ -161,28 +163,19 @@ Route::get('/inventory', function () {
     return view('Inventory.inventory');
 });
 
- Route::get('/supplycenters', function () {
-        return view('supplycenters.supplycenters');
-    })->name('supplycenters');
-    Route::get('/supplycenter1', [SupplyCentersController::class,  'shownsupplycenter1'])->name('show.supplycenter1');
-    Route::get('/supplycenter2', [SupplyCentersController::class, 'shownsupplycenter2'])->name('show.supplycenter2');
-    Route::get('/supplycenter3', [SupplyCentersController::class, 'shownsupplycenter3'])->name('show.supplycenter3');
-    Route::post('/supplycenter1', [SupplyCentersController::class, 'supplycenter1'])->name('supplycenter1');
+
+// Route::get('warehouses', SupplyCentersController::class);
+// Route::get('warehouses.staff', WorkerController::class);
+Route::get('/SupplyCenters', [SupplyCentersController::class, 'supplycenters'])->name('supplycenters');
 
 
 
-
-Route::get('/supplycenter2', [SupplyCentersController::class, 'shownsupplycenter2'])->name('show.supplycenter2');
-
-Route::get('/supplycenter2', [SupplyCentersController::class, 'showSupplyCenter2'])->name('show.supplycenter2');
-
-Route::post('/staff', [WorkerController::class, 'store'])->name('staff.store');
-Route::put('/staff/{staff}', [WorkerController::class, 'update'])->name('staff.update');
-Route::delete('/staff/{staff}', [WorkerController::class, 'destroy'])->name('staff.destroy');
-
-Route::put('/workers/{worker}', [WorkerController::class, 'update'])->name('workers.update');
-Route::delete('/workers/{worker}', [WorkerController::class, 'destroy'])->name('workers.destroy');
-Route::post('/workers', [WorkerController::class, 'store'])->name('workers.store');
-Route::delete('/supplycenters/{supplycenter}', [SupplyCentersController::class, 'destroy'])->name('supplycenters.destroy');
+Route::get('/supplycenters', [SupplyCentersController::class, 'supplycenters'])->name('supplycenters.supplycenters');
 Route::post('/supplycenters', [SupplyCentersController::class, 'store'])->name('supplycenters.store');
-Route::get('/supplycenters', [SupplyCentersController::class, 'dashboard'])->name('supplycenters.dashboard');
+Route::patch('/supplycenters/{supplycenter}', [SupplyCentersController::class, 'update'])->name('supplycenters.update');
+Route::delete('/supplycenters/{supplycenters}', [SupplyCentersController::class, 'destroy'])->name('supplycenters.destroy');
+
+Route::post('/supplycenters/{supplycenter}/worker', [SupplyCentersController::class, 'storeWorker'])->name('worker.store');
+Route::patch('/worker/{worker}', [SupplyCentersController::class, 'updateWorker'])->name('worker.update');
+
+
