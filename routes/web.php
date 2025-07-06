@@ -202,7 +202,27 @@ Route::middleware(['auth'])->group(function () {
 
     // Vendor routes - also require auth  
     Route::middleware(['role:vendor'])->group(function () {
-        // Vendor routes
+        // Vendor reports routes
+        Route::get('/reports/vendor', [App\Http\Controllers\ReportController::class, 'vendorIndex'])->name('reports.vendor');
+        
+        // API endpoints for vendor reports (with vendor_only filtering)
+        Route::prefix('vendor-reports')->group(function () {
+            Route::get('/stats', [App\Http\Controllers\ReportController::class, 'getStats'])->name('reports.vendor.stats');
+            Route::get('/library', [App\Http\Controllers\ReportController::class, 'getReportLibrary'])->name('reports.vendor.library');
+            Route::get('/historical', [App\Http\Controllers\ReportController::class, 'getHistoricalReports'])->name('reports.vendor.historical');
+            Route::get('/templates', [App\Http\Controllers\ReportController::class, 'getTemplates'])->name('reports.vendor.templates');
+            Route::get('/recipients', [App\Http\Controllers\ReportController::class, 'getRecipients'])->name('reports.vendor.recipients');
+            Route::post('/', [App\Http\Controllers\ReportController::class, 'store'])->name('reports.vendor.store');
+            Route::post('/adhoc', [App\Http\Controllers\ReportController::class, 'generateAdhocReport'])->name('reports.vendor.adhoc');
+            Route::get('/{report}/edit', [App\Http\Controllers\ReportController::class, 'edit'])->name('reports.vendor.edit');
+            Route::put('/{report}', [App\Http\Controllers\ReportController::class, 'update'])->name('reports.vendor.update');
+            Route::post('/{report}/generate', [App\Http\Controllers\ReportController::class, 'generateNow'])->name('reports.vendor.generate');
+            Route::post('/{report}/pause', [App\Http\Controllers\ReportController::class, 'pause'])->name('reports.vendor.pause');
+            Route::post('/{report}/resume', [App\Http\Controllers\ReportController::class, 'resume'])->name('reports.vendor.resume');
+            Route::delete('/{report}', [App\Http\Controllers\ReportController::class, 'destroy'])->name('reports.vendor.destroy');
+            Route::get('/{report}/download', [App\Http\Controllers\ReportController::class, 'download'])->name('reports.vendor.download');
+            Route::get('/{report}/view', [App\Http\Controllers\ReportController::class, 'view'])->name('reports.vendor.view');
+        });
     });
 }); // Close auth middleware group
 

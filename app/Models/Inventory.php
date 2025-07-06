@@ -13,7 +13,7 @@ class Inventory extends Model
     protected $keyType = 'string';
     public $incrementing = false;
     protected $fillable = [
-        'id', 'raw_coffee_id', 'coffee_product_id', 'quantity_in_stock', 'supply_center_id', 'last_updated', 'created_at', 'updated_at'
+        'id', 'raw_coffee_id', 'coffee_product_id', 'quantity_in_stock', 'supply_center_id', 'warehouse_id', 'last_updated', 'created_at', 'updated_at'
     ];
 
     public function rawCoffee()
@@ -34,5 +34,10 @@ class Inventory extends Model
     public function inventoryUpdates()
     {
         return $this->hasMany(InventoryUpdate::class, 'inventory_id');
+    }
+
+    public function warehouse()
+    {
+        return $this->belongsTo(Warehouse::class, 'warehouse_id');
     }
 }

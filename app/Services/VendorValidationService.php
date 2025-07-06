@@ -4,6 +4,9 @@ namespace App\Services;
 
 use App\Models\VendorApplication;
 use App\Models\User;
+use App\Models\Supplier;
+use App\Models\Wholesaler;
+use App\Models\SupplyCenter;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -234,6 +237,9 @@ class VendorValidationService
                 'phone' => $application->phone_number
             ]);
 
+            // Automatically create supplier or wholesaler record
+            $this->createRoleSpecificRecord($user);
+
             // Link the application to the created user
             $application->update([
                 'created_user_id' => $user->id
@@ -337,5 +343,50 @@ class VendorValidationService
             'validation_failed' => $validationFailed,
             'approved_no_user' => $approvedButNoUser,
         ];
+    }
+
+    /**
+     * Create supplier or wholesaler record based on user role
+     */
+    private function createRoleSpecificRecord(User $user)
+    {
+        try {
+            if ($user->role === 'supplier') {
+                // Get first available supply center
+                $supplyCenter = SupplyCenter::first();
+                if ($supplyCenter) {
+                    Supplier::create([
+                        'user_id' => $user->id,
+                        'supply_center_id' => $supplyCenter->id,
+                        'name' => $user->name,
+                        'contact_person' => $user->name,
+                        'email' => $user->email,
+                        'phone' => $user->phone ?? '0000000000',
+                        'address' => 'Address to be updated',
+                        'registration_number' => 'REG' . str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT),
+                        'approved_date' => now()
+                    ]);
+                }
+            } elseif ($user->role === 'vendor') {
+                Wholesaler::create([
+                    'user_id' => $user->id,
+                    'name' => $user->name,
+                    'contact_person' => $user->name,
+                    'email' => $user->email,
+                    'phone' => $user->phone ?? '0000000000',
+                    'address' => 'Address to be updated',
+                    'distribution_region' => 'Region to be updated',
+                    'registration_number' => 'WHL' . str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT),
+                    'approved_date' => now()
+                ]);
+            }
+        } catch (\Exception $e) {
+            // Log error but don't fail the user creation
+            Log::error('Failed to create role-specific record', [
+                'user_id' => $user->id,
+                'role' => $user->role,
+                'error' => $e->getMessage()
+            ]);
+        }
     }
 }
