@@ -12,6 +12,7 @@
                     unit="kgs"
                     changeText="5.2% from last period"
                     changeIconClass="fa-arrow-up"
+                    changeType="positive"
                 />
                 <x-stats-card
                     title="Production Volume"
@@ -20,6 +21,7 @@
                     unit="kg"
                     changeText="1.2% from last period"
                     changeIconClass="fa-arrow-down"
+                    changeType="negative"
                 />
                 <x-stats-card
                     title="Delivery Schedule"
@@ -28,6 +30,7 @@
                     unit="shipments"
                     changeText="2.1% from last period"
                     changeIconClass="fa-arrow-up"
+                    changeType="positive"
                 />
                 <x-stats-card
                     title="Quality Score"
@@ -36,6 +39,7 @@
                     unit=""
                     changeText="0.5% from last period"
                     changeIconClass="fa-arrow-up"
+                    changeType="positive"
                 />
             </div>
         </div>
@@ -49,14 +53,16 @@
                 class="min-h-[200px]" 
             />
             
+
+            
             <x-column-graph-card
                     title="Inventory Levels"
                     column-chart-i-d="dailySalesChart"
                     :chart-data="$inventoryData"
                     :chart-data2="$inventoryData2"
                     :chart-categories="$inventoryCategories"
-                    seriesName="Current stock (kg)"
-                    seriesName2="Optimal Level(kg)"
+                    seriesName="Raw Coffee Stock (kg)"
+                    seriesName2="Coffee Products Stock (kg)"
                 />
 
 
@@ -88,13 +94,17 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 
             <x-line-graph-card
-             title="Quality Score"
+            title="Raw Coffee Defect Count Trends"
             line-chart-i-d="lineChart"
             :chart-data="$lineChartData"
             :chart-categories="$lineChartCategories"
             />
 
-    
+            <x-recent-reports-card
+                title="Recent Reports"
+                :reports="$recentReports"
+                class="min-h-[200px]" 
+            />
 
            
         </div>

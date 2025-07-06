@@ -24,6 +24,11 @@ class RouteServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Explicit route model binding for Report with string IDs
+        Route::bind('report', function ($value) {
+            return \App\Models\Report::where('id', $value)->firstOrFail();
+        });
+
         RateLimiter::for('api', function (Request $request) {
             return Limit::perMinute(60)->by($request->user()?->id ?: $request->ip());
         });        $this->routes(function () {
