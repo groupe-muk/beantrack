@@ -7,10 +7,11 @@ use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PresenceChannel;
 use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
+use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
-class MessageSent implements ShouldBroadcast
+class MessageSent implements ShouldBroadcastNow
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
     public $message;
@@ -46,5 +47,22 @@ class MessageSent implements ShouldBroadcast
     public function broadcastAs(): string 
     {
         return 'message.sent';
+    }
+    
+    /**
+     * Get the data to broadcast.
+     *
+     * @return array
+     */
+    public function broadcastWith(): array
+    {
+        return [
+            'message' => $this->message,
+            'user' => $this->user,
+            'receiverId' => $this->receiverId,
+            'timestamp' => $this->timestamp,
+            'messageId' => $this->messageId,
+            'unread' => true
+        ];
     }
 }

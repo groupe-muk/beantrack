@@ -11,7 +11,7 @@
         <h5 class="text-3xl font-bold leading-none text-dashboard-light dark:text-white pb-2 pt-5">{{ $title }}</h5>
     @endisset
 
-    <div id="{{ $lineChartID }}" class="pt-5"></div>
+    <div id="{{ $lineChartID }}" class="pt-2"></div>
 
     @push('scripts')
     <script>

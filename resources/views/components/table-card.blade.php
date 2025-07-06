@@ -38,7 +38,8 @@
                                             switch ($status) {
                                                 case 'In Stock':
                                                 case 'Passed':
-                                                case 'Active': 
+                                                case 'Active':
+                                                case 'Delivered': 
                                                     $pillClasses = 'bg-status-background-green text-status-text-green';
                                                     break;
                                                 case 'Out of Stock':
@@ -50,6 +51,12 @@
                                                 case 'Pending':
                                                     $pillClasses = 'bg-status-background-orange text-status-text-orange';
                                                     break;
+                                                case 'Confirmed':
+                                                    $pillClasses = 'bg-status-background-blue text-status-text-blue';
+                                                    break;
+                                                case 'Shipped':
+                                                    $pillClasses = 'bg-status-background-purple text-status-text-purple';
+                                                    break;        
                                                 default:
                                                     $pillClasses = 'bg-status-background-gray text-status-text-gray'; 
                                                     break;

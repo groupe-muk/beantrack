@@ -4,14 +4,19 @@ use App\Http\Controllers\dashboardController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ChatController;
 use App\Http\Controllers\MessageAttachmentController;
+use App\Http\Controllers\VendorApplicationController;
 use App\Livewire\Settings\Appearance;
 use App\Livewire\Settings\Password;
 use App\Livewire\Settings\Profile;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Http\Request;
 use App\Http\Controllers\columnChartController;
+
+
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\userManagerController;
 use App\Http\Controllers\tableCardController;
+
 use App\Http\Controllers\SupplyCentersController;
 use App\Http\Controllers\WorkerController;
 use App\Models\SupplyCenter;
@@ -24,6 +29,15 @@ Route::get('/', [AuthController::class, 'showOnboarding'])->name('onboarding');
 
 // Role selection from onboarding page
 Route::post('/role-select', [AuthController::class, 'roleSelection'])->name('role.select');
+
+// Vendor Application Routes (Public - no authentication required)
+Route::controller(VendorApplicationController::class)->group(function () {
+    Route::get('/vendor', 'vendorOnboarding')->name('vendor.onboarding');
+    Route::get('/apply', 'create')->name('vendor.apply');
+    Route::post('/apply', 'store')->name('vendor.apply.store');
+    Route::get('/check-status', 'checkStatus')->name('vendor.check-status');
+    Route::get('/application/status', 'status')->name('vendor.application.status');
+});
 
 // Authentication routes for guests
 Route::middleware(['guest'])->controller(AuthController::class)->group(function () {
@@ -40,6 +54,8 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     // Chat Routes
     Route::get('/chat', [ChatController::class, 'index'])->name('chat.index');
+    Route::get('/chat/unread', [ChatController::class, 'getUnreadCount'])->name('chat.unread');
+    Route::post('/chat/mark-read', [ChatController::class, 'markAsRead'])->name('chat.mark-read');
     Route::get('/chat/{userId}', [ChatController::class, 'chatRoom'])->name('chat.room');
     Route::post('/chat/send', [ChatController::class, 'send'])->name('chat.send');
     // Chat Test Route
@@ -143,16 +159,12 @@ Route::middleware(['role:vendor'])->group(function () {
 //Route::post('/workers/{worker}/transfer', [WarehouseController::class, 'transfer'])->name('workers.transfer');
 //Route::delete('/workers/{worker}', [WarehouseController::class, 'destroy'])->name('workers.destroy');
 
-
 Route::view('dashboard', 'dashboard')
     ->middleware(['auth', 'verified'])
     ->name('dashboard');*/
 
 // Route::middleware(['auth'])->group(function () {
 //     Route::redirect('settings', 'settings/profile');
-
-
-
 
 require __DIR__ . '/auth.php';
 

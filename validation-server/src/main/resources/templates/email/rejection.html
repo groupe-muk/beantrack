@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vendor Application Status Update</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background-color: #dc3545;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            border-radius: 8px 8px 0 0;
+        }
+        .content {
+            background-color: #f8f9fa;
+            padding: 30px;
+            border-radius: 0 0 8px 8px;
+        }
+        .rejection-reasons {
+            background-color: #f8d7da;
+            border-left: 4px solid #dc3545;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .next-steps {
+            background-color: #d1ecf1;
+            border-left: 4px solid #17a2b8;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .footer {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #dee2e6;
+            font-size: 14px;
+            color: #6c757d;
+        }
+        .btn {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>📋 Application Status Update</h1>
+        <h2>Vendor Application Review Complete</h2>
+    </div>
+    
+    <div class="content">
+        <p>Dear <strong th:text="${applicantName}">Applicant Name</strong>,</p>
+        
+        <p>Thank you for your interest in becoming a vendor partner with BeanTrack. We have completed the review of your application for <strong th:text="${businessName}">Business Name</strong>.</p>
+        
+        <p>After careful review of your application (ID: <span th:text="${applicationId}">APP123</span>), we regret to inform you that we are unable to approve your vendor application at this time.</p>
+        
+        <div class="rejection-reasons">
+            <h3>📝 Review Details</h3>
+            <p th:text="${rejectionReasons}">Specific reasons for the decision would be listed here...</p>
+        </div>
+        
+        <div class="next-steps">
+            <h3>🔄 What You Can Do Next</h3>
+            <ol>
+                <li><strong>Review the feedback above</strong> and address any identified issues</li>
+                <li><strong>Gather the required documentation</strong> or update existing documents</li>
+                <li><strong>Submit a new application</strong> once you have addressed the concerns</li>
+                <li><strong>Contact our support team</strong> if you need clarification on any requirements</li>
+            </ol>
+        </div>
+        
+        <h3>📞 Need Help?</h3>
+        <p>If you have questions about this decision or need guidance on how to improve your application, please don't hesitate to contact our vendor support team:</p>
+        
+        <ul>
+            <li><strong>Phone:</strong> <span th:text="${supportContact}">+256 700 123456</span></li>
+            <li><strong>Email:</strong> vendor-support@beantrack.com</li>
+            <li><strong>Business Hours:</strong> Monday - Friday, 9:00 AM - 5:00 PM</li>
+        </ul>
+        
+        <h3>📋 Common Requirements for Reapplication</h3>
+        <p>When you're ready to reapply, please ensure you have:</p>
+        <ul>
+            <li>A valid trading license (not expired)</li>
+            <li>Recent bank statements showing sufficient financial capacity</li>
+            <li>Correct business name matching your registration documents</li>
+            <li>Clear, readable PDF documents</li>
+            <li>All required business registration documents</li>
+        </ul>
+        
+        <p>We appreciate your interest in partnering with BeanTrack and encourage you to reapply once you have addressed the noted requirements.</p>
+        
+        <p>Best regards,<br>
+        <strong>The BeanTrack Vendor Review Team</strong></p>
+    </div>
+    
+    <div class="footer">
+        <p>This is an automated message. For questions or support, please contact us using the information provided above.</p>
+        <p>&copy; 2025 BeanTrack. All rights reserved.</p>
+    </div>
+</body>
+</html>

@@ -14,14 +14,17 @@ return new class extends Migration
             $table->string('raw_coffee_id', 7)->nullable();
             $table->string('coffee_product_id', 6)->nullable();
             $table->decimal('quantity_in_stock', 10, 2);
-            $table->string('supply_center_id', 7);
+            $table->string('supply_center_id', 7)->nullable();
+            $table->string('warehouse_id', 7)->nullable();
             $table->timestamp('last_updated')->useCurrent();
             $table->timestamps();
             $table->foreign('raw_coffee_id')->references('id')->on('raw_coffee')->onDelete('cascade');
             $table->foreign('coffee_product_id')->references('id')->on('coffee_product')->onDelete('cascade');
             $table->foreign('supply_center_id')->references('id')->on('supply_centers')->onDelete('cascade');
+            $table->foreign('warehouse_id')->references('id')->on('warehouses')->onDelete('cascade');
         });
         DB::statement("ALTER TABLE inventory ADD CONSTRAINT chk_inventory_raw_or_product CHECK ((raw_coffee_id IS NULL AND coffee_product_id IS NOT NULL) OR (raw_coffee_id IS NOT NULL AND coffee_product_id IS NULL))");
+        DB::statement("ALTER TABLE inventory ADD CONSTRAINT chk_inventory_location CHECK ((supply_center_id IS NULL AND warehouse_id IS NOT NULL) OR (supply_center_id IS NOT NULL AND warehouse_id IS NULL))");
         DB::unprepared("CREATE TRIGGER before_inventory_insert BEFORE INSERT ON inventory FOR EACH ROW BEGIN DECLARE last_id INT; SELECT CAST(SUBSTRING(id, 2) AS UNSIGNED) INTO last_id FROM inventory ORDER BY id DESC LIMIT 1; SET NEW.id = CONCAT('I', LPAD(COALESCE(last_id + 1, 1), 5, '0')); END");
     }
     public function down(): void

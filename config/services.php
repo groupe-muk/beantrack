@@ -1,7 +1,6 @@
 <?php
 
 return [
-
     /*
     |--------------------------------------------------------------------------
     | Third Party Services
@@ -35,4 +34,8 @@ return [
         ],
     ],
 
+    'validation_server' => [
+        'url' => env('VALIDATION_SERVER_URL', 'http://localhost:8080'),
+        'timeout' => env('VALIDATION_SERVER_TIMEOUT', 30),
+    ],
 ];
