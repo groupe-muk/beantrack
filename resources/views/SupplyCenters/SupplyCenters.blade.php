@@ -50,7 +50,7 @@
 
     
     <div class="grid grid-cols-3 gap-4 mb-6 text-white">
-        <div class="bg-amber-800 p-4 rounded-lg">
+        <div class="bg-light-brown p-4 rounded-lg">
             <h2 class="text-xl font-bold">Total Warehouses</h2>
             <p>{{ $supplycenters->count() }}</p>
         </div>
