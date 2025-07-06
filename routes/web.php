@@ -19,6 +19,8 @@ use App\Http\Controllers\tableCardController;
 
 use App\Http\Controllers\SupplyCentersController;
 use App\Http\Controllers\InventoryController;
+use App\Http\Controllers\supplierInventoryController;
+use App\Http\Controllers\vendorInventoryController;
 
 Route::get('/sample', [columnChartController::class, 'showColumnChart'])->name('column.chart');
 
@@ -139,9 +141,17 @@ Route::middleware(['auth'])->group(function () {
         //Inventory routes
         Route::get('/inventory', [InventoryController::class, 'index'])->name('inventory.index');
         Route::post('/inventory', [InventoryController::class, 'store'])->name('inventory.store');
-        Route::patch('/inventory/{rawCoffee}', [InventoryController::class, 'update'])->name('inventory.update');
-        //Route::patch('/inventory/{coffeeProduct}', [InventoryController::class, 'update'])->name('inventory.update');
-        Route::delete('/inventory/{rawCoffee}', [InventoryController::class, 'destroy'])->name('inventory.destroy');
+
+        // Raw Coffee routes
+        Route::patch('/inventory/raw-coffee/{rawCoffee}', [InventoryController::class, 'updateRawCoffee'])->name('inventory.update.rawCoffee');
+        Route::delete('/inventory/raw-coffee/{rawCoffee}', [InventoryController::class, 'destroyRawCoffee'])->name('inventory.destroy.rawCoffee');
+
+        // Coffee Product routes  
+        Route::patch('/inventory/coffee-product/{coffeeProduct}', [InventoryController::class, 'updateCoffeeProduct'])->name('inventory.update.coffeeProduct');
+        Route::delete('/inventory/coffee-product/{coffeeProduct}', [InventoryController::class, 'destroyCoffeeProduct'])->name('inventory.destroy.coffeeProduct');
+
+
+
 
         // Vendor Application Management Routes (Admin only)
         Route::prefix('admin/vendor-applications')->name('admin.vendor-applications.')->controller(VendorApplicationController::class)->group(function () {
@@ -153,6 +163,7 @@ Route::middleware(['auth'])->group(function () {
             Route::get('/{application}/download/{type}', 'downloadDocument')->name('download-document');
             Route::post('/{application}/retry-validation', 'retryValidation')->name('retry-validation');
         });
+
 
         // Report Management Routes for Admins - Protected by admin middleware
         Route::prefix('reports')->group(function () {
@@ -198,10 +209,19 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/{report}/download', [App\Http\Controllers\ReportController::class, 'download'])->name('reports.supplier.download');
         Route::get('/{report}/view', [App\Http\Controllers\ReportController::class, 'view'])->name('reports.supplier.view');
     });
+      
+       // Supplier inventory routes
+         Route::get('/supplierInventory', [supplierInventoryController::class, 'index'])->name('supplierInventory.index');
+         Route::post('/supplierInventory', [supplierInventoryController::class, 'store'])->name('supplierInventory.store');
+         Route::patch('/supplierInventory/{rawCoffee}', [supplierInventoryController::class, 'update'])->name('supplierInventory.update');
+        //Route::patch('/inventory/{coffeeProduct}', [InventoryController::class, 'update'])->name('inventory.update');
+        Route::delete('/supplierInventory/{rawCoffee}', [supplierInventoryController::class, 'destroy'])->name('supplierInventory.destroy');
+
 });
 
     // Vendor routes - also require auth  
     Route::middleware(['role:vendor'])->group(function () {
+
         // Vendor reports routes
         Route::get('/reports/vendor', [App\Http\Controllers\ReportController::class, 'vendorIndex'])->name('reports.vendor');
         
@@ -223,6 +243,16 @@ Route::middleware(['auth'])->group(function () {
             Route::get('/{report}/download', [App\Http\Controllers\ReportController::class, 'download'])->name('reports.vendor.download');
             Route::get('/{report}/view', [App\Http\Controllers\ReportController::class, 'view'])->name('reports.vendor.view');
         });
+        
+       // Vendor inventory routes
+        Route::get('/vendorInventory', [vendorInventoryController::class, 'index'])->name('vendorInventory.index');
+         Route::post('/vendorInventory', [InventoryController::class, 'store'])->name('vendorInventory.store');
+          Route::patch('/vendorInventory/{processedCoffee}', [vendorInventoryController::class, 'update'])->name('vendorInventory.update');
+        //Route::patch('/inventory/{coffeeProduct}', [InventoryController::class, 'update'])->name('inventory.update');
+        Route::delete('/inventoryInventory/{processedCoffee}', [supplierInventoryController::class, 'destroy'])->name('vendorInventory.destroy');
+        Route::get('/inventory/{coffeeProduct}/edit', [InventoryController::class, 'edit'])->name('inventory.edit');
+        
+
     });
 }); // Close auth middleware group
 
