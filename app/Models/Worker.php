@@ -10,14 +10,19 @@ class Worker extends Model
     use HasFactory;
 
     protected $table = 'workers';
-    protected $keyType = 'string';
-    public $incrementing = false;
     protected $fillable = [
-        'id', 'name', 'role', 'email', 'phone', 'address', 'created_at', 'updated_at'
+        'supply_center_id', 'name', 'role', 'email',  'address',  'shift'
     ];
 
     public function workforceAssignments()
     {
         return $this->hasMany(WorkforceAssignment::class, 'worker_id');
     }
+
+    // app/Models/Staff.php
+public function supplycenter()
+{
+    return $this->belongsTo(SupplyCenter::class, 'supply_center_id');
+}
+
 }
