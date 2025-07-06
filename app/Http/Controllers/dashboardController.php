@@ -209,6 +209,9 @@ class dashboardController extends Controller
                 'statusLabel' => 'Critical',
             ],
         ],
+        
+        // Recent reports data for vendor
+        'recentReports' => $this->getRecentReportsForVendor(2),
         ]; 
     }
 
@@ -437,24 +440,50 @@ class dashboardController extends Controller
     {
         try {
             // Get the most recent reports that have been sent/generated
+            // Filter to only show admin-created reports (not supplier/vendor reports)
             $reports = Report::whereNotNull('last_sent')
+                ->where(function($query) {
+                    $query->whereHas('creator', function($userQuery) {
+                        $userQuery->where('role', 'admin');
+                    })->orWhereNull('created_by'); // Include legacy reports without creator
+                })
                 ->orderBy('last_sent', 'desc')
                 ->limit($limit)
                 ->get();
 
+            \Log::info('Admin recent reports query (with last_sent)', [
+                'count' => $reports->count(),
+                'report_ids' => $reports->pluck('id')->toArray(),
+                'report_creators' => $reports->pluck('created_by')->toArray()
+            ]);
+
             // If no reports with last_sent, fall back to recently created reports
             if ($reports->isEmpty()) {
-                $reports = Report::orderBy('created_at', 'desc')
+                $reports = Report::where(function($query) {
+                        $query->whereHas('creator', function($userQuery) {
+                            $userQuery->where('role', 'admin');
+                        })->orWhereNull('created_by'); // Include legacy reports without creator
+                    })
+                    ->orderBy('created_at', 'desc')
                     ->limit($limit)
                     ->get();
+                    
+                \Log::info('Admin recent reports query (by created_at)', [
+                    'count' => $reports->count(),
+                    'report_ids' => $reports->pluck('id')->toArray(),
+                    'report_creators' => $reports->pluck('created_by')->toArray()
+                ]);
             }
 
             return $reports->map(function ($report) {
+                // Parse recipients and convert to names
+                $recipientNames = $this->parseRecipientsToNames($report->recipients);
+                
                 return [
                     'id' => $report->id,
                     'name' => $report->name,
                     'date_generated' => $report->last_sent ?? $report->created_at,
-                    'recipients' => $report->recipients ?? 'Not specified',
+                    'recipients' => $recipientNames,
                     'status' => $report->status ?? 'completed',
                     'format' => $report->format ?? 'pdf',
                 ];
@@ -476,6 +505,66 @@ class dashboardController extends Controller
                     'name' => 'Weekly Production Efficiency',
                     'date_generated' => now()->subDay(),
                     'recipients' => 'Production Team',
+                    'status' => 'completed',
+                    'format' => 'excel',
+                ],
+            ];
+        }
+    }
+
+    /**
+     * Get recent reports for vendor
+     */
+    private function getRecentReportsForVendor($limit = 2): array
+    {
+        try {
+            $userId = Auth::id();
+            
+            // Get the most recent reports that have been sent/generated for this vendor
+            $reports = Report::whereNotNull('last_sent')
+                ->where('created_by', $userId)
+                ->orderBy('last_sent', 'desc')
+                ->limit($limit)
+                ->get();
+
+            // If no reports with last_sent, fall back to recently created reports
+            if ($reports->isEmpty()) {
+                $reports = Report::where('created_by', $userId)
+                    ->orderBy('created_at', 'desc')
+                    ->limit($limit)
+                    ->get();
+            }
+
+            return $reports->map(function ($report) {
+                // Parse recipients and convert to names
+                $recipientNames = $this->parseRecipientsToNames($report->recipients);
+                
+                return [
+                    'id' => $report->id,
+                    'name' => $report->name,
+                    'date_generated' => $report->last_sent ?? $report->created_at,
+                    'recipients' => $recipientNames,
+                    'status' => $report->status ?? 'completed',
+                    'format' => $report->format ?? 'pdf',
+                ];
+            })->toArray();
+
+        } catch (\Exception $e) {
+            // Return mock data if database query fails
+            return [
+                [
+                    'id' => 'R00001',
+                    'name' => 'Vendor Purchases Report',
+                    'date_generated' => now()->subHours(2),
+                    'recipients' => 'Vendor Dashboard',
+                    'status' => 'completed',
+                    'format' => 'pdf',
+                ],
+                [
+                    'id' => 'R00002',
+                    'name' => 'Vendor Inventory Report',
+                    'date_generated' => now()->subDay(),
+                    'recipients' => 'Vendor Dashboard',
                     'status' => 'completed',
                     'format' => 'excel',
                 ],
@@ -532,6 +621,68 @@ class dashboardController extends Controller
                 'coffeeProductData' => [80, 100, 90, 110, 105, 120, 130],
                 'categories' => ['Jun 24', 'Jun 25', 'Jun 26', 'Jun 27', 'Jun 28', 'Jun 29', 'Jun 30']
             ];
+        }
+    }
+
+    /**
+     * Parse recipients field and convert user IDs to names
+     */
+    private function parseRecipientsToNames($recipients): string
+    {
+        if (!$recipients) {
+            return 'Not specified';
+        }
+
+        try {
+            $recipientIds = [];
+            
+            // Handle different formats of recipients data
+            if (is_string($recipients)) {
+                // Try parsing as JSON first
+                $decoded = json_decode($recipients, true);
+                if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                    $recipientIds = $decoded;
+                } else {
+                    // Try parsing as comma-separated string
+                    $recipientIds = array_map('trim', explode(',', $recipients));
+                }
+            } elseif (is_array($recipients)) {
+                $recipientIds = $recipients;
+            } else {
+                // Single recipient
+                $recipientIds = [$recipients];
+            }
+
+            // Filter out empty values
+            $recipientIds = array_filter($recipientIds, function($id) {
+                return !empty($id);
+            });
+
+            if (empty($recipientIds)) {
+                return 'Not specified';
+            }
+
+            // Get user names from database
+            $users = User::whereIn('id', $recipientIds)
+                         ->select('id', 'name')
+                         ->get()
+                         ->keyBy('id');
+
+            $names = [];
+            foreach ($recipientIds as $id) {
+                if (isset($users[$id])) {
+                    $names[] = $users[$id]->name;
+                } else {
+                    // If user not found, show the ID
+                    $names[] = "User #{$id}";
+                }
+            }
+
+            return implode(', ', $names);
+            
+        } catch (\Exception $e) {
+            // If anything goes wrong, return the original value
+            return is_string($recipients) ? $recipients : 'Not specified';
         }
     }
 }

@@ -66,10 +66,31 @@ class ReportDelivered extends Mailable
     {
         $attachments = [];
         
+        \Log::info('Processing attachments for ReportDelivered email', [
+            'report_id' => $this->report->id,
+            'file_path' => $this->filePath,
+            'file_exists' => $this->filePath ? file_exists($this->filePath) : false,
+            'file_size' => $this->filePath && file_exists($this->filePath) ? filesize($this->filePath) : 0
+        ]);
+        
         if ($this->filePath && file_exists($this->filePath)) {
-            $attachments[] = Attachment::fromPath($this->filePath)
+            $attachment = Attachment::fromPath($this->filePath)
                 ->as($this->getAttachmentName())
                 ->withMime($this->getMimeType());
+                
+            $attachments[] = $attachment;
+            
+            \Log::info('Attachment added to ReportDelivered email', [
+                'report_id' => $this->report->id,
+                'attachment_name' => $this->getAttachmentName(),
+                'mime_type' => $this->getMimeType(),
+                'file_size' => filesize($this->filePath)
+            ]);
+        } else {
+            \Log::warning('No attachment added to ReportDelivered email - file not found', [
+                'report_id' => $this->report->id,
+                'file_path' => $this->filePath
+            ]);
         }
         
         return $attachments;

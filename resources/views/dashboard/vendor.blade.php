@@ -60,6 +60,11 @@
             :items="$inventoryItems"
             />
 
+            <x-recent-reports-card
+                title="Recent Reports"
+                :reports="$recentReports"
+                class="min-h-[200px]" 
+            />
 
             </div>
         </div>

@@ -10,6 +10,7 @@ use App\Models\InventoryUpdate;
 use App\Models\CoffeeProduct;
 use App\Models\RawCoffee;
 use App\Models\Supplier;
+use App\Models\Wholesaler;
 use App\Mail\ReportDelivered;
 use App\Mail\AdHocReportGenerated;
 use Illuminate\Support\Facades\Mail;
@@ -39,6 +40,20 @@ class ReportEmailService
             // Generate the report file
             $filePath = $this->generateReportFile($report);
             
+            if (!$filePath) {
+                Log::error('Failed to generate report file for scheduled report', [
+                    'report_id' => $report->id
+                ]);
+                return false;
+            }
+            
+            Log::info('Report file generated for scheduled report', [
+                'report_id' => $report->id,
+                'file_path' => $filePath,
+                'file_exists' => file_exists($filePath),
+                'file_size' => file_exists($filePath) ? filesize($filePath) : 0
+            ]);
+            
             // Get recipients
             $recipients = $this->getReportRecipients($report);
             
@@ -51,6 +66,13 @@ class ReportEmailService
             $emailsSent = 0;
             foreach ($recipients as $recipient) {
                 try {
+                    Log::info('Sending scheduled report email', [
+                        'report_id' => $report->id,
+                        'recipient' => $recipient->email,
+                        'attachment_path' => $filePath,
+                        'attachment_exists' => file_exists($filePath)
+                    ]);
+                    
                     Mail::to($recipient->email)->send(new ReportDelivered($report, $recipient, $filePath));
                     $emailsSent++;
                     Log::info('Report email sent successfully', [
@@ -66,22 +88,27 @@ class ReportEmailService
                 }
             }
 
-            // Update report status
+            // Update report last_sent time but keep status as active for scheduled reports
             $report->update([
                 'last_sent' => now(),
-                'status' => 'completed'
+                'status' => 'active'  // Keep the report active so it continues to be scheduled
             ]);
-
-            // Clean up temporary file
-            if ($filePath && file_exists($filePath)) {
-                unlink($filePath);
-            }
 
             Log::info('Scheduled report delivery completed', [
                 'report_id' => $report->id,
                 'emails_sent' => $emailsSent,
                 'total_recipients' => count($recipients)
             ]);
+
+            // Clean up temporary file - DO THIS AFTER EMAIL IS SENT
+            if ($filePath && file_exists($filePath)) {
+                $deleteSuccess = unlink($filePath);
+                Log::info('Temporary file cleanup', [
+                    'report_id' => $report->id,
+                    'file_path' => $filePath,
+                    'delete_success' => $deleteSuccess
+                ]);
+            }
 
             return $emailsSent > 0;
 
@@ -109,6 +136,20 @@ class ReportEmailService
             // Generate the report file
             $filePath = $this->generateReportFile($report);
             
+            if (!$filePath) {
+                Log::error('Failed to generate report file for ad-hoc report', [
+                    'report_id' => $report->id
+                ]);
+                return false;
+            }
+            
+            Log::info('Report file generated for ad-hoc report', [
+                'report_id' => $report->id,
+                'file_path' => $filePath,
+                'file_exists' => file_exists($filePath),
+                'file_size' => file_exists($filePath) ? filesize($filePath) : 0
+            ]);
+            
             // Get recipients (for ad-hoc reports, usually just the creator)
             $recipients = $this->getReportRecipients($report);
             
@@ -121,6 +162,13 @@ class ReportEmailService
             $emailsSent = 0;
             foreach ($recipients as $recipient) {
                 try {
+                    Log::info('Sending ad-hoc report email', [
+                        'report_id' => $report->id,
+                        'recipient' => $recipient->email,
+                        'attachment_path' => $filePath,
+                        'attachment_exists' => file_exists($filePath)
+                    ]);
+                    
                     Mail::to($recipient->email)->send(new AdHocReportGenerated($report, $recipient, $filePath));
                     $emailsSent++;
                     Log::info('Ad-hoc report email sent successfully', [
@@ -142,16 +190,21 @@ class ReportEmailService
                 'status' => 'completed'
             ]);
 
-            // Clean up temporary file
-            if ($filePath && file_exists($filePath)) {
-                unlink($filePath);
-            }
-
             Log::info('Ad-hoc report delivery completed', [
                 'report_id' => $report->id,
                 'emails_sent' => $emailsSent,
                 'total_recipients' => count($recipients)
             ]);
+
+            // Clean up temporary file - DO THIS AFTER EMAIL IS SENT
+            if ($filePath && file_exists($filePath)) {
+                $deleteSuccess = unlink($filePath);
+                Log::info('Temporary file cleanup', [
+                    'report_id' => $report->id,
+                    'file_path' => $filePath,
+                    'delete_success' => $deleteSuccess
+                ]);
+            }
 
             return $emailsSent > 0;
 
@@ -180,6 +233,12 @@ class ReportEmailService
             $fileName = $this->generateFileName($report);
             $filePath = $tempDir . '/' . $fileName;
 
+            Log::info('Generating report file', [
+                'report_id' => $report->id,
+                'file_path' => $filePath,
+                'format' => $report->format
+            ]);
+
             // Generate content based on report type
             $data = $this->generateReportData($report);
 
@@ -197,12 +256,29 @@ class ReportEmailService
                     $this->generatePdfReport($data, $filePath, $report);
             }
 
+            // Verify file was created successfully
+            if (!file_exists($filePath)) {
+                Log::error('Report file was not created', [
+                    'report_id' => $report->id,
+                    'file_path' => $filePath
+                ]);
+                return null;
+            }
+
+            $fileSize = filesize($filePath);
+            Log::info('Report file generated successfully', [
+                'report_id' => $report->id,
+                'file_path' => $filePath,
+                'file_size' => $fileSize
+            ]);
+
             return $filePath;
 
         } catch (Exception $e) {
             Log::error('Failed to generate report file', [
                 'report_id' => $report->id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ]);
             return null;
         }
@@ -222,6 +298,17 @@ class ReportEmailService
         }
         
         $reportType = $content['report_type'] ?? $report->type ?? 'general';
+        
+        // If we have a template, prioritize template mapping over stored report_type
+        if (isset($content['template'])) {
+            $mappedType = $this->mapTemplateToReportType($content['template']);
+            Log::info('EmailService: Template found - using template mapping', [
+                'template' => $content['template'],
+                'stored_report_type' => $reportType,
+                'mapped_type' => $mappedType
+            ]);
+            $reportType = $mappedType;
+        }
 
         // Generate actual data from database
         return [
@@ -273,6 +360,16 @@ class ReportEmailService
                 return $this->getSupplierInventory($fromDate, $toDate, $user);
             case 'supplier_orders':
                 return $this->getSupplierOrders($fromDate, $toDate, $user);
+            case 'vendor_purchases':
+                return $this->getVendorPurchases($fromDate, $toDate, $user);
+            case 'vendor_orders':
+                return $this->getVendorOrders($fromDate, $toDate, $user);
+            case 'vendor_deliveries':
+                return $this->getVendorDeliveries($fromDate, $toDate, $user);
+            case 'vendor_payments':
+                return $this->getVendorPayments($fromDate, $toDate, $user);
+            case 'vendor_inventory':
+                return $this->getVendorInventory($fromDate, $toDate, $user);
             default:
                 return $this->getGenericData($fromDate, $toDate, $user);
         }
@@ -285,16 +382,20 @@ class ReportEmailService
     {
         $query = Order::with(['supplier', 'wholesaler', 'coffeeProduct', 'rawCoffee'])
             ->whereBetween('order_date', [$fromDate, $toDate])
-            ->where('status', 'completed');
+            ->whereIn('status', ['completed', 'delivered']);
 
-        // Filter by user permissions
+        // Filter by user permissions - use authenticated user if no user provided
+        if (!$user && Auth::check()) {
+            $user = Auth::user();
+        }
+        
         if ($user) {
             if ($user->role === 'supplier') {
                 // Suppliers can only see orders where they are the supplier
                 $query->where('supplier_id', $user->id);
-            } elseif ($user->role === 'wholesaler') {
-                // Wholesalers can only see their own orders
-                $query->where('wholesaler_id', $user->id);
+            } elseif ($user->role === 'vendor') {
+                // Vendors can only see their own orders through wholesaler relationship
+                $query->where('wholesaler_id', $user->wholesaler->id ?? null);
             }
             // Admins can see all orders (no additional filter)
         }
@@ -325,7 +426,7 @@ class ReportEmailService
     private function getInventoryMovements(string $fromDate, string $toDate, ?User $user = null): array
     {
         $query = InventoryUpdate::with(['inventory.coffeeProduct', 'inventory.rawCoffee', 'inventory.supplyCenter'])
-            ->whereBetween('updated_at', [$fromDate, $toDate]);
+            ->whereBetween('created_at', [$fromDate, $toDate]);
 
         // Filter by user permissions
         if ($user) {
@@ -338,7 +439,7 @@ class ReportEmailService
             // Admins and wholesalers can see all movements (no additional filter for now)
         }
 
-        $movements = $query->orderBy('updated_at', 'desc')->get();
+        $movements = $query->orderBy('created_at', 'desc')->get();
 
         $data = [];
         foreach ($movements as $movement) {
@@ -346,7 +447,7 @@ class ReportEmailService
                           ($movement->inventory->rawCoffee ? $movement->inventory->rawCoffee->type : 'Unknown Product');
             
             $data[] = [
-                'Date' => $movement->updated_at->format('Y-m-d'),
+                'Date' => $movement->created_at->format('Y-m-d'),
                 'Product' => $productName,
                 'Movement Type' => $movement->update_type ?? 'Update',
                 'Quantity Change' => $movement->quantity_change ?? 0,
@@ -366,14 +467,18 @@ class ReportEmailService
         $query = Order::with(['supplier', 'wholesaler', 'coffeeProduct', 'rawCoffee'])
             ->whereBetween('order_date', [$fromDate, $toDate]);
 
-        // Filter by user permissions
+        // Filter by user permissions - use authenticated user if no user provided
+        if (!$user && Auth::check()) {
+            $user = Auth::user();
+        }
+        
         if ($user) {
             if ($user->role === 'supplier') {
                 // Suppliers can only see orders where they are the supplier
                 $query->where('supplier_id', $user->id);
-            } elseif ($user->role === 'wholesaler') {
-                // Wholesalers can only see their own orders
-                $query->where('wholesaler_id', $user->id);
+            } elseif ($user->role === 'vendor') {
+                // Vendors can only see their own orders through wholesaler relationship
+                $query->where('wholesaler_id', $user->wholesaler->id ?? null);
             }
             // Admins can see all orders (no additional filter)
         }
@@ -513,12 +618,232 @@ class ReportEmailService
     }
 
     /**
-     * Get generic data from database
+     * Get vendor purchases data
      */
-    private function getGenericData(string $fromDate, string $toDate, ?User $user = null): array
+    private function getVendorPurchases($fromDate, $toDate, $user)
     {
-        // Default to showing recent orders with user filtering
-        return $this->getOrderHistory($fromDate, $toDate, $user);
+        $query = Order::with(['supplier', 'wholesaler', 'coffeeProduct', 'rawCoffee'])
+                     ->whereBetween('created_at', [$fromDate, $toDate]);
+        
+        if ($user->role === 'vendor') {
+            // Vendors can only see orders where they are the purchaser/vendor
+            $query->where('wholesaler_id', $user->wholesaler->id ?? null);
+        }
+        
+        $orders = $query->get();
+        
+        $totalPurchases = $orders->count();
+        $totalAmount = $orders->sum('total_price');
+        $avgPurchase = $totalPurchases > 0 ? $totalAmount / $totalPurchases : 0;
+        
+        $data = [['Order ID', 'Product', 'Raw Coffee', 'Supplier', 'Quantity', 'Total Price', 'Status', 'Order Date']];
+        foreach ($orders as $order) {
+            $data[] = [
+                $order->id,
+                $order->coffeeProduct->name ?? 'N/A',
+                $order->rawCoffee->name ?? 'N/A',
+                $order->supplier->company_name ?? 'N/A',
+                $order->quantity ?? 0,
+                '$' . number_format($order->total_price ?? 0, 2),
+                ucfirst($order->status),
+                $order->created_at->format('Y-m-d')
+            ];
+        }
+        
+        return [
+            'title' => 'Vendor Purchases Report',
+            'period' => $fromDate . ' to ' . $toDate,
+            'summary' => [
+                'total_purchases' => $totalPurchases,
+                'total_amount' => '$' . number_format($totalAmount, 2),
+                'average_purchase' => '$' . number_format($avgPurchase, 2),
+                'vendor_name' => $user ? $user->name : 'N/A'
+            ],
+            'data' => $data
+        ];
+    }
+
+    /**
+     * Get vendor orders data
+     */
+    private function getVendorOrders($fromDate, $toDate, $user)
+    {
+        $query = Order::with(['supplier', 'wholesaler', 'coffeeProduct', 'rawCoffee'])
+                     ->whereBetween('created_at', [$fromDate, $toDate]);
+        
+        if ($user->role === 'vendor') {
+            // Vendors can only see orders where they are the purchaser/vendor
+            $query->where('wholesaler_id', $user->wholesaler->id ?? null);
+        }
+        
+        $orders = $query->get();
+        
+        $totalOrders = $orders->count();
+        $totalAmount = $orders->sum('total_price');
+        $pendingOrders = $orders->where('status', 'pending')->count();
+        $completedOrders = $orders->where('status', 'completed')->count();
+        
+        $data = [['Order ID', 'Product', 'Raw Coffee', 'Supplier', 'Quantity', 'Status', 'Order Date', 'Total Price']];
+        foreach ($orders as $order) {
+            $data[] = [
+                $order->id,
+                $order->coffeeProduct->name ?? 'N/A',
+                $order->rawCoffee->name ?? 'N/A',
+                $order->supplier->company_name ?? 'N/A',
+                $order->quantity ?? 0,
+                ucfirst($order->status),
+                $order->created_at->format('Y-m-d'),
+                '$' . number_format($order->total_price ?? 0, 2)
+            ];
+        }
+        
+        return [
+            'title' => 'Vendor Orders Report',
+            'period' => $fromDate . ' to ' . $toDate,
+            'summary' => [
+                'total_orders' => $totalOrders,
+                'total_amount' => '$' . number_format($totalAmount, 2),
+                'pending_orders' => $pendingOrders,
+                'completed_orders' => $completedOrders,
+                'vendor_name' => $user ? $user->name : 'N/A'
+            ],
+            'data' => $data
+        ];
+    }
+
+    /**
+     * Get vendor deliveries data
+     */
+    private function getVendorDeliveries($fromDate, $toDate, $user)
+    {
+        $query = Order::with(['supplier', 'wholesaler', 'coffeeProduct', 'rawCoffee'])
+                     ->whereBetween('created_at', [$fromDate, $toDate])
+                     ->where('status', 'delivered'); // Filter by delivered status instead
+        
+        if ($user->role === 'vendor') {
+            // Vendors can only see orders where they are the purchaser/vendor
+            $query->where('wholesaler_id', $user->wholesaler->id ?? null);
+        }
+        
+        $orders = $query->get();
+        
+        $totalDeliveries = $orders->count();
+        $totalAmount = $orders->sum('total_price');
+        
+        $data = [['Order ID', 'Product', 'Raw Coffee', 'Supplier', 'Quantity', 'Order Date', 'Status', 'Total Price']];
+        foreach ($orders as $order) {
+            $data[] = [
+                $order->id,
+                $order->coffeeProduct->name ?? 'N/A',
+                $order->rawCoffee->name ?? 'N/A',
+                $order->supplier->company_name ?? 'N/A',
+                $order->quantity ?? 0,
+                $order->created_at->format('Y-m-d'),
+                ucfirst($order->status),
+                '$' . number_format($order->total_price ?? 0, 2)
+            ];
+        }
+        
+        return [
+            'title' => 'Vendor Deliveries Report',
+            'period' => $fromDate . ' to ' . $toDate,
+            'summary' => [
+                'total_deliveries' => $totalDeliveries,
+                'total_amount' => '$' . number_format($totalAmount, 2),
+                'vendor_name' => $user ? $user->name : 'N/A'
+            ],
+            'data' => $data
+        ];
+    }
+
+    /**
+     * Get vendor payments data
+     */
+    private function getVendorPayments($fromDate, $toDate, $user)
+    {
+        $query = Order::with(['supplier', 'wholesaler', 'coffeeProduct', 'rawCoffee'])
+                     ->whereBetween('created_at', [$fromDate, $toDate]);
+        
+        if ($user->role === 'vendor') {
+            // Vendors can only see orders where they are the purchaser/vendor
+            $query->where('wholesaler_id', $user->wholesaler->id ?? null);
+        }
+        
+        $orders = $query->get();
+        
+        $totalPayments = $orders->count();
+        $totalAmount = $orders->sum('total_price');
+        $avgPayment = $totalPayments > 0 ? $totalAmount / $totalPayments : 0;
+        
+        $data = [['Order ID', 'Product', 'Raw Coffee', 'Supplier', 'Total Price', 'Quantity', 'Status', 'Order Date']];
+        foreach ($orders as $order) {
+            $data[] = [
+                $order->id,
+                $order->coffeeProduct->name ?? 'N/A',
+                $order->rawCoffee->name ?? 'N/A',
+                $order->supplier->company_name ?? 'N/A',
+                '$' . number_format($order->total_price ?? 0, 2),
+                $order->quantity ?? 0,
+                ucfirst($order->status),
+                $order->created_at->format('Y-m-d')
+            ];
+        }
+        
+        return [
+            'title' => 'Vendor Payments Report',
+            'period' => $fromDate . ' to ' . $toDate,
+            'summary' => [
+                'total_payments' => $totalPayments,
+                'total_amount' => '$' . number_format($totalAmount, 2),
+                'average_payment' => '$' . number_format($avgPayment, 2),
+                'vendor_name' => $user ? $user->name : 'N/A'
+            ],
+            'data' => $data
+        ];
+    }
+
+    /**
+     * Get vendor inventory data
+     */
+    private function getVendorInventory($fromDate, $toDate, $user)
+    {
+        $query = Inventory::with(['coffeeProduct', 'rawCoffee', 'supplyCenter'])
+                          ->whereBetween('created_at', [$fromDate, $toDate]);
+        
+        // Filter by user permissions - vendors can only see their own inventory
+        if ($user && $user->role === 'vendor') {
+            $query->where('wholesaler_id', $user->wholesaler->id ?? null);
+        }
+        
+        $inventory = $query->get();
+        
+        $totalItems = $inventory->count();
+        $lowStockItems = $inventory->filter(function($item) {
+            return $item->quantity_in_stock <= ($item->minimum_quantity ?? 0);
+        })->count();
+        
+        $data = [['Product', 'Raw Coffee', 'Quantity in Stock', 'Supply Center', 'Location', 'Last Updated']];
+        foreach ($inventory as $item) {
+            $data[] = [
+                $item->coffeeProduct->name ?? 'N/A',
+                $item->rawCoffee->name ?? 'N/A',
+                $item->quantity_in_stock ?? 0,
+                $item->supplyCenter->name ?? 'N/A',
+                $item->supplyCenter->location ?? 'N/A',
+                $item->created_at->format('Y-m-d H:i')
+            ];
+        }
+        
+        return [
+            'title' => 'Vendor Inventory Report',
+            'period' => $fromDate . ' to ' . $toDate,
+            'summary' => [
+                'total_items' => $totalItems,
+                'low_stock_items' => $lowStockItems,
+                'vendor_name' => $user ? $user->name : 'N/A'
+            ],
+            'data' => $data
+        ];
     }
 
     /**
@@ -526,9 +851,29 @@ class ReportEmailService
      */
     private function generatePdfReport(array $data, string $filePath, Report $report): void
     {
-        $html = view('reports.pdf-template', compact('data', 'report'))->render();
-        $pdf = Pdf::loadHTML($html);
-        $pdf->save($filePath);
+        try {
+            Log::info('Generating PDF report', [
+                'report_id' => $report->id,
+                'file_path' => $filePath
+            ]);
+
+            $html = view('reports.pdf-template', compact('data', 'report'))->render();
+            $pdf = Pdf::loadHTML($html);
+            $pdf->save($filePath);
+
+            Log::info('PDF report generated successfully', [
+                'report_id' => $report->id,
+                'file_path' => $filePath,
+                'file_exists' => file_exists($filePath)
+            ]);
+        } catch (Exception $e) {
+            Log::error('Failed to generate PDF report', [
+                'report_id' => $report->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            throw $e;
+        }
     }
 
     /**
@@ -536,39 +881,59 @@ class ReportEmailService
      */
     private function generateExcelReport(array $data, string $filePath, Report $report): void
     {
-        $spreadsheet = new Spreadsheet();
-        $sheet = $spreadsheet->getActiveSheet();
+        try {
+            Log::info('Generating Excel report', [
+                'report_id' => $report->id,
+                'file_path' => $filePath
+            ]);
 
-        // Set title
-        $sheet->setCellValue('A1', $data['title']);
-        $sheet->mergeCells('A1:D1');
-        $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(16);
+            $spreadsheet = new Spreadsheet();
+            $sheet = $spreadsheet->getActiveSheet();
 
-        // Set headers
-        $row = 3;
-        if (!empty($data['data'])) {
-            $headers = array_keys($data['data'][0]);
-            $col = 'A';
-            foreach ($headers as $header) {
-                $sheet->setCellValue($col . $row, $header);
-                $sheet->getStyle($col . $row)->getFont()->setBold(true);
-                $col++;
-            }
+            // Set title
+            $sheet->setCellValue('A1', $data['title']);
+            $sheet->mergeCells('A1:D1');
+            $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(16);
 
-            // Add data
-            $row++;
-            foreach ($data['data'] as $dataRow) {
+            // Set headers
+            $row = 3;
+            if (!empty($data['data'])) {
+                $headers = array_keys($data['data'][0]);
                 $col = 'A';
-                foreach ($dataRow as $value) {
-                    $sheet->setCellValue($col . $row, $value);
+                foreach ($headers as $header) {
+                    $sheet->setCellValue($col . $row, $header);
+                    $sheet->getStyle($col . $row)->getFont()->setBold(true);
                     $col++;
                 }
-                $row++;
-            }
-        }
 
-        $writer = new Xlsx($spreadsheet);
-        $writer->save($filePath);
+                // Add data
+                $row++;
+                foreach ($data['data'] as $dataRow) {
+                    $col = 'A';
+                    foreach ($dataRow as $value) {
+                        $sheet->setCellValue($col . $row, $value);
+                        $col++;
+                    }
+                    $row++;
+                }
+            }
+
+            $writer = new Xlsx($spreadsheet);
+            $writer->save($filePath);
+
+            Log::info('Excel report generated successfully', [
+                'report_id' => $report->id,
+                'file_path' => $filePath,
+                'file_exists' => file_exists($filePath)
+            ]);
+        } catch (Exception $e) {
+            Log::error('Failed to generate Excel report', [
+                'report_id' => $report->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            throw $e;
+        }
     }
 
     /**
@@ -576,24 +941,48 @@ class ReportEmailService
      */
     private function generateCsvReport(array $data, string $filePath, Report $report): void
     {
-        $file = fopen($filePath, 'w');
-        
-        // Write title
-        fputcsv($file, [$data['title']]);
-        fputcsv($file, []); // Empty row
-        
-        // Write data
-        if (!empty($data['data'])) {
-            // Write headers
-            fputcsv($file, array_keys($data['data'][0]));
+        try {
+            Log::info('Generating CSV report', [
+                'report_id' => $report->id,
+                'file_path' => $filePath
+            ]);
+
+            $file = fopen($filePath, 'w');
             
-            // Write data rows
-            foreach ($data['data'] as $row) {
-                fputcsv($file, $row);
+            if (!$file) {
+                throw new Exception('Could not open file for writing: ' . $filePath);
             }
+            
+            // Write title
+            fputcsv($file, [$data['title']]);
+            fputcsv($file, []); // Empty row
+            
+            // Write data
+            if (!empty($data['data'])) {
+                // Write headers
+                fputcsv($file, array_keys($data['data'][0]));
+                
+                // Write data rows
+                foreach ($data['data'] as $row) {
+                    fputcsv($file, $row);
+                }
+            }
+            
+            fclose($file);
+
+            Log::info('CSV report generated successfully', [
+                'report_id' => $report->id,
+                'file_path' => $filePath,
+                'file_exists' => file_exists($filePath)
+            ]);
+        } catch (Exception $e) {
+            Log::error('Failed to generate CSV report', [
+                'report_id' => $report->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            throw $e;
         }
-        
-        fclose($file);
     }
 
     /**
@@ -651,13 +1040,13 @@ class ReportEmailService
         switch ($type) {
             case 'sales_data':
                 $query = Order::whereBetween('order_date', [$fromDate, $toDate])
-                    ->where('status', 'completed');
+                    ->whereIn('status', ['completed', 'delivered']);
                     
                 // Apply user filtering for summary too
                 if ($user && $user->role === 'supplier') {
                     $query->where('supplier_id', $user->id);
-                } elseif ($user && $user->role === 'wholesaler') {
-                    $query->where('wholesaler_id', $user->id);
+                } elseif ($user && $user->role === 'vendor') {
+                    $query->where('wholesaler_id', $user->wholesaler->id ?? null);
                 }
                 
                 $totalOrders = $query->count();
@@ -665,7 +1054,7 @@ class ReportEmailService
                 return "Total completed orders: {$totalOrders}, Total revenue: $" . number_format($totalRevenue, 2);
                 
             case 'inventory_movements':
-                $query = InventoryUpdate::whereBetween('updated_at', [$fromDate, $toDate]);
+                $query = InventoryUpdate::whereBetween('created_at', [$fromDate, $toDate]);
                 
                 // Apply user filtering
                 if ($user && $user->role === 'supplier') {
@@ -708,8 +1097,8 @@ class ReportEmailService
                 // Apply user filtering
                 if ($user && $user->role === 'supplier') {
                     $query->where('supplier_id', $user->id);
-                } elseif ($user && $user->role === 'wholesaler') {
-                    $query->where('wholesaler_id', $user->id);
+                } elseif ($user && $user->role === 'vendor') {
+                    $query->where('wholesaler_id', $user->wholesaler->id ?? null);
                 }
                 
                 $allOrders = $query->count();
@@ -731,5 +1120,134 @@ class ReportEmailService
             default:
                 return "Report generated for the period {$fromDate} to {$toDate}";
         }
+    }
+
+    /**
+     * Get generic data for undefined report types
+     */
+    private function getGenericData($fromDate, $toDate, $user)
+    {
+        // Return basic order data as fallback
+        $query = Order::with(['supplier', 'wholesaler', 'coffeeProduct', 'rawCoffee'])
+                     ->whereBetween('created_at', [$fromDate, $toDate]);
+        
+        // Apply user-specific filtering
+        if ($user && $user->role === 'supplier') {
+            $query->where('supplier_id', $user->id);
+        } elseif ($user && $user->role === 'vendor') {
+            $query->where('wholesaler_id', $user->wholesaler->id ?? null);
+        }
+        
+        $orders = $query->get();
+        
+        $totalOrders = $orders->count();
+        $totalAmount = $orders->sum('total_price');
+        
+        $data = [['Order ID', 'Product', 'Raw Coffee', 'Supplier', 'Quantity', 'Status', 'Order Date']];
+        foreach ($orders as $order) {
+            $data[] = [
+                $order->id,
+                $order->coffeeProduct->name ?? 'N/A',
+                $order->rawCoffee->name ?? 'N/A',
+                $order->supplier->company_name ?? 'N/A',
+                $order->quantity ?? 0,
+                ucfirst($order->status),
+                $order->created_at->format('Y-m-d')
+            ];
+        }
+        
+        return [
+            'title' => 'Generic Report',
+            'period' => $fromDate . ' to ' . $toDate,
+            'summary' => [
+                'total_orders' => $totalOrders,
+                'total_amount' => '$' . number_format($totalAmount, 2),
+                'user_name' => $user ? $user->name : 'N/A'
+            ],
+            'data' => $data
+        ];
+    }
+
+    /**
+     * Debug method to check file system issues
+     */
+    public function debugFileSystem(Report $report): array
+    {
+        $debug = [];
+        
+        // Check storage path
+        $storagePath = storage_path('app/temp/reports');
+        $debug['storage_path'] = $storagePath;
+        $debug['storage_exists'] = is_dir($storagePath);
+        $debug['storage_writable'] = is_writable($storagePath);
+        
+        // Check if we can create the directory
+        if (!$debug['storage_exists']) {
+            $debug['mkdir_success'] = mkdir($storagePath, 0755, true);
+            $debug['storage_exists_after_mkdir'] = is_dir($storagePath);
+            $debug['storage_writable_after_mkdir'] = is_writable($storagePath);
+        }
+        
+        // Generate filename
+        $fileName = $this->generateFileName($report);
+        $filePath = $storagePath . '/' . $fileName;
+        $debug['file_name'] = $fileName;
+        $debug['file_path'] = $filePath;
+        
+        // Test file creation
+        $testContent = "Test content for debugging";
+        $debug['test_file_write'] = file_put_contents($filePath, $testContent) !== false;
+        $debug['test_file_exists'] = file_exists($filePath);
+        $debug['test_file_size'] = file_exists($filePath) ? filesize($filePath) : 0;
+        $debug['test_file_readable'] = is_readable($filePath);
+        
+        // Clean up test file
+        if (file_exists($filePath)) {
+            $debug['test_file_cleanup'] = unlink($filePath);
+        }
+        
+        // Check PDF template
+        $debug['pdf_template_exists'] = view()->exists('reports.pdf-template');
+        
+        // Check required classes
+        $debug['dompdf_available'] = class_exists('Barryvdh\DomPDF\Facade\Pdf');
+        $debug['spreadsheet_available'] = class_exists('PhpOffice\PhpSpreadsheet\Spreadsheet');
+        
+        return $debug;
+    }
+
+    /**
+     * Map template names to report types
+     */
+    private function mapTemplateToReportType($template)
+    {
+        $reportTypeMapping = [
+            // Admin/General templates
+            'Monthly Supplier Demand' => 'sales_data',
+            'Monthly Supplier Demand Forecast' => 'sales_data',
+            'Weekly Production Efficiency' => 'production_batches',
+            'Daily Retail Sales Summary' => 'sales_data',
+            'Daily Sales Summary' => 'sales_data',  // Fix for the current report
+            'Quarterly Quality Control Report' => 'quality_metrics',
+            'Quality Control Report' => 'quality_metrics',
+            'Quality Report' => 'quality_metrics',
+            'Quality Metrics Report' => 'quality_metrics',
+            'Quality Control Analysis' => 'quality_metrics',
+            'Inventory Movement Analysis' => 'inventory_movements',
+            // Vendor templates
+            'Vendor Purchases Report' => 'vendor_purchases',
+            'Vendor Orders Report' => 'vendor_orders',
+            'Vendor Deliveries Report' => 'vendor_deliveries',
+            'Vendor Payments Report' => 'vendor_payments',
+            'Vendor Inventory Report' => 'vendor_inventory',
+            // Supplier templates
+            'Supplier Inventory Report' => 'supplier_inventory',
+            'Supplier Orders Report' => 'supplier_orders',
+            'Supplier Quality Report' => 'quality_metrics',
+            'Supplier Delivery Report' => 'supplier_orders',
+            'Supplier Performance Report' => 'supplier_performance'
+        ];
+
+        return $reportTypeMapping[$template] ?? 'inventory_movements';
     }
 }

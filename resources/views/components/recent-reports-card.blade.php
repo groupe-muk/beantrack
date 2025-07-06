@@ -69,7 +69,18 @@
                 {{-- Action Button --}}
                 <div class="flex justify-end pt-2">
                     @if(isset($report['id']))
-                        <a href="{{ route('reports.view', $report['id']) }}" 
+                        @php
+                            $currentUser = Auth::user();
+                            $viewRoute = 'reports.view'; // Default for admin
+                            
+                            if ($currentUser->role === 'vendor') {
+                                $viewRoute = 'reports.vendor.view';
+                            } elseif ($currentUser->role === 'supplier') {
+                                $viewRoute = 'reports.supplier.view';
+                            }
+                        @endphp
+                        
+                        <a href="{{ route($viewRoute, $report['id']) }}" 
                            class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-white bg-light-brown hover:bg-brown rounded-md transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-light-brown"
                            target="_blank">
                             <i class="fas fa-eye mr-1"></i>
@@ -97,7 +108,18 @@
     {{-- Footer with link to full reports page --}}
     @if(count($reports) > 0)
         <div class="mt-6 pt-4 border-t border-gray-200">
-            <a href="{{ route('reports.index') }}" 
+            @php
+                $currentUser = Auth::user();
+                $reportsRoute = 'reports.index'; // Default for admin
+                
+                if ($currentUser->role === 'vendor') {
+                    $reportsRoute = 'reports.vendor';
+                } elseif ($currentUser->role === 'supplier') {
+                    $reportsRoute = 'reports.supplier';
+                }
+            @endphp
+            
+            <a href="{{ route($reportsRoute) }}" 
                class="text-xs text-light-brown hover:text-brown font-medium flex items-center justify-center transition-colors duration-200">
                 View All Reports
                 <i class="fas fa-arrow-right ml-1"></i>

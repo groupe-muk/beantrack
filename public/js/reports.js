@@ -980,6 +980,8 @@ function setupActionButtonHandlers() {
         const reportId = button.dataset.reportId;
         const reportName = button.dataset.reportName;
 
+        console.log('Admin action button clicked:', action, 'for report:', reportId);
+
         switch (action) {
             case 'edit':
                 handleEditReport(reportId);
@@ -994,6 +996,7 @@ function setupActionButtonHandlers() {
                 handleDownloadReport(reportId, reportName);
                 break;
             case 'view':
+                console.log('View button clicked for report:', reportId);
                 handleViewReport(reportId, reportName);
                 break;
             case 'pause':
@@ -1002,6 +1005,8 @@ function setupActionButtonHandlers() {
             case 'resume':
                 handleResumeReport(reportId, reportName);
                 break;
+            default:
+                console.warn('Unknown action:', action);
         }
     });
 }
@@ -1024,10 +1029,14 @@ async function handleEditReport(reportId) {
 
             const result = await response.json();
             
+            console.log('Backend response:', result);
+            
             if (result.success) {
+                console.log('Opening edit modal with data:', result.data);
                 // Open edit modal with backend data
                 openEditModal(result.data.report, result.data.templates, result.data.recipients);
             } else {
+                console.error('Backend returned error:', result.message);
                 throw new Error(result.message || 'Backend request failed');
             }
         } catch (backendError) {
@@ -1153,11 +1162,23 @@ async function handleDownloadReport(reportId, reportName) {
 
 async function handleViewReport(reportId, reportName) {
     try {
+        console.log('Admin handleViewReport called with reportId:', reportId, 'reportName:', reportName);
         showNotification('Opening report...', 'info');
         
         // Open report in new tab
         const viewUrl = `/reports/${reportId}/view`;
-        window.open(viewUrl, '_blank');
+        console.log('Opening URL:', viewUrl);
+        
+        const newWindow = window.open(viewUrl, '_blank');
+        
+        // Check if popup was blocked
+        if (!newWindow || newWindow.closed || typeof newWindow.closed == 'undefined') {
+            console.warn('Popup was blocked, redirecting in current tab');
+            showNotification('Popup blocked. Opening report in current tab...', 'warning');
+            window.location.href = viewUrl;
+        } else {
+            console.log('Report opened in new tab successfully');
+        }
         
     } catch (error) {
         console.error('View report error:', error);
@@ -1346,9 +1367,12 @@ function updateReportRowStatus(reportId, newStatus) {
 
 // Edit Modal Functions
 function openEditModal(report, templates, recipients) {
+    console.log('openEditModal called with:', { report, templates, recipients });
+    
     // Create edit modal if it doesn't exist
     let editModal = document.getElementById('edit-report-modal');
     if (!editModal) {
+        console.log('Creating edit modal');
         createEditModal();
         editModal = document.getElementById('edit-report-modal');
     }
@@ -1357,6 +1381,7 @@ function openEditModal(report, templates, recipients) {
     populateEditForm(report, templates, recipients);
     
     // Show modal
+    console.log('Showing modal');
     editModal.classList.remove('hidden');
 }
 
@@ -1450,6 +1475,8 @@ function createEditModal() {
 }
 
 function populateEditForm(report, templates, recipients) {
+    console.log('populateEditForm called with:', { report, templates, recipients });
+    
     document.getElementById('edit-report-id').value = report.id;
     document.getElementById('edit-report-name').value = report.name || '';
     document.getElementById('edit-report-description').value = report.description || '';
@@ -1470,7 +1497,36 @@ function populateEditForm(report, templates, recipients) {
     // Populate recipients
     const recipientsSelect = document.getElementById('edit-report-recipients');
     recipientsSelect.innerHTML = '';
-    const reportRecipients = typeof report.recipients === 'string' ? JSON.parse(report.recipients) : (report.recipients || []);
+    
+    // Handle recipients parsing more carefully
+    let reportRecipients = [];
+    if (report.recipients) {
+        try {
+            if (typeof report.recipients === 'string') {
+                // Try to parse as JSON first
+                reportRecipients = JSON.parse(report.recipients);
+            } else if (Array.isArray(report.recipients)) {
+                reportRecipients = report.recipients;
+            } else {
+                // If it's neither string nor array, treat as single value
+                reportRecipients = [report.recipients];
+            }
+        } catch (e) {
+            console.log('Recipients parsing error:', e.message);
+            // If JSON parsing fails, treat as comma-separated string or single value
+            if (typeof report.recipients === 'string') {
+                if (report.recipients.includes(',')) {
+                    reportRecipients = report.recipients.split(',').map(r => r.trim());
+                } else {
+                    reportRecipients = [report.recipients.trim()];
+                }
+            } else {
+                reportRecipients = [report.recipients];
+            }
+        }
+    }
+    
+    console.log('Processed recipients:', reportRecipients);
     
     recipients.forEach(recipient => {
         const option = document.createElement('option');
@@ -1479,6 +1535,8 @@ function populateEditForm(report, templates, recipients) {
         option.selected = reportRecipients.includes(recipient.id.toString()) || reportRecipients.includes(recipient.id);
         recipientsSelect.appendChild(option);
     });
+    
+    console.log('Form populated successfully');
 }
 
 async function handleEditFormSubmit(e) {

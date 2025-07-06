@@ -166,21 +166,39 @@
     <div class="data-section">
         <h3> Report Data</h3>
         
-        @if(isset($data['data']) && !empty($data['data']))
+        @php
+            // Handle different data formats
+            $reportData = $data['data'] ?? [];
+            
+            // If the data is structured (has metadata), extract the actual data
+            if (isset($reportData['data'])) {
+                $actualData = $reportData['data'];
+            } else {
+                $actualData = $reportData;
+            }
+        @endphp
+        
+        @if(!empty($actualData))
             <table>
                 <thead>
                     <tr>
-                        @foreach(array_keys($data['data'][0]) as $header)
-                            <th>{{ $header }}</th>
-                        @endforeach
+                        @if(is_array($actualData) && count($actualData) > 0 && is_array($actualData[0]))
+                            @foreach(array_keys($actualData[0]) as $header)
+                                <th>{{ $header }}</th>
+                            @endforeach
+                        @endif
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach($data['data'] as $row)
+                    @foreach($actualData as $row)
                         <tr>
-                            @foreach($row as $value)
-                                <td>{{ $value }}</td>
-                            @endforeach
+                            @if(is_array($row))
+                                @foreach($row as $value)
+                                    <td>{{ $value }}</td>
+                                @endforeach
+                            @else
+                                <td colspan="100%">{{ $row }}</td>
+                            @endif
                         </tr>
                     @endforeach
                 </tbody>

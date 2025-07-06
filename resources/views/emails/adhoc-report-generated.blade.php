@@ -239,7 +239,7 @@
             <div class="download-section">
                 <h3>📥 Access Your Report</h3>
                 <p>Your report is attached to this email. You can also access it through your BeanTrack dashboard.</p>
-                <a href="{{ url('/reports') }}" class="download-button">View in Dashboard</a>
+                <a href="{{ config('app.url') }}/reports" class="download-button">View in Dashboard</a>
             </div>
 
             <p>This ad-hoc report was generated based on your specific request. The data reflects the most current information available in our system as of the generation time.</p>
@@ -253,9 +253,9 @@
         <div class="footer">
             <p>This is an automated message from BeanTrack. Please do not reply to this email.</p>
             <p>
-                <a href="{{ url('/') }}">Visit BeanTrack</a> | 
-                <a href="{{ url('/reports') }}">Manage Reports</a> | 
-                <a href="{{ url('/support') }}">Support</a>
+                <a href="{{ config('app.url') }}">Visit BeanTrack</a> | 
+                <a href="{{ config('app.url') }}/reports">Manage Reports</a> | 
+                <a href="{{ config('app.url') }}/support">Support</a>
             </p>
         </div>
     </div>
