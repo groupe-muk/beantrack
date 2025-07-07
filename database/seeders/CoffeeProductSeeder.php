@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\SupplyCenter;
 use App\Models\CoffeeProduct;
+use App\Models\RawCoffee;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Log;
 
@@ -14,6 +15,18 @@ class CoffeeProductSeeder extends Seeder
      */
     public function run(): void
     {
+        // Ensure every RawCoffee row owns at least one product
+        foreach (RawCoffee::all() as $raw) {
+            CoffeeProduct::firstOrCreate(
+                ['raw_coffee_id' => $raw->id],
+                [
+                    'category'      => $raw->coffee_type,
+                    'name'          => $raw->coffee_type.' Beans',
+                    'product_form'  => 'beans',
+                ]
+            );
+        }
+
         $supplyCenters = SupplyCenter::all();
         
         // Check if we have supply centers available
@@ -21,8 +34,8 @@ class CoffeeProductSeeder extends Seeder
             Log::warning('Cannot create coffee products: No supply centers available');
             return;
         }
-          // Create coffee products using existing supply center IDs
-        foreach (range(1, 10) as $i) {
+          // Create additional coffee products using existing supply center IDs
+        foreach (range(1, 7) as $i) {
             $supplyCenter = $supplyCenters->random();
             
             if ($supplyCenter) {

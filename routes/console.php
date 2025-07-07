@@ -2,6 +2,7 @@
 
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Schedule;
 use App\Http\Controllers\ChatController;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
@@ -9,6 +10,9 @@ use Illuminate\Support\Facades\Auth;
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
+
+// Schedule daily forecasts generation
+Schedule::command('generate:daily-forecasts')->dailyAt('02:00');
 
 // Create a test endpoint to check the Chat Controller
 Artisan::command('test:chat-controller', function () {

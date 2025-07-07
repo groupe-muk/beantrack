@@ -89,7 +89,7 @@ class columnChartController extends Controller
         ];
 
         $mlPredictionCategories = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-        $mlPredictionDescription = 'Weight: ML predictions in 000 tonnes to assist optimal resource allocation. Forecasts generated using historical data and market indicators.';
+        $mlPredictionDescription = '';
 
         $lineChartData = [
         [

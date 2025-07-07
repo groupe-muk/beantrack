@@ -12,12 +12,14 @@ use App\Models\RawCoffee;
 use App\Models\CoffeeProduct;
 use App\Models\Supplier;
 use Laravel\Sanctum\HasApiTokens;
+use App\Services\PricePredictionService;
+use Carbon\Carbon;
 
 
 class dashboardController extends Controller
 {
     
-    public function index()
+    public function index(Request $request)
     {
         if (!Auth::check()) {
             return redirect()->route('onboarding'); // Ensure user is authenticated
@@ -26,10 +28,20 @@ class dashboardController extends Controller
         $data = []; // Initialize an empty array to hold all data for the view
         $user = Auth::user();
 
+        // Get selected product for ML predictions (Admin only)
+        $selectedProduct = null;
+        $allProducts = collect();
+        if ($user->isAdmin()) {
+            $selectedProduct = CoffeeProduct::find($request->input('product_id'))
+                             ?? CoffeeProduct::first();
+            $allProducts = CoffeeProduct::with('rawCoffee')->get();
+        }
 
         if ($user->isAdmin()) {
             // Fetch data specifically for the Admin dashboard
-            $data = array_merge($data, $this->getAdminDashboardData());
+            $data = array_merge($data, $this->getAdminDashboardData($selectedProduct));
+            $data['products'] = $allProducts;
+            $data['currentProductId'] = $selectedProduct ? $selectedProduct->id : null;
         } elseif ($user->isSupplier()) {
             // Fetch data specifically for the Supplier dashboard
             $data = array_merge($data, $this->getSupplierDashboardData());
@@ -44,26 +56,41 @@ class dashboardController extends Controller
         return view('dashboard', $data); // Pass all collected data to the main dashboard view
     }
 
-    
-    private function getAdminDashboardData(): array
+    /**
+     * Get ML prediction chart data via AJAX
+     */
+    public function getChartData(Request $request)
     {
+        if (!Auth::check() || !Auth::user()->isAdmin()) {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+
+        $productId = $request->input('product_id');
+        $product = CoffeeProduct::find($productId);
+        
+        if (!$product) {
+            return response()->json(['error' => 'Product not found'], 404);
+        }
+
+        $forecastData = $this->getPriceForecastChartData($product);
+        
+        return response()->json([
+            'series' => $forecastData['series'],
+            'categories' => $forecastData['categories'],
+            'productName' => $product->rawCoffee->coffee_type ?? $product->name
+        ]);
+    }
+
+    
+    private function getAdminDashboardData(?CoffeeProduct $selectedProduct = null): array
+    {
+        // Build chart for the selected product
+        $forecastData = $selectedProduct ? $this->getPriceForecastChartData($selectedProduct) : ['series' => [], 'categories' => []];
+
         return [
-            'mlPredictionData' => [
-                [
-                    'name' => 'Actual',
-                    'data' => [50, 55, 60, 58, 65, 70, 68, 75, 80, 82, 85, 90]
-                ],
-                [
-                    'name' => 'Predicted',
-                    'data' => [20, 25, 28, 35, 30, 45, 50, 60, 70, 65, 75, 80]
-                ],
-                [
-                    'name' => 'Optimisstic',
-                    'data' => [30, 40, 35, 50, 49, 60, 70, 91, 125, 100, 110, 130]
-                ]
-            ],
-            'mlPredictionCategories' => ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
-            'mlPredictionDescription' => 'Weight: ML predictions in 000 tonnes to assist optimal resource allocation. Forecasts generated using historical data and market indicators.',
+            'mlPredictionData' => $forecastData['series'],
+            'mlPredictionCategories' => $forecastData['categories'],
+            'mlPredictionDescription' => '',
 
             'productsTableHeaders' => ['Order ID', 'Customer', 'Product', 'Quantity (kg)', 'Status', 'Date'],
             'productsTableData' => $this->getRecentOrdersForTable(4),
@@ -684,5 +711,62 @@ class dashboardController extends Controller
             // If anything goes wrong, return the original value
             return is_string($recipients) ? $recipients : 'Not specified';
         }
+    }
+
+    private function getPriceForecastChartData(CoffeeProduct $product, int $historyDays = 14): array
+    {
+        if (!$product) {
+            return ['series' => [], 'categories' => []];
+        }
+
+        /** @var PricePredictionService $service */
+        $service = app(PricePredictionService::class);
+
+        // 1. Last 14 days (2 weeks) of actual prices
+        $history = \App\Models\PriceHistory::where('coffee_product_id', $product->id)
+            ->where('market_date', '>=', now()->subDays($historyDays)->toDateString())
+            ->orderBy('market_date')
+            ->get(['market_date', 'price_per_lb']);
+
+        if ($history->isEmpty()) {
+            return ['series' => [], 'categories' => []];
+        }
+
+        // 2. Fetch or generate 7-day forecast starting tomorrow
+        $forecast = $service->getLatestForecast($product);
+        if ($forecast->isEmpty()) {
+            try {
+                $forecast = $service->generateAndStoreForecast($product);
+            } catch (\Throwable $e) {
+                \Log::warning('Unable to fetch/generate price forecast', [
+                    'product_id' => $product->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        // 3. Combine into unified axis
+        $categories = [];
+        $actualData = [];
+        $predictedData = [];
+
+        foreach ($history as $row) {
+            $categories[]   = Carbon::parse($row->market_date)->format('M d');
+            $actualData[]   = (float) $row->price_per_lb;
+            $predictedData[] = null; // no prediction for past dates
+        }
+
+        foreach ($forecast as $row) {
+            $categories[]   = Carbon::parse($row->predicted_date)->format('M d');
+            $actualData[]   = null; // no actual future data
+            $predictedData[] = (float) $row->predicted_price;
+        }
+
+        $series = [
+            ['name' => 'Actual',    'data' => $actualData],
+            ['name' => 'Predicted', 'data' => $predictedData],
+        ];
+
+        return ['series' => $series, 'categories' => $categories];
     }
 }
