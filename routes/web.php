@@ -53,6 +53,7 @@ Route::middleware(['guest'])->controller(AuthController::class)->group(function 
 Route::middleware(['auth'])->group(function () {
     Route::post('/logout',[AuthController::class, 'logout'])->name('logout');
     Route::get('/dashboard', [dashboardController::class, 'index'])->name('dashboard');
+    Route::get('/dashboard/chart-data', [dashboardController::class, 'getChartData'])->name('dashboard.chart-data');
     // Chat Routes
     Route::get('/chat', [ChatController::class, 'index'])->name('chat.index');
     Route::get('/chat/unread', [ChatController::class, 'getUnreadCount'])->name('chat.unread');
