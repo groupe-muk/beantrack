@@ -19,9 +19,9 @@ return new class extends Migration
             $table->string('manager_name', 255)->nullable();
             $table->timestamps();
             
-            // Foreign key constraints - supplier_id will be added later to avoid circular dependency
-            // $table->foreign('supplier_id')->references('id')->on('suppliers')->onDelete('cascade');
-            $table->foreign('wholesaler_id')->references('id')->on('wholesalers')->onDelete('cascade');
+            // Foreign key constraints
+            $table->foreign('supplier_id')->references('id')->on('supplier')->onDelete('cascade');
+            $table->foreign('wholesaler_id')->references('id')->on('wholesaler')->onDelete('cascade');
             
             // Check constraint to ensure either supplier_id or wholesaler_id is set, but not both
             $table->index(['supplier_id', 'wholesaler_id']);
