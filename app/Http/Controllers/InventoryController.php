@@ -134,4 +134,17 @@ class InventoryController extends Controller
         $product = CoffeeProduct::findOrFail($coffeeProduct);
         return view('Inventory.edit', compact('product'));
     }
+    public function stats()
+{
+    // Example: Replace with your actual queries
+    $outOfStock = Inventory::where('quantity_in_stock', 0)->count();
+    $lowStock = Inventory::where('quantity_in_stock', '<', 10)->count();
+    $totalValue = Inventory::sum('value'); // Adjust as needed
+
+    return response()->json([
+        'outOfStock' => $outOfStock,
+        'lowStock' => $lowStock,
+        'totalValue' => $totalValue,
+    ]);
+}
 }

@@ -39,11 +39,21 @@
 
     {{-- Middle Row: Value and Unit --}}
     <div class="flex mb-4 flex-wrap">
-        <p class="text-4xl font-bold text-coffee-brown leading-tight" data-value="{{ $value }}">{{ $value }}</p>
+    <p class="text-4xl font-bold text-coffee-brown leading-tight" data-value="{{ $value }}">
+        <span
+            @if($title === 'Out Of Stock')
+                id="out-of-stock-value"
+            @elseif($title === 'Low Stock Alerts')
+                id="low-stock-value"
+            @elseif($title === 'Total Value')
+                id="total-value"
+            @endif
+        >{{ $value }}</span>
         @if ($unit)      
-            <p class="text-3xl font-bold text-coffee-brown mt-1 ml-2">{{ $unit }}</p>
+            <span class="text-lg font-normal text-gray-500 ml-1">{{ $unit }}</span>
         @endif
-    </div>
+    </p>
+</div>
 
     {{-- Bottom Row: Change Text --}}
     <div class="flex">
