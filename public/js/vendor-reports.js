@@ -10,7 +10,7 @@ let currentHistoricalData = [];
 // Initialize page
 document.addEventListener('DOMContentLoaded', function() {
     try {
-        console.log('Supplier reports JS loaded');
+        console.log('Vendor reports JS loaded');
         
         // Add wizard styles to head
         if (!document.querySelector('#wizard-styles')) {
@@ -62,7 +62,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // Make functions globally accessible for onclick handlers
-window.saveSupplierReportSchedule = saveSupplierReportSchedule;
+window.saveVendorReportSchedule = saveVendorReportSchedule;
 window.closeCreateScheduleModal = closeCreateScheduleModal;
 window.nextStep = nextStep;
 window.previousStep = previousStep;
@@ -206,11 +206,11 @@ function refreshCurrentTab() {
     }
 }
 
-// Report Library Functions - Only show reports for this supplier
+// Report Library Functions - Only show reports for this vendor
 function loadReportLibrary() {
-    console.log('Loading report library data for supplier...');
-    // Load real data from backend filtered for supplier
-    fetch('/supplier-reports/library?supplier_only=true', {
+    console.log('Loading report library data for vendor...');
+    // Load real data from backend filtered for vendor
+    fetch('/vendor-reports/library?vendor_only=true', {
         method: 'GET',
         headers: {
             'Accept': 'application/json',
@@ -241,8 +241,8 @@ function loadReportLibrary() {
     })
     .catch(error => {
         console.error('Error loading reports:', error);
-        // Show fallback data for suppliers
-        const fallbackData = getMockSupplierReports();
+        // Show fallback data for vendors
+        const fallbackData = getMockVendorReports();
         currentLibraryData = fallbackData;
         updateLibraryTable(fallbackData);
     });
@@ -271,8 +271,8 @@ function updateLibraryTable(reports) {
         const row = document.createElement('tr');
         row.className = 'hover:bg-gray-50';
         
-        // Generate action buttons for suppliers (limited actions)
-        const actionButtons = generateSupplierActionButtons(report);
+        // Generate action buttons for vendors (limited actions)
+        const actionButtons = generateVendorActionButtons(report);
         
         row.innerHTML = `
             <td class="px-4 py-4">
@@ -304,11 +304,11 @@ function updateLibraryTable(reports) {
     });
 }
 
-// Generate action buttons specific for suppliers (view and download only)
-function generateSupplierActionButtons(report) {
+// Generate action buttons specific for vendors (view and download only)
+function generateVendorActionButtons(report) {
     let buttons = [];
     
-    // Edit button - suppliers can edit their own reports (always visible)
+    // Edit button - vendors can edit their own reports (always visible)
     buttons.push(`
         <button class="text-blue-600 hover:text-blue-900 text-sm" data-action="edit" data-report-id="${report.id}" data-report-name="${report.name}" title="Edit Schedule">
             <i class="fas fa-edit"></i>
@@ -344,7 +344,7 @@ function generateSupplierActionButtons(report) {
         `);
     }
     
-    // Delete button - suppliers can delete their own report schedules (always visible)
+    // Delete button - vendors can delete their own report schedules (always visible)
     buttons.push(`
         <button class="text-red-600 hover:text-red-900 text-sm" data-action="delete" data-report-id="${report.id}" data-report-name="${report.name}" title="Delete Schedule">
             <i class="fas fa-trash"></i>
@@ -360,10 +360,10 @@ function generateSupplierActionButtons(report) {
     return buttons.join(' ');
 }
 
-// Historical Reports Functions - Only show reports for this supplier
+// Historical Reports Functions - Only show reports for this vendor
 function loadHistoricalReports() {
-    // Load real data from backend filtered for supplier
-    fetch('/supplier-reports/historical?supplier_only=true', {
+    // Load real data from backend filtered for vendor
+    fetch('/vendor-reports/historical?vendor_only=true', {
         method: 'GET',
         headers: {
             'Accept': 'application/json',
@@ -391,8 +391,8 @@ function loadHistoricalReports() {
     })
     .catch(error => {
         console.error('Error loading historical reports:', error);
-        // Show fallback data for suppliers
-        const fallbackData = getMockSupplierHistoricalReports();
+        // Show fallback data for vendors
+        const fallbackData = getMockVendorHistoricalReports();
         currentHistoricalData = fallbackData;
         updateHistoricalTable(fallbackData);
     });
@@ -456,7 +456,7 @@ function updateHistoricalTable(reports) {
     });
 }
 
-// Ad-hoc Report Functions for Suppliers
+// Ad-hoc Report Functions for Vendors
 function setupAdhocForm() {
     const reportTypeSelect = document.getElementById('report-type');
     
@@ -487,9 +487,9 @@ function setupAdhocForm() {
     setupAdhocModalHandlers();
 }
 
-// Toggle email recipients section (simplified for suppliers - they can only send to themselves)
+// Toggle email recipients section (simplified for vendors - they can only send to themselves)
 function toggleEmailRecipientsSection() {
-    // For suppliers, no additional recipients section needed since they can only send to themselves
+    // For vendors, no additional recipients section needed since they can only send to themselves
     // This function exists to prevent errors but doesn't need to do anything
 }
 
@@ -499,26 +499,30 @@ function updateDynamicFilters(reportType) {
     
     filtersContainer.innerHTML = '';
 
-    const supplierFilterConfigs = {
-        'supplier_inventory': [
-            { label: 'Product Category', type: 'select', options: ['All', 'Raw Coffee'] }, // Suppliers only see raw coffee
-            { label: 'Location', type: 'select', options: ['All', 'Main Warehouse', 'Secondary Storage'] }
+    const vendorFilterConfigs = {
+        'vendor_purchases': [
+            { label: 'Product Category', type: 'select', options: ['All', 'Coffee Beans', 'Equipment', 'Supplies'] },
+            { label: 'Supplier', type: 'select', options: ['All', 'Primary Suppliers', 'Secondary Suppliers'] }
         ],
-        'supplier_orders': [
+        'vendor_orders': [
             { label: 'Order Status', type: 'select', options: ['All', 'Pending', 'Confirmed', 'Shipped', 'Delivered'] },
-            { label: 'Customer Type', type: 'select', options: ['All', 'Wholesale', 'Retail'] }
+            { label: 'Priority', type: 'select', options: ['All', 'High', 'Medium', 'Low'] }
         ],
-        'supplier_quality': [
-            { label: 'Quality Grade', type: 'select', options: ['All', 'Grade A', 'Grade B', 'Grade C'] },
-            { label: 'Coffee Type', type: 'select', options: ['All', 'Arabica', 'Robusta'] }
-        ],
-        'supplier_deliveries': [
+        'vendor_deliveries': [
             { label: 'Delivery Status', type: 'select', options: ['All', 'Scheduled', 'In Transit', 'Delivered'] },
-            { label: 'Destination', type: 'select', options: ['All', 'Local', 'Regional', 'International'] }
+            { label: 'Delivery Type', type: 'select', options: ['All', 'Standard', 'Express', 'Bulk'] }
+        ],
+        'vendor_payments': [
+            { label: 'Payment Status', type: 'select', options: ['All', 'Pending', 'Paid', 'Overdue'] },
+            { label: 'Payment Method', type: 'select', options: ['All', 'Bank Transfer', 'Credit Card', 'Check'] }
+        ],
+        'vendor_inventory': [
+            { label: 'Product Category', type: 'select', options: ['All', 'Coffee Beans', 'Equipment', 'Supplies'] },
+            { label: 'Stock Status', type: 'select', options: ['All', 'In Stock', 'Low Stock', 'Out of Stock'] }
         ]
     };
 
-    const filters = supplierFilterConfigs[reportType] || [];
+    const filters = vendorFilterConfigs[reportType] || [];
     
     filters.forEach(filter => {
         const filterDiv = document.createElement('div');
@@ -586,7 +590,7 @@ async function simulateReportGeneration(reportType, format, deliveryMethod) {
         progressText.textContent = 'Processing request...';
         progressBar.style.width = '30%';
         
-        const response = await fetch('/supplier-reports/adhoc', {
+        const response = await fetch('/vendor-reports/adhoc', {
             method: 'POST',
             headers: {
                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
@@ -655,7 +659,7 @@ function downloadGeneratedReport() {
     }
     
     // Create a temporary link to trigger download
-    const downloadUrl = `/supplier-reports/${window.currentReportId}/download`;
+    const downloadUrl = `/vendor-reports/${window.currentReportId}/download`;
     const link = document.createElement('a');
     link.href = downloadUrl;
     link.download = ''; // Let server determine filename
@@ -676,7 +680,7 @@ function viewGeneratedReport() {
     }
     
     // Open report in new tab
-    const viewUrl = `/supplier-reports/${window.currentReportId}/view`;
+    const viewUrl = `/vendor-reports/${window.currentReportId}/view`;
     console.log('Opening view URL:', viewUrl);
     window.open(viewUrl, '_blank');
     
@@ -808,7 +812,7 @@ async function handleGenerateReport(reportId, reportName) {
     if (!confirm(`Generate report "${reportName}" now?`)) return;
 
     try {
-        const response = await fetch(`/supplier-reports/${reportId}/generate`, {
+        const response = await fetch(`/vendor-reports/${reportId}/generate`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -838,7 +842,7 @@ async function handleGenerateReport(reportId, reportName) {
 async function handleDownloadReport(reportId, reportName) {
     try {
         // Create a temporary link to trigger download
-        const downloadUrl = `/supplier-reports/${reportId}/download`;
+        const downloadUrl = `/vendor-reports/${reportId}/download`;
         const link = document.createElement('a');
         link.href = downloadUrl;
         link.download = ''; // Let server determine filename
@@ -855,9 +859,10 @@ async function handleDownloadReport(reportId, reportName) {
 
 async function handleViewReport(reportId, reportName) {
     try {
-        console.log('Supplier handleViewReport called with reportId:', reportId, 'reportName:', reportName);
+        console.log('Vendor handleViewReport called with reportId:', reportId, 'reportName:', reportName);
+        
         // Open report in new tab
-        const viewUrl = `/supplier-reports/${reportId}/view`;
+        const viewUrl = `/vendor-reports/${reportId}/view`;
         console.log('Opening URL:', viewUrl);
         
         const newWindow = window.open(viewUrl, '_blank');
@@ -869,6 +874,16 @@ async function handleViewReport(reportId, reportName) {
             window.location.href = viewUrl;
         } else {
             console.log('Report opened in new tab successfully');
+            
+            // Add a listener to check what URL the popup actually loads
+            setTimeout(() => {
+                try {
+                    console.log('Popup current URL:', newWindow.location.href);
+                } catch (e) {
+                    console.log('Cannot access popup URL (cross-origin):', e.message);
+                }
+            }, 2000);
+            
             showNotification(`Opening "${reportName}" in new window...`, 'info');
         }
     } catch (error) {
@@ -884,7 +899,7 @@ async function handleEditReport(reportId) {
         
         // Try to fetch the report data from the backend
         try {
-            const response = await fetch(`/reports/${reportId}/edit`, {
+            const response = await fetch(`/vendor-reports/${reportId}/edit`, {
                 method: 'GET',
                 headers: {
                     'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
@@ -920,7 +935,7 @@ async function handleEditReport(reportId) {
                 type: 'supplier_performance',
                 format: report.format || 'pdf',
                 frequency: report.frequency ? report.frequency.toLowerCase() : 'weekly',
-                recipients: [1], // Default to supplier as recipient
+                recipients: [1], // Default to vendor as recipient
                 status: report.status
             };
             
@@ -933,7 +948,7 @@ async function handleEditReport(reportId) {
             
             // Try to fetch real recipients from API, fall back to mock if failed
             try {
-                const recipientsResponse = await fetch('/supplier-reports/recipients', {
+                const recipientsResponse = await fetch('/vendor-reports/recipients', {
                     method: 'GET',
                     headers: {
                         'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
@@ -974,7 +989,7 @@ async function handlePauseReport(reportId, reportName) {
     if (!confirm(`Pause the schedule for "${reportName}"?`)) return;
     
     try {
-        const response = await fetch(`/supplier-reports/${reportId}/pause`, {
+        const response = await fetch(`/vendor-reports/${reportId}/pause`, {
             method: 'POST',
             headers: {
                 'Accept': 'application/json',
@@ -1011,7 +1026,7 @@ async function handleResumeReport(reportId, reportName) {
     if (!confirm(`Resume the schedule for "${reportName}"?`)) return;
     
     try {
-        const response = await fetch(`/supplier-reports/${reportId}/resume`, {
+        const response = await fetch(`/vendor-reports/${reportId}/resume`, {
             method: 'POST',
             headers: {
                 'Accept': 'application/json',
@@ -1048,7 +1063,7 @@ async function handleDeleteReport(reportId, reportName) {
     if (!confirm(`Are you sure you want to delete "${reportName}"? This action cannot be undone.`)) return;
     
     try {
-        const response = await fetch(`/supplier-reports/${reportId}`, {
+        const response = await fetch(`/vendor-reports/${reportId}`, {
             method: 'DELETE',
             headers: {
                 'Accept': 'application/json',
@@ -1141,7 +1156,7 @@ function setupCreateScheduleModal() {
         saveBtn.addEventListener('click', function(e) {
             console.log('Save button clicked');
             e.preventDefault();
-            saveSupplierReportSchedule();
+            saveVendorReportSchedule();
         });
     } else {
         console.error('Save button not found in DOM');
@@ -1415,7 +1430,7 @@ function getScheduleDescription() {
     return description;
 }
 
-function saveSupplierReportSchedule() {
+function saveVendorReportSchedule() {
     console.log('Save supplier report schedule called');
     
     // Prevent multiple submissions
@@ -1479,7 +1494,7 @@ function saveSupplierReportSchedule() {
 
     console.log('Final data object being sent to server:', JSON.stringify(data, null, 2));
 
-    fetch('/supplier-reports', {
+    fetch('/vendor-reports', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -1542,7 +1557,7 @@ function openAdhocModal() {
 async function updateStatsCards() {
     try {
         console.log('Updating supplier stats cards...');
-        const response = await fetch('/supplier-reports/stats?supplier_only=true', {
+        const response = await fetch('/vendor-reports/stats?vendor_only=true', {
             method: 'GET',
             headers: {
                 'Accept': 'application/json',
@@ -1699,12 +1714,12 @@ function getStatusBadge(status) {
     </span>`;
 }
 
-function getMockSupplierReports() {
+function getMockVendorReports() {
     return [
         {
             id: 1,
-            name: 'Supplier Inventory Report',
-            type: 'inventory',
+            name: 'Vendor Purchases Report',
+            type: 'purchases',
             format: 'pdf',
             frequency: 'Daily',
             last_generated: '2024-12-20',
@@ -1714,8 +1729,8 @@ function getMockSupplierReports() {
         },
         {
             id: 2,
-            name: 'Quality Metrics Report',
-            type: 'quality',
+            name: 'Vendor Orders Report',
+            type: 'orders',
             format: 'excel',
             frequency: 'Weekly',
             last_generated: '2024-12-18',
@@ -1725,8 +1740,8 @@ function getMockSupplierReports() {
         },
         {
             id: 3,
-            name: 'Delivery Performance Report',
-            type: 'deliveries',
+            name: 'Vendor Payments Report',
+            type: 'payments',
             format: 'pdf',
             frequency: 'Monthly',
             last_generated: '2024-12-01',
@@ -1737,12 +1752,12 @@ function getMockSupplierReports() {
     ];
 }
 
-// Mock data for supplier historical reports
-function getMockSupplierHistoricalReports() {
+// Mock data for vendor historical reports
+function getMockVendorHistoricalReports() {
     return [
         {
             id: 1,
-            name: 'Monthly Sales Report',
+            name: 'Monthly Purchases Report',
             generated_for: 'My Account',
             generated_at: '2024-12-01',
             format: 'pdf',
@@ -1751,7 +1766,7 @@ function getMockSupplierHistoricalReports() {
         },
         {
             id: 2,
-            name: 'Inventory Status Report',
+            name: 'Order Status Report',
             generated_for: 'My Account',
             generated_at: '2024-11-15',
             format: 'excel',
@@ -1760,11 +1775,11 @@ function getMockSupplierHistoricalReports() {
         },
         {
             id: 3,
-            name: 'Quality Assurance Report',
+            name: 'Payment History Report',
             generated_for: 'My Account',
-            generated_at: '2024-10-10',
-            format: 'pdf',
-            file_size: '600 KB',
+            generated_at: '2024-11-01',
+            format: 'csv',
+            file_size: '650 KB',
             status: 'completed'
         }
     ];
@@ -1932,22 +1947,8 @@ function populateSupplierEditForm(report, templates, recipients) {
     const recipientsContainer = document.getElementById('supplier-edit-recipients-container');
     recipientsContainer.innerHTML = '';
     
-    // Parse recipients if it's a string
-    let reportRecipients = report.recipients;
-    if (typeof reportRecipients === 'string') {
-        try {
-            reportRecipients = JSON.parse(reportRecipients);
-        } catch (e) {
-            console.warn('Failed to parse recipients:', e);
-            reportRecipients = [];
-        }
-    }
-    if (!Array.isArray(reportRecipients)) {
-        reportRecipients = [];
-    }
-    
     recipients.forEach(recipient => {
-        const isSelected = reportRecipients.includes(recipient.id) || reportRecipients.includes(recipient.id.toString());
+        const isSelected = report.recipients && report.recipients.includes(recipient.id);
         const recipientHTML = `
             <label class="flex items-center space-x-2">
                 <input type="checkbox" name="recipients[]" value="${recipient.id}" ${isSelected ? 'checked' : ''} 
@@ -1957,14 +1958,6 @@ function populateSupplierEditForm(report, templates, recipients) {
         `;
         recipientsContainer.insertAdjacentHTML('beforeend', recipientHTML);
     });
-    
-    // For suppliers/vendors, automatically select current user if no recipients selected
-    if (recipients.length === 1 && reportRecipients.length === 0) {
-        const firstCheckbox = recipientsContainer.querySelector('input[type="checkbox"]');
-        if (firstCheckbox) {
-            firstCheckbox.checked = true;
-        }
-    }
 }
 
 function closeSupplierEditModal() {
@@ -1993,18 +1986,10 @@ async function handleSupplierEditSubmit(e) {
         recipients: selectedRecipients
     };
     
-    console.log('Submitting report data:', reportData);
-    
-    // Validation: ensure recipients are selected
-    if (selectedRecipients.length === 0) {
-        showNotification('Please select at least one recipient', 'error');
-        return;
-    }
-    
     try {
         showNotification('Updating report...', 'info');
         
-        const response = await fetch(`/supplier-reports/${reportId}`, {
+        const response = await fetch(`/reports/${reportId}`, {
             method: 'PUT',
             headers: {
                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
@@ -2022,14 +2007,7 @@ async function handleSupplierEditSubmit(e) {
             loadReportLibrary(); // Refresh the library table
             updateStatsCards(); // Update stats
         } else {
-            let errorMessage = result.message || 'Failed to update report';
-            if (result.errors) {
-                errorMessage += '\n';
-                Object.keys(result.errors).forEach(field => {
-                    errorMessage += `${field}: ${result.errors[field].join(', ')}\n`;
-                });
-            }
-            showNotification(errorMessage, 'error');
+            showNotification(result.message || 'Failed to update report', 'error');
         }
     } catch (error) {
         console.error('Error updating report:', error);

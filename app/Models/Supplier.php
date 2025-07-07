@@ -13,7 +13,7 @@ class Supplier extends Model
     protected $keyType = 'string';
     public $incrementing = false;
     protected $fillable = [
-        'id', 'user_id', 'name', 'address', 'contact_person', 'phone', 'region', 'country', 'description', 'created_at', 'updated_at'
+        'id', 'user_id', 'supply_center_id', 'warehouse_id', 'name', 'contact_person', 'email', 'phone', 'address', 'registration_number', 'approved_date', 'created_at', 'updated_at'
     ];
 
     public function user()
@@ -26,8 +26,23 @@ class Supplier extends Model
         return $this->belongsTo(SupplyCenter::class, 'supply_center_id');
     }
 
+    public function warehouse()
+    {
+        return $this->belongsTo(Warehouse::class, 'warehouse_id');
+    }
+
+    public function warehouses()
+    {
+        return $this->hasMany(Warehouse::class, 'supplier_id');
+    }
+
     public function rawCoffees()
     {
         return $this->hasMany(RawCoffee::class, 'supplier_id');
+    }
+
+    public function orders()
+    {
+        return $this->hasMany(Order::class, 'supplier_id');
     }
 }

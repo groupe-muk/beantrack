@@ -6,6 +6,8 @@
         <meta name="csrf-token" content="{{ csrf_token() }}">
         @auth
         <meta name="user-id" content="{{ auth()->user()->id }}">
+        <meta name="user-name" content="{{ auth()->user()->name }}">
+        <meta name="user-email" content="{{ auth()->user()->email }}">
         @endauth
 
         <title>{{ config('app.name') }}</title>

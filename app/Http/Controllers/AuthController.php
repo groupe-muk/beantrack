@@ -3,11 +3,15 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Models\Supplier;
+use App\Models\Wholesaler;
+use App\Models\SupplyCenter;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Auth\Events\Validated;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\DB;
 use Log;
 
 class AuthController extends Controller
@@ -84,6 +88,12 @@ class AuthController extends Controller
             'password' => Hash::make($validated['password']),
             'role' => $validated['role']
         ]);
+
+        // Since the database trigger generates the ID, we need to retrieve it manually
+        $user->id = \DB::table('users')->where('email', $user->email)->value('id');
+
+        // Automatically create supplier or wholesaler record
+        $this->createRoleSpecificRecord($user);
         
         Auth::login($user);
         return redirect()->route('dashboard');
@@ -128,6 +138,84 @@ class AuthController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
         return redirect()->route('onboarding');
+    }
+    
+    /**
+     * Create supplier or wholesaler record based on user role
+     */
+    private function createRoleSpecificRecord(User $user)
+    {
+        // Ensure user has an ID
+        if (!$user->id) {
+            \Log::error('Cannot create role-specific record: User has no ID', [
+                'user_name' => $user->name,
+                'user_email' => $user->email,
+                'role' => $user->role
+            ]);
+            return;
+        }
+
+        try {
+            \Log::info('Creating role-specific record via AuthController', [
+                'user_id' => $user->id,
+                'user_name' => $user->name,
+                'role' => $user->role
+            ]);
+
+            if ($user->role === 'supplier') {
+                // Get first available supply center
+                $supplyCenter = SupplyCenter::first();
+                if ($supplyCenter) {
+                    $supplier = Supplier::create([
+                        'user_id' => $user->id,
+                        'supply_center_id' => $supplyCenter->id,
+                        'name' => $user->name,
+                        'contact_person' => $user->name,
+                        'email' => $user->email,
+                        'phone' => $user->phone ?? '0000000000',
+                        'address' => 'Address to be updated',
+                        'registration_number' => 'REG' . str_pad(rand(1000, 9999), 4, '0', STR_PAD_LEFT) . time(),
+                        'approved_date' => now()
+                    ]);
+                    
+                    \Log::info('Supplier record created successfully via AuthController', [
+                        'user_id' => $user->id,
+                        'supplier_id' => $supplier->id
+                    ]);
+                } else {
+                    \Log::error('No supply center found for supplier creation via AuthController', [
+                        'user_id' => $user->id
+                    ]);
+                }
+            } elseif ($user->role === 'vendor') {
+                $wholesaler = Wholesaler::create([
+                    'user_id' => $user->id,
+                    'name' => $user->name,
+                    'contact_person' => $user->name,
+                    'email' => $user->email,
+                    'phone' => $user->phone ?? '0000000000',
+                    'address' => 'Address to be updated',
+                    'distribution_region' => 'Region to be updated',
+                    'registration_number' => 'WHL' . str_pad(rand(1000, 9999), 4, '0', STR_PAD_LEFT) . time(),
+                    'approved_date' => now()
+                ]);
+                
+                \Log::info('Wholesaler record created successfully via AuthController', [
+                    'user_id' => $user->id,
+                    'wholesaler_id' => $wholesaler->id
+                ]);
+            }
+        } catch (\Exception $e) {
+            // Log error but don't fail the user creation
+            \Log::error('Failed to create role-specific record via AuthController', [
+                'user_id' => $user->id,
+                'role' => $user->role,
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString()
+            ]);
+        }
     }
 }
 
