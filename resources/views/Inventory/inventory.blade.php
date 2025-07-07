@@ -41,28 +41,35 @@
   
   <!-- Stats Section -->
   <div class="space-y-6">
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 w-full">
-    <x-stats-card
-    title="Out Of Stock"
-    value="6"
-    changeText="2 from last week"
-    iconClass="fa-exclamation-triangle"
-    />
+   <div class="grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
+  
     <x-stats-card
     title="Low Stock Alerts"
-    value="6"
-    changeText="2 from last week"
+    :value="$lowStock"
+    valueId="low-stock-value"
     iconClass="fa-long-arrow-down"
     />
+    
     <x-stats-card
-    title="Total Value"
-    value="13,907.56"
-    unit="Ugx"
-    changeText="2 from last week"
+    title="Out Of Stock"
+    :value="$outOfStock"
+    valueId="out-of-stock-value"
+    iconClass="fa-exclamation-triangle"
+    />
+
+    <x-stats-card
+    title="Total Quantity"
+    :value="$totalQuantity"
+    valueId="total-quantity"
+    unit="kg"
     iconClass="fa-cube"
     />
-    </div>
+
+
+     </div>
   </div>
+
+
 
 
   <!-- Inventory Table -->
@@ -132,7 +139,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="4" class="px-5 py-5 border-b border-soft-gray dark:border-mild-gray text-center text-sm text-gray-500 dark:text-gray-400">
+                            <td colspan="7" class="px-5 py-5 border-b border-soft-gray dark:border-mild-gray text-center text-sm text-gray-500 dark:text-gray-400">
                                 No items found.
                             </td>
                         </tr>
@@ -140,6 +147,8 @@
         </tbody>
       </table>
     </div>
+
+    
 
     <div class="flex justify-between items-center mb-6 pt-10">
     <h1 class="text-2xl font-semibold text-dashboard-light pb-5">Processed Coffee</h1>
@@ -210,7 +219,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="4" class="px-5 py-5 border-b border-soft-gray dark:border-mild-gray text-center text-sm text-gray-500 dark:text-gray-400">
+                            <td colspan="7" class="px-5 py-5 border-b border-soft-gray dark:border-mild-gray text-center text-sm text-gray-500 dark:text-gray-400">
                                 No users found.
                             </td>
                         </tr>
@@ -632,5 +641,24 @@ document.addEventListener('DOMContentLoaded', function () {
     setupModalClose(rawCoffeeModal);
     setupModalClose(processedCoffeeModal);
 });
+  function updateStatsCards() {
+    fetch('/inventory/stats')
+        .then(response => response.json())
+        .then(data => {
+            // Update the card values by their IDs or classes
+            document.getElementById('out-of-stock-value').textContent = data.outOfStock || '0';
+            document.getElementById('low-stock-value').textContent = data.lowStock || '0';
+            document.getElementById('total-quantity').textContent = data.totalQuantity;
+
+        })
+        .catch(error => {
+            console.error('Error fetching stats:', error);
+        });
+  }
+  // Call once on page load
+   updateStatsCards();
+   // Refresh every 60 seconds
+   setInterval(updateStatsCards, 60000);
+
 </script>
 @endpush
