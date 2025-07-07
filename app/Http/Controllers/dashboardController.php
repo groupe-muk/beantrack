@@ -19,7 +19,7 @@ use Carbon\Carbon;
 class dashboardController extends Controller
 {
     
-    public function index()
+    public function index(Request $request)
     {
         if (!Auth::check()) {
             return redirect()->route('onboarding'); // Ensure user is authenticated
@@ -28,10 +28,20 @@ class dashboardController extends Controller
         $data = []; // Initialize an empty array to hold all data for the view
         $user = Auth::user();
 
+        // Get selected product for ML predictions (Admin only)
+        $selectedProduct = null;
+        $allProducts = collect();
+        if ($user->isAdmin()) {
+            $selectedProduct = CoffeeProduct::find($request->input('product_id'))
+                             ?? CoffeeProduct::first();
+            $allProducts = CoffeeProduct::with('rawCoffee')->get();
+        }
 
         if ($user->isAdmin()) {
             // Fetch data specifically for the Admin dashboard
-            $data = array_merge($data, $this->getAdminDashboardData());
+            $data = array_merge($data, $this->getAdminDashboardData($selectedProduct));
+            $data['products'] = $allProducts;
+            $data['currentProductId'] = $selectedProduct ? $selectedProduct->id : null;
         } elseif ($user->isSupplier()) {
             // Fetch data specifically for the Supplier dashboard
             $data = array_merge($data, $this->getSupplierDashboardData());
@@ -46,12 +56,40 @@ class dashboardController extends Controller
         return view('dashboard', $data); // Pass all collected data to the main dashboard view
     }
 
-    
-    private function getAdminDashboardData(): array
+    /**
+     * Get ML prediction chart data via AJAX
+     */
+    public function getChartData(Request $request)
     {
+        if (!Auth::check() || !Auth::user()->isAdmin()) {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+
+        $productId = $request->input('product_id');
+        $product = CoffeeProduct::find($productId);
+        
+        if (!$product) {
+            return response()->json(['error' => 'Product not found'], 404);
+        }
+
+        $forecastData = $this->getPriceForecastChartData($product);
+        
+        return response()->json([
+            'series' => $forecastData['series'],
+            'categories' => $forecastData['categories'],
+            'productName' => $product->rawCoffee->coffee_type ?? $product->name
+        ]);
+    }
+
+    
+    private function getAdminDashboardData(?CoffeeProduct $selectedProduct = null): array
+    {
+        // Build chart for the selected product
+        $forecastData = $selectedProduct ? $this->getPriceForecastChartData($selectedProduct) : ['series' => [], 'categories' => []];
+
         return [
-            'mlPredictionData' => $this->getPriceForecastChartData()['series'],
-            'mlPredictionCategories' => $this->getPriceForecastChartData()['categories'],
+            'mlPredictionData' => $forecastData['series'],
+            'mlPredictionCategories' => $forecastData['categories'],
             'mlPredictionDescription' => '',
 
             'productsTableHeaders' => ['Order ID', 'Customer', 'Product', 'Quantity (kg)', 'Status', 'Date'],
@@ -675,9 +713,8 @@ class dashboardController extends Controller
         }
     }
 
-    private function getPriceForecastChartData(): array
+    private function getPriceForecastChartData(CoffeeProduct $product, int $historyDays = 14): array
     {
-        $product = CoffeeProduct::first();
         if (!$product) {
             return ['series' => [], 'categories' => []];
         }
@@ -686,7 +723,6 @@ class dashboardController extends Controller
         $service = app(PricePredictionService::class);
 
         // 1. Last 14 days (2 weeks) of actual prices
-        $historyDays = 14;
         $history = \App\Models\PriceHistory::where('coffee_product_id', $product->id)
             ->where('market_date', '>=', now()->subDays($historyDays)->toDateString())
             ->orderBy('market_date')
