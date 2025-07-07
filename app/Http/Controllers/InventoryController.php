@@ -18,8 +18,11 @@ class InventoryController extends Controller
         $supplyCenters = SupplyCenter::all();
         $rawCoffeeItems = RawCoffee::all();
         $coffeeProductItems = CoffeeProduct::all();
+        $outOfStock = Inventory::where('quantity_in_stock', 0)->count();
+        $lowStock = Inventory::where('quantity_in_stock', '<', 10)->count();
+         $totalQuantity = Inventory::sum('quantity_in_stock'); 
 
-        return view('Inventory.inventory', compact(['rawCoffeeInventory', 'coffeeProductInventory', 'supplyCenters', 'rawCoffeeItems', 'coffeeProductItems']));
+        return view('Inventory.inventory', compact(['rawCoffeeInventory', 'coffeeProductInventory', 'supplyCenters', 'rawCoffeeItems', 'coffeeProductItems','outOfStock','lowStock','totalQuantity']));
     }
 
     // Store a new inventory item
@@ -134,17 +137,29 @@ class InventoryController extends Controller
         $product = CoffeeProduct::findOrFail($coffeeProduct);
         return view('Inventory.edit', compact('product'));
     }
-    public function stats()
-{
-    // Example: Replace with your actual queries
-    $outOfStock = Inventory::where('quantity_in_stock', 0)->count();
-    $lowStock = Inventory::where('quantity_in_stock', '<', 10)->count();
-    $totalValue = Inventory::sum('value'); // Adjust as needed
 
-    return response()->json([
-        'outOfStock' => $outOfStock,
-        'lowStock' => $lowStock,
-        'totalValue' => $totalValue,
-    ]);
-}
+    /**
+     * Fetch real-time inventory statistics for the dashboard cards.
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function stats()
+    {
+        $lowStockThreshold = 10;
+
+        $outOfStock = Inventory::where('quantity_in_stock', 0)->count();
+
+        // Calculate low stock for items that are in stock but below the threshold
+        $lowStock = Inventory::where('quantity_in_stock', '>', 0)
+            ->where('quantity_in_stock', '<=', $lowStockThreshold)
+            ->count();
+
+        $totalQuantity = Inventory::sum('quantity_in_stock');
+
+        return response()->json([
+            'outOfStock' => $outOfStock,
+            'lowStock' => $lowStock,
+            'totalQuantity' => number_format($totalQuantity)
+        ]);
+    }
 }
