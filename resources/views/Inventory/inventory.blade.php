@@ -45,14 +45,18 @@
     <x-stats-card
     title="Out Of Stock"
     value="6"
+    valueId="out-of-stock"
     changeText="2 from last week"
     iconClass="fa-exclamation-triangle"
+    
     />
     <x-stats-card
     title="Low Stock Alerts"
     value="6"
+    valueId="low-stock"
     changeText="2 from last week"
     iconClass="fa-long-arrow-down"
+    
     />
     <x-stats-card
     title="Total Value"
@@ -60,6 +64,7 @@
     unit="Ugx"
     changeText="2 from last week"
     iconClass="fa-cube"
+    
     />
     </div>
   </div>
@@ -632,5 +637,23 @@ document.addEventListener('DOMContentLoaded', function () {
     setupModalClose(rawCoffeeModal);
     setupModalClose(processedCoffeeModal);
 });
+  function updateStatsCards() {
+    fetch('/inventory/stats')
+        .then(response => response.json())
+        .then(data => {
+            // Update the card values by their IDs or classes
+            document.getElementById('out-of-stock-value').textContent = data.outOfStock;
+            document.getElementById('low-stock-value').textContent = data.lowStock;
+            document.getElementById('total-value').textContent = data.totalValue.toLocaleString();
+        })
+        .catch(error => {
+            console.error('Error fetching stats:', error);
+        });
+  }
+  // Call once on page load
+   updateStatsCards();
+
+ // Optionally, refresh every 60 seconds
+   setInterval(updateStatsCards, 60000);
 </script>
 @endpush

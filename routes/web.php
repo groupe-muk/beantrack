@@ -142,6 +142,7 @@ Route::middleware(['auth'])->group(function () {
         //Inventory routes
         Route::get('/inventory', [InventoryController::class, 'index'])->name('inventory.index');
         Route::post('/inventory', [InventoryController::class, 'store'])->name('inventory.store');
+        Route::get('/inventory/stats', [InventoryController::class, 'stats'])->name('inventory.stats');
 
         // Raw Coffee routes
         Route::patch('/inventory/raw-coffee/{rawCoffee}', [InventoryController::class, 'updateRawCoffee'])->name('inventory.update.rawCoffee');
