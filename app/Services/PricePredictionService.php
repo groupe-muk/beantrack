@@ -114,6 +114,7 @@ class PricePredictionService
     {
         return PriceForecast::where('coffee_product_id', $product->id)
             ->where('horizon', $horizon)
+            ->whereDate('generated_at', now()->toDateString())
             ->orderBy('predicted_date')
             ->get(['predicted_date', 'predicted_price']);
     }
