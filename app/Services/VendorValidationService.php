@@ -251,8 +251,7 @@ class VendorValidationService
                 'email' => $user->email
             ]);
 
-            // TODO: Send email with login credentials
-            // Mail::to($user->email)->send(new VendorAccountCreated($user, $temporaryPassword));
+            // Note: Welcome email will be sent by the admin when they manually add the vendor to the system
 
             return $user;
 
