@@ -6,13 +6,45 @@
     'chartCategories',
     'description' => null,
     'class' => '',
+    'products' => null,
+    'currentProductId' => null,
 ])
 
 <div class="bg-white p-6 w-full rounded-2xl shadow-lg border border-gray-100 flex flex-col justify-between h-full {{ $class }}">
     @isset($title)
         <div class="border-b border-gray-100 pb-4 mb-6">
-            <h5 class="text-3xl font-bold leading-none text-gray-800 dark:text-white">{{ $title }}</h5>
-            <p class="text-gray-600 text-sm mt-2">AI-powered price forecasting with historical data analysis</p>
+            <div class="flex items-center justify-between">
+                <div>
+                    <h5 class="text-3xl font-bold leading-none text-gray-800 dark:text-white">{{ $title }}</h5>
+                    <p class="text-gray-600 text-sm mt-2">AI-powered price forecasting with historical data analysis</p>
+                </div>
+                
+                <!-- Coffee Type Selector -->
+                @if($products && $products->count() > 0)
+                <div class="flex items-center space-x-3">
+                    <label class="text-sm font-medium text-gray-700 whitespace-nowrap">Coffee Type:</label>
+                    <div class="relative">
+                        <select id="coffeeTypeSelector"
+                                data-chart-id="{{ $predictionChartID }}"
+                                class="bg-gray-50 border border-gray-200 text-gray-700 text-sm rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 px-3 py-2 min-w-[140px] transition-colors duration-200 hover:bg-gray-100">
+                            @foreach($products as $product)
+                                <option value="{{ $product->id }}"
+                                    {{ $product->id == $currentProductId ? 'selected' : '' }}>
+                                    {{ $product->rawCoffee->coffee_type ?? $product->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                        <!-- Loading spinner -->
+                        <div id="chartLoadingSpinner" class="absolute right-2 top-1/2 transform -translate-y-1/2 hidden">
+                            <svg class="animate-spin h-4 w-4 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+                @endif
+            </div>
         </div>
     @endisset
 
@@ -331,6 +363,75 @@
                 window.addEventListener('resize', function() {
                     chart.resize();
                 });
+
+                // Handle coffee type selector change with AJAX
+                const coffeeTypeSelector = document.getElementById('coffeeTypeSelector');
+                const loadingSpinner = document.getElementById('chartLoadingSpinner');
+                
+                if (coffeeTypeSelector) {
+                    coffeeTypeSelector.addEventListener('change', function() {
+                        const productId = this.value;
+                        const chartId = this.getAttribute('data-chart-id');
+                        
+                        // Show loading spinner
+                        loadingSpinner.classList.remove('hidden');
+                        coffeeTypeSelector.disabled = true;
+                        
+                        // Make AJAX request
+                        fetch(`{{ route('dashboard.chart-data') }}?product_id=${productId}`, {
+                            method: 'GET',
+                            headers: {
+                                'Accept': 'application/json',
+                                'X-Requested-With': 'XMLHttpRequest',
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+                            }
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.error) {
+                                throw new Error(data.error);
+                            }
+                            
+                            // --- Ensure seamless transition between actual and predicted data ---
+                            const newSeries = JSON.parse(JSON.stringify(data.series));
+                            if (newSeries.length >= 2) {
+                                const newActual = newSeries[0].data || [];
+                                const newPred   = newSeries[1].data || [];
+                                let transition = newActual.findIndex(v => v === null);
+                                if (transition > 0) {
+                                    newPred[transition - 1] = newActual[transition - 1];
+                                    if (newPred[transition] === null) {
+                                        newPred[transition] = newActual[transition - 1];
+                                    }
+                                }
+                            }
+
+                            // Update chart with processed data
+                            chart.updateSeries(newSeries);
+                            chart.updateOptions({
+                                xaxis: {
+                                    categories: data.categories
+                                }
+                            });
+                            
+                            // Update chart title if needed
+                            const chartTitleElement = document.querySelector('.text-xl.text-gray-800.font-semibold');
+                            if (chartTitleElement && data.productName) {
+                                chartTitleElement.textContent = `${data.productName} - Coffee Price Predictions & Historical Trends`;
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error updating chart:', error);
+                            // You could show a toast notification here
+                            alert('Error loading chart data. Please try again.');
+                        })
+                        .finally(() => {
+                            // Hide loading spinner
+                            loadingSpinner.classList.add('hidden');
+                            coffeeTypeSelector.disabled = false;
+                        });
+                    });
+                }
             }
         });
     </script>

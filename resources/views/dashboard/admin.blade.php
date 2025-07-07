@@ -78,6 +78,8 @@
             :chart-data="$mlPredictionData"
             :chart-categories="$mlPredictionCategories"
             :description="$mlPredictionDescription"
+            :products="$products ?? collect()"
+            :current-product-id="$currentProductId ?? null"
             class="h-[600px]" {{-- Adjust height as needed for visual balance --}}
             />
 
