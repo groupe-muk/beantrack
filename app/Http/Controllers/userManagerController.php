@@ -333,6 +333,9 @@ class userManagerController extends Controller
                 'created_user_id' => $user->id
             ]);
 
+            // Create wholesaler record for vendor
+            $this->createRoleSpecificRecord($user);
+
             // Send welcome email with login credentials
             $this->sendWelcomeEmail($application, $user, $validatedData['default_password']);
 
