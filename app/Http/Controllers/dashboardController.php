@@ -12,6 +12,8 @@ use App\Models\RawCoffee;
 use App\Models\CoffeeProduct;
 use App\Models\Supplier;
 use Laravel\Sanctum\HasApiTokens;
+use App\Services\PricePredictionService;
+use Carbon\Carbon;
 
 
 class dashboardController extends Controller
@@ -48,22 +50,9 @@ class dashboardController extends Controller
     private function getAdminDashboardData(): array
     {
         return [
-            'mlPredictionData' => [
-                [
-                    'name' => 'Actual',
-                    'data' => [50, 55, 60, 58, 65, 70, 68, 75, 80, 82, 85, 90]
-                ],
-                [
-                    'name' => 'Predicted',
-                    'data' => [20, 25, 28, 35, 30, 45, 50, 60, 70, 65, 75, 80]
-                ],
-                [
-                    'name' => 'Optimisstic',
-                    'data' => [30, 40, 35, 50, 49, 60, 70, 91, 125, 100, 110, 130]
-                ]
-            ],
-            'mlPredictionCategories' => ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
-            'mlPredictionDescription' => 'Weight: ML predictions in 000 tonnes to assist optimal resource allocation. Forecasts generated using historical data and market indicators.',
+            'mlPredictionData' => $this->getPriceForecastChartData()['series'],
+            'mlPredictionCategories' => $this->getPriceForecastChartData()['categories'],
+            'mlPredictionDescription' => '',
 
             'productsTableHeaders' => ['Order ID', 'Customer', 'Product', 'Quantity (kg)', 'Status', 'Date'],
             'productsTableData' => $this->getRecentOrdersForTable(4),
@@ -684,5 +673,64 @@ class dashboardController extends Controller
             // If anything goes wrong, return the original value
             return is_string($recipients) ? $recipients : 'Not specified';
         }
+    }
+
+    private function getPriceForecastChartData(): array
+    {
+        $product = CoffeeProduct::first();
+        if (!$product) {
+            return ['series' => [], 'categories' => []];
+        }
+
+        /** @var PricePredictionService $service */
+        $service = app(PricePredictionService::class);
+
+        // 1. Last 14 days (2 weeks) of actual prices
+        $historyDays = 14;
+        $history = \App\Models\PriceHistory::where('coffee_product_id', $product->id)
+            ->where('market_date', '>=', now()->subDays($historyDays)->toDateString())
+            ->orderBy('market_date')
+            ->get(['market_date', 'price_per_lb']);
+
+        if ($history->isEmpty()) {
+            return ['series' => [], 'categories' => []];
+        }
+
+        // 2. Fetch or generate 7-day forecast starting tomorrow
+        $forecast = $service->getLatestForecast($product);
+        if ($forecast->isEmpty()) {
+            try {
+                $forecast = $service->generateAndStoreForecast($product);
+            } catch (\Throwable $e) {
+                \Log::warning('Unable to fetch/generate price forecast', [
+                    'product_id' => $product->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        // 3. Combine into unified axis
+        $categories = [];
+        $actualData = [];
+        $predictedData = [];
+
+        foreach ($history as $row) {
+            $categories[]   = Carbon::parse($row->market_date)->format('M d');
+            $actualData[]   = (float) $row->price_per_lb;
+            $predictedData[] = null; // no prediction for past dates
+        }
+
+        foreach ($forecast as $row) {
+            $categories[]   = Carbon::parse($row->predicted_date)->format('M d');
+            $actualData[]   = null; // no actual future data
+            $predictedData[] = (float) $row->predicted_price;
+        }
+
+        $series = [
+            ['name' => 'Actual',    'data' => $actualData],
+            ['name' => 'Predicted', 'data' => $predictedData],
+        ];
+
+        return ['series' => $series, 'categories' => $categories];
     }
 }
