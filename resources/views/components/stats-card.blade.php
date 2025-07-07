@@ -45,23 +45,25 @@
                 id="out-of-stock-value"
             @elseif($title === 'Low Stock Alerts')
                 id="low-stock-value"
-            @elseif($title === 'Total Value')
-                id="total-value"
+            @elseif($title === 'Total Quantity')
+                id="total-quantity"
             @endif
         >{{ $value }}</span>
         @if ($unit)      
             <span class="text-lg font-normal text-gray-500 ml-1">{{ $unit }}</span>
         @endif
     </p>
-</div>
+    </div>
 
     {{-- Bottom Row: Change Text --}}
-    <div class="flex">
+    
     @if ($changeText)
+    <div>
         <i class="fa-solid {{ $changeIconClass }} text-xs {{ $changeColorClass }}"></i>  
         <p class="text-xs font-medium {{ $changeColorClass }} ml-1 mt-auto"> {{-- mt-auto pushes it to the bottom --}}
             {{ $changeText }}
         </p>
     </div>    
     @endif
-</div>
+
+</div>    
