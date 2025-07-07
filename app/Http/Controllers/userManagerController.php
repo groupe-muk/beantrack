@@ -333,6 +333,9 @@ class userManagerController extends Controller
                 'created_user_id' => $user->id
             ]);
 
+            // Create wholesaler record for vendor
+            $this->createRoleSpecificRecord($user);
+
             // Send welcome email with login credentials
             $this->sendWelcomeEmail($application, $user, $validatedData['default_password']);
 
@@ -362,18 +365,19 @@ class userManagerController extends Controller
         try {
             // Send email to Java validation server for processing
             $emailData = [
-                'applicantId' => $application->id,
+                'type' => 'rejection',
                 'email' => $application->email,
                 'applicantName' => $application->applicant_name,
                 'businessName' => $application->business_name,
-                'reason' => $reason ?? 'Your application did not meet our requirements.',
-                'type' => 'rejection'
+                'reason' => $reason ?? 'Your application did not meet our requirements.'
             ];
 
             \Log::info('Sending rejection email data to Java server', $emailData);
 
-            // Call Java server email endpoint using JSON data
-            $response = Http::timeout(10)->post('http://localhost:8081/api/vendors/send-email', $emailData);
+            // Call Java server email endpoint using form data
+            $response = Http::timeout(10)
+                ->asForm()
+                ->post(config('services.validation_server.url', 'http://localhost:8081') . '/api/vendors/send-email', $emailData);
 
             \Log::info('Java server response for rejection email', [
                 'status' => $response->status(),
@@ -404,20 +408,21 @@ class userManagerController extends Controller
         try {
             // Send email to Java validation server for processing
             $emailData = [
-                'applicantId' => $application->id,
+                'type' => 'welcome',
                 'email' => $user->email,
                 'applicantName' => $user->name,
                 'businessName' => $application->business_name,
                 'userId' => $user->id,
                 'password' => $password,
-                'loginUrl' => url('/login'),
-                'type' => 'welcome'
+                'loginUrl' => route('login')
             ];
 
             \Log::info('Sending welcome email data to Java server', $emailData);
 
-            // Call Java server email endpoint using JSON data
-            $response = Http::timeout(10)->post('http://localhost:8081/api/vendors/send-email', $emailData);
+            // Call Java server email endpoint using form data
+            $response = Http::timeout(10)
+                ->asForm()
+                ->post(config('services.validation_server.url', 'http://localhost:8081') . '/api/vendors/send-email', $emailData);
 
             \Log::info('Java server response for welcome email', [
                 'status' => $response->status(),
@@ -428,6 +433,11 @@ class userManagerController extends Controller
                 \Log::error('Java server returned error for welcome email', [
                     'status' => $response->status(),
                     'body' => $response->body()
+                ]);
+            } else {
+                \Log::info('Welcome email sent successfully', [
+                    'email' => $user->email,
+                    'userId' => $user->id
                 ]);
             }
 

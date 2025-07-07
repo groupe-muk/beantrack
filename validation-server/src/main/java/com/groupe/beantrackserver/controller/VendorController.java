@@ -97,7 +97,7 @@ public class VendorController {
     }
 
     @PostMapping("/send-email")
-    public ResponseEntity<?> sendEmail(@RequestBody Map<String, String> emailData) {
+    public ResponseEntity<?> sendEmail(@RequestParam Map<String, String> emailData) {
         try {
             System.out.println("Received email request with data: " + emailData);
             
