@@ -111,7 +111,14 @@
                                 {{ $rawCoffee->supplyCenter->name }}
                             </td>
                             <td class="px-5 py-5 border-b border-soft-gray dark:border-mild-gray text-sm text-gray-900 dark:text-off-white">
-                            </td>
+                                @if ($rawCoffee->quantity_in_stock > 10)
+                                    <span class="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs">In Stock</span>
+                                @elseif ($rawCoffee->quantity_in_stock > 0)
+                                    <span class="px-2 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs">Low Stock</span>
+                                @else
+                                    <span class="px-2 py-1 bg-red-100 text-red-700 rounded-full text-xs">Out of Stock</span>
+                                @endif
+                            </td>    
                             <td class="px-5 py-5 border-b border-soft-gray dark:border-mild-gray text-sm">
                                 <div class="flex items-center space-x-3">
                                     {{-- Edit button --}}
@@ -189,7 +196,14 @@
                                 {{ $coffeeProduct->supplyCenter->name }}
                             </td>
                             <td class="px-5 py-5 border-b border-soft-gray dark:border-mild-gray text-sm text-gray-900 dark:text-off-white">
-                            </td>
+                                @if ($coffeeProduct->quantity_in_stock > 10)
+                                    <span class="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs">In Stock</span>
+                                @elseif ($coffeeProduct->quantity_in_stock > 0)
+                                    <span class="px-2 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs">Low Stock</span>
+                                @else
+                                    <span class="px-2 py-1 bg-red-100 text-red-700 rounded-full text-xs">Out of Stock</span>
+                                @endif
+                            </td>    
                             <td class="px-5 py-5 border-b border-soft-gray dark:border-mild-gray text-sm">
                                 <div class="flex items-center space-x-3">
                                     {{-- Edit button --}}
