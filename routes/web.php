@@ -21,6 +21,8 @@ use App\Http\Controllers\SupplyCentersController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\supplierInventoryController;
 use App\Http\Controllers\vendorInventoryController;
+use App\Http\Controllers\WorkerController;
+use App\Models\SupplyCenter;
 
 Route::get('/sample', [columnChartController::class, 'showColumnChart'])->name('column.chart');
 
@@ -262,6 +264,8 @@ Route::middleware(['auth'])->group(function () {
     });
 }); // Close auth middleware group
 
+
+
 /*Route::view('dashboard', 'dashboard')
 
 Route::get('/SupplyCenters', function () {
@@ -283,3 +287,22 @@ Route::view('dashboard', 'dashboard')
 //     Route::redirect('settings', 'settings/profile');
 
 require __DIR__.'/auth.php';
+
+
+
+
+// Route::get('warehouses', SupplyCentersController::class);
+// Route::get('warehouses.staff', WorkerController::class);
+Route::get('/SupplyCenters', [SupplyCentersController::class, 'supplycenters'])->name('supplycenters');
+
+
+
+Route::get('/supplycenters', [SupplyCentersController::class, 'supplycenters'])->name('supplycenters.supplycenters');
+Route::post('/supplycenters', [SupplyCentersController::class, 'store'])->name('supplycenters.store');
+Route::patch('/supplycenters/{supplycenter}', [SupplyCentersController::class, 'update'])->name('supplycenters.update');
+Route::delete('/supplycenters/{supplycenters}', [SupplyCentersController::class, 'destroy'])->name('supplycenters.destroy');
+
+Route::post('/supplycenters/{supplycenter}/worker', [SupplyCentersController::class, 'storeWorker'])->name('worker.store');
+Route::patch('/worker/{worker}', [SupplyCentersController::class, 'updateWorker'])->name('worker.update');
+
+
