@@ -18,12 +18,19 @@ class supplierInventoryController extends Controller
         $supplyCenters = SupplyCenter::all();
         $rawCoffeeItems = RawCoffee::all();
         $coffeeProductItems = CoffeeProduct::all();
+        $outOfStock = Inventory::where('quantity_in_stock', 0)->count();
+        $lowStock = Inventory::where('quantity_in_stock', '<', 10)->count();
+        $totalQuantity = Inventory::sum('quantity_in_stock'); 
+
 
 
         return view('Inventory.supplierInventory', compact(
             'rawCoffeeInventory',
             'rawCoffeeItems',
-            'supplyCenters'
+            'supplyCenters',
+            'outOfStock',
+            'lowStock',
+            'totalQuantity'
 
         ));
     }
@@ -59,7 +66,28 @@ class supplierInventoryController extends Controller
         Inventory::destroy($id);
         return redirect()->route('supplierInventory.index')->with('success', 'Item deleted!');
     }
+     public function stats()
+    {
+        $lowStockThreshold = 10;
+
+        $outOfStock = Inventory::where('quantity_in_stock', 0)->count();
+
+        // Calculate low stock for items that are in stock but below the threshold
+        $lowStock = Inventory::where('quantity_in_stock', '>', 0)
+            ->where('quantity_in_stock', '<=', $lowStockThreshold)
+            ->count();
+
+        $totalQuantity = Inventory::sum('quantity_in_stock');
+
+        return response()->json([
+            'outOfStock' => $outOfStock,
+            'lowStock' => $lowStock,
+            'totalQuantity' => number_format($totalQuantity)
+        ]);
+    }
 }
+
+
 
 
 
