@@ -20,8 +20,22 @@ class RawCoffeeSeeder extends Seeder
             Log::warning('Cannot create raw coffee: No suppliers available');
             return;
         }
-          // Create raw coffee entries using existing supplier IDs
-        foreach (range(1, 10) as $i) {
+
+        // Ensure canonical coffee types exist
+        $types = ['Arabica', 'Robusta', 'Liberica'];
+
+        foreach ($types as $type) {
+            RawCoffee::firstOrCreate(
+                ['coffee_type' => $type],   // unique key
+                [
+                    'supplier_id' => $suppliers->random()->id,
+                    'grade'       => 'A',
+                ]
+            );
+        }
+
+        // Create additional raw coffee entries using existing supplier IDs
+        foreach (range(1, 7) as $i) {
             $supplier = $suppliers->random();
             
             if ($supplier) {

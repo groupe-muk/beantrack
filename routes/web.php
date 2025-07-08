@@ -21,6 +21,8 @@ use App\Http\Controllers\SupplyCentersController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\supplierInventoryController;
 use App\Http\Controllers\vendorInventoryController;
+use App\Http\Controllers\WorkerController;
+use App\Models\SupplyCenter;
 
 Route::get('/sample', [columnChartController::class, 'showColumnChart'])->name('column.chart');
 
@@ -53,6 +55,7 @@ Route::middleware(['guest'])->controller(AuthController::class)->group(function 
 Route::middleware(['auth'])->group(function () {
     Route::post('/logout',[AuthController::class, 'logout'])->name('logout');
     Route::get('/dashboard', [dashboardController::class, 'index'])->name('dashboard');
+    Route::get('/dashboard/chart-data', [dashboardController::class, 'getChartData'])->name('dashboard.chart-data');
     // Chat Routes
     Route::get('/chat', [ChatController::class, 'index'])->name('chat.index');
     Route::get('/chat/unread', [ChatController::class, 'getUnreadCount'])->name('chat.unread');
@@ -141,6 +144,7 @@ Route::middleware(['auth'])->group(function () {
         //Inventory routes
         Route::get('/inventory', [InventoryController::class, 'index'])->name('inventory.index');
         Route::post('/inventory', [InventoryController::class, 'store'])->name('inventory.store');
+        Route::get('/inventory/stats', [InventoryController::class, 'stats'])->name('inventory.stats');
 
         // Raw Coffee routes
         Route::patch('/inventory/raw-coffee/{rawCoffee}', [InventoryController::class, 'updateRawCoffee'])->name('inventory.update.rawCoffee');
@@ -214,8 +218,10 @@ Route::middleware(['auth'])->group(function () {
          Route::get('/supplierInventory', [supplierInventoryController::class, 'index'])->name('supplierInventory.index');
          Route::post('/supplierInventory', [supplierInventoryController::class, 'store'])->name('supplierInventory.store');
          Route::patch('/supplierInventory/{rawCoffee}', [supplierInventoryController::class, 'update'])->name('supplierInventory.update');
-        //Route::patch('/inventory/{coffeeProduct}', [InventoryController::class, 'update'])->name('inventory.update');
-        Route::delete('/supplierInventory/{rawCoffee}', [supplierInventoryController::class, 'destroy'])->name('supplierInventory.destroy');
+        // Route::patch('/supplierInventory/{rawCoffee}', [supplierInventoryController::class, 'update'])->name('inventory.update');
+         Route::delete('/supplierInventory/{rawCoffee}', [supplierInventoryController::class, 'destroy'])->name('supplierInventory.destroy');
+         Route::get('/supplierInventory/stats', [supplierInventoryController::class, 'stats'])->name('supplierInventory.stats');
+
 
 });
 
@@ -247,14 +253,18 @@ Route::middleware(['auth'])->group(function () {
        // Vendor inventory routes
         Route::get('/vendorInventory', [vendorInventoryController::class, 'index'])->name('vendorInventory.index');
          Route::post('/vendorInventory', [InventoryController::class, 'store'])->name('vendorInventory.store');
-          Route::patch('/vendorInventory/{processedCoffee}', [vendorInventoryController::class, 'update'])->name('vendorInventory.update');
+          Route::patch('/vendorInventory/{coffeeProduct}', [vendorInventoryController::class, 'update'])->name('vendorInventory.update');
         //Route::patch('/inventory/{coffeeProduct}', [InventoryController::class, 'update'])->name('inventory.update');
-        Route::delete('/inventoryInventory/{processedCoffee}', [supplierInventoryController::class, 'destroy'])->name('vendorInventory.destroy');
+        Route::delete('/inventoryInventory/{coffeeProduct}', [supplierInventoryController::class, 'destroy'])->name('vendorInventory.destroy');
         Route::get('/inventory/{coffeeProduct}/edit', [InventoryController::class, 'edit'])->name('inventory.edit');
-        
+        Route::get('/vendorInventory/stats', [vendorInventoryController::class, 'stats'])->name('vendorInventory.stats');
+
+
 
     });
 }); // Close auth middleware group
+
+
 
 /*Route::view('dashboard', 'dashboard')
 
@@ -277,3 +287,22 @@ Route::view('dashboard', 'dashboard')
 //     Route::redirect('settings', 'settings/profile');
 
 require __DIR__.'/auth.php';
+
+
+
+
+// Route::get('warehouses', SupplyCentersController::class);
+// Route::get('warehouses.staff', WorkerController::class);
+Route::get('/SupplyCenters', [SupplyCentersController::class, 'supplycenters'])->name('supplycenters');
+
+
+
+Route::get('/supplycenters', [SupplyCentersController::class, 'supplycenters'])->name('supplycenters.supplycenters');
+Route::post('/supplycenters', [SupplyCentersController::class, 'store'])->name('supplycenters.store');
+Route::patch('/supplycenters/{supplycenter}', [SupplyCentersController::class, 'update'])->name('supplycenters.update');
+Route::delete('/supplycenters/{supplycenters}', [SupplyCentersController::class, 'destroy'])->name('supplycenters.destroy');
+
+Route::post('/supplycenters/{supplycenter}/worker', [SupplyCentersController::class, 'storeWorker'])->name('worker.store');
+Route::patch('/worker/{worker}', [SupplyCentersController::class, 'updateWorker'])->name('worker.update');
+
+
