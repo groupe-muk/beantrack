@@ -38,4 +38,9 @@ return [
         'url' => env('VALIDATION_SERVER_URL', 'http://localhost:8080'),
         'timeout' => env('VALIDATION_SERVER_TIMEOUT', 30),
     ],
+
+    'price_prediction' => [
+        'url' => env('PRICE_PREDICTION_URL', 'http://localhost:8080/forecast'),
+        'timeout' => env('PRICE_PREDICTION_TIMEOUT', 10),
+    ],
 ];

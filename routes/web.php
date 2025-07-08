@@ -53,6 +53,7 @@ Route::middleware(['guest'])->controller(AuthController::class)->group(function 
 Route::middleware(['auth'])->group(function () {
     Route::post('/logout',[AuthController::class, 'logout'])->name('logout');
     Route::get('/dashboard', [dashboardController::class, 'index'])->name('dashboard');
+    Route::get('/dashboard/chart-data', [dashboardController::class, 'getChartData'])->name('dashboard.chart-data');
     // Chat Routes
     Route::get('/chat', [ChatController::class, 'index'])->name('chat.index');
     Route::get('/chat/unread', [ChatController::class, 'getUnreadCount'])->name('chat.unread');
@@ -141,6 +142,7 @@ Route::middleware(['auth'])->group(function () {
         //Inventory routes
         Route::get('/inventory', [InventoryController::class, 'index'])->name('inventory.index');
         Route::post('/inventory', [InventoryController::class, 'store'])->name('inventory.store');
+        Route::get('/inventory/stats', [InventoryController::class, 'stats'])->name('inventory.stats');
 
         // Raw Coffee routes
         Route::patch('/inventory/raw-coffee/{rawCoffee}', [InventoryController::class, 'updateRawCoffee'])->name('inventory.update.rawCoffee');
@@ -214,8 +216,10 @@ Route::middleware(['auth'])->group(function () {
          Route::get('/supplierInventory', [supplierInventoryController::class, 'index'])->name('supplierInventory.index');
          Route::post('/supplierInventory', [supplierInventoryController::class, 'store'])->name('supplierInventory.store');
          Route::patch('/supplierInventory/{rawCoffee}', [supplierInventoryController::class, 'update'])->name('supplierInventory.update');
-        //Route::patch('/inventory/{coffeeProduct}', [InventoryController::class, 'update'])->name('inventory.update');
-        Route::delete('/supplierInventory/{rawCoffee}', [supplierInventoryController::class, 'destroy'])->name('supplierInventory.destroy');
+        // Route::patch('/supplierInventory/{rawCoffee}', [supplierInventoryController::class, 'update'])->name('inventory.update');
+         Route::delete('/supplierInventory/{rawCoffee}', [supplierInventoryController::class, 'destroy'])->name('supplierInventory.destroy');
+         Route::get('/supplierInventory/stats', [supplierInventoryController::class, 'stats'])->name('supplierInventory.stats');
+
 
 });
 
@@ -247,11 +251,13 @@ Route::middleware(['auth'])->group(function () {
        // Vendor inventory routes
         Route::get('/vendorInventory', [vendorInventoryController::class, 'index'])->name('vendorInventory.index');
          Route::post('/vendorInventory', [InventoryController::class, 'store'])->name('vendorInventory.store');
-          Route::patch('/vendorInventory/{processedCoffee}', [vendorInventoryController::class, 'update'])->name('vendorInventory.update');
+          Route::patch('/vendorInventory/{coffeeProduct}', [vendorInventoryController::class, 'update'])->name('vendorInventory.update');
         //Route::patch('/inventory/{coffeeProduct}', [InventoryController::class, 'update'])->name('inventory.update');
-        Route::delete('/inventoryInventory/{processedCoffee}', [supplierInventoryController::class, 'destroy'])->name('vendorInventory.destroy');
+        Route::delete('/inventoryInventory/{coffeeProduct}', [supplierInventoryController::class, 'destroy'])->name('vendorInventory.destroy');
         Route::get('/inventory/{coffeeProduct}/edit', [InventoryController::class, 'edit'])->name('inventory.edit');
-        
+        Route::get('/vendorInventory/stats', [vendorInventoryController::class, 'stats'])->name('vendorInventory.stats');
+
+
 
     });
 }); // Close auth middleware group

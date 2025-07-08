@@ -20,8 +20,8 @@ return new class extends Migration
             $table->timestamps();
             
             // Foreign key constraints
-            $table->foreign('supplier_id')->references('id')->on('suppliers')->onDelete('cascade');
-            $table->foreign('wholesaler_id')->references('id')->on('wholesalers')->onDelete('cascade');
+            $table->foreign('supplier_id')->references('id')->on('supplier')->onDelete('cascade');
+            $table->foreign('wholesaler_id')->references('id')->on('wholesaler')->onDelete('cascade');
             
             // Check constraint to ensure either supplier_id or wholesaler_id is set, but not both
             $table->index(['supplier_id', 'wholesaler_id']);
