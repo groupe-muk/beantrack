@@ -15,7 +15,7 @@ return new class extends Migration
                 $table->string('location', 255);
                 $table->string('manager', 255)->nullable(); // <-- Add this line
                 $table->decimal('capacity', 10, 2);
-                $table->integer('current_storage_lbs');
+                $table->integer('current_storage_lbs')->default(0);
                 $table->boolean('active')->default(true);
                 $table->timestamps();
         });
