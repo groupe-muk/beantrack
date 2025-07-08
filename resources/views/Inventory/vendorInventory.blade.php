@@ -41,22 +41,26 @@
   <div class="space-y-6">
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 w-full">
     <x-stats-card
-    title="Out Of Stock"
-    value="6"
-    changeText="2 from last week"
-    iconClass="fa-exclamation-triangle"
-    />
-    <x-stats-card
     title="Low Stock Alerts"
-    value="6"
-    changeText="2 from last week"
+    :value="$lowStock"
+    valueId="low-stock-value"
     iconClass="fa-long-arrow-down"
     />
+    
     <x-stats-card
-    title="Total items"
-    value="10"
-    changeText="2 from last week"
+    title="Out Of Stock"
+    :value="$outOfStock"
+    valueId="out-of-stock-value"
+    iconClass="fa-exclamation-triangle"
+    />
+
+    <x-stats-card
+    title="Total Quantity"
+    :value="$totalQuantity"
+    valueId="total-quantity"
+    unit="kg"
     iconClass="fa-cube"
+    />
     />
     </div>
   </div>
@@ -102,6 +106,13 @@
                                 {{ $coffeeProduct->supplyCenter->name }}
                             </td>
                             <td class="px-5 py-5 border-b border-soft-gray dark:border-mild-gray text-sm text-gray-900 dark:text-off-white">
+                             @if ($coffeeProduct->quantity_in_stock > 10)
+                                    <span class="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs">In Stock</span>
+                                @elseif ($coffeeProduct->quantity_in_stock > 0)
+                                    <span class="px-2 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs">Low Stock</span>
+                                @else
+                                    <span class="px-2 py-1 bg-red-100 text-red-700 rounded-full text-xs">Out of Stock</span>
+                                @endif
                             </td>
                             <td class="px-5 py-5 border-b border-soft-gray dark:border-mild-gray text-sm">
                                 <div class="flex items-center space-x-3">
@@ -229,6 +240,103 @@
               sortable: false
           });
       }
+
+
+      function updateStatsCards() {
+    fetch('/vendorInventory/stats')
+        .then(response => response.json())
+        .then(data => {
+            // Update the card values by their IDs or classes
+            document.getElementById('out-of-stock-value').textContent = data.outOfStock || '0';
+            document.getElementById('low-stock-value').textContent = data.lowStock || '0';
+            document.getElementById('total-quantity').textContent = data.totalQuantity;
+
+        })
+        .catch(error => {
+            console.error('Error fetching stats:', error);
+        });
+  }
+  // Call once on page load
+   updateStatsCards();
+   // Refresh every 60 seconds
+   setInterval(updateStatsCards, 60000);
+
+   // Delete Processed Coffee Confirmation
+    const deleteProcessedCoffeeForms = document.querySelectorAll('.delete-CoffeeProduct-form');
+    deleteProcessedCoffeeForms.forEach(form => {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const itemName = form.closest('tr').querySelector('td:nth-child(2)').textContent.trim();
+            
+            if (confirm(`Are you sure you want to delete "${itemName}"? This action cannot be undone.`)) {
+                form.submit();
+            }
+        });
+    });
+
+    // Edit Processed Coffee Buttons
+    const editProcessedCoffeeButtons = document.querySelectorAll('.edit-CoffeeProduct-btn');
+    editProcessedCoffeeButtons.forEach(btn => {
+        btn.addEventListener('click', function() {
+            const itemId = btn.getAttribute('data-coffeeProduct-id');
+            const itemName = btn.getAttribute('data-coffeeProduct-name');
+            const itemCategory = btn.getAttribute('data-coffeeProduct-category');
+            const itemQuantity = btn.getAttribute('data-coffeeProduct-quantity');
+            const itemLocation = btn.getAttribute('data-coffeeProduct-location');
+
+            // Validation
+            if (!itemId || !itemName || !itemCategory || !itemQuantity || !itemLocation) {
+                console.error("Missing processed coffee data:", { itemId, itemName, itemCategory, itemQuantity, itemLocation });
+                alert("Error: Missing item data. Please refresh the page and try again.");
+                return;
+            }
+
+            if (processedCoffeeForm && processedCoffeeModal) {
+                processedCoffeeForm.reset();
+                
+                // Update modal elements
+                const modalTitle = processedCoffeeModal.querySelector('h3');
+                const submitButton = processedCoffeeModal.querySelector('button[type="submit"]');
+                const methodInput = processedCoffeeForm.querySelector('input[name="_method"]');
+                
+                if (modalTitle) modalTitle.textContent = 'Edit Processed Coffee Item';
+                if (submitButton) submitButton.textContent = 'Update Item';
+                
+                // Set form action and method
+                const updateUrl = "{{ route('vendorInventory.update', ['coffeeProduct' => ':id']) }}".replace(':id', encodeURIComponent(itemId));
+                processedCoffeeForm.action = updateUrl;
+                if (methodInput) methodInput.value = 'PATCH';
+
+                // Populate form fields
+                const nameSelect = document.getElementById('coffee-product-name');
+                const categoryInput = document.getElementById('coffee-product-category');
+                const quantityInput = document.getElementById('coffee-product-quantity');
+                const warehouseSelect = document.getElementById('processedCoffeeWarehouse');
+                
+                if (nameSelect) nameSelect.value = itemId;
+                if (categoryInput) categoryInput.value = itemCategory;
+                if (quantityInput) quantityInput.value = itemQuantity;
+                if (warehouseSelect) {
+                    // Find warehouse by name and set the value
+                    for (let option of warehouseSelect.options) {
+                        if (option.text === itemLocation) {
+                            warehouseSelect.value = option.value;
+                            break;
+                        }
+                    }
+                }
+
+                // Open modal
+                processedCoffeeModal.classList.remove('hidden');
+                processedCoffeeModal.classList.add('flex');
+                document.body.style.overflow = 'hidden';
+            }
+        });
+    });
+
+
+    
       
        </script>
 @endpush

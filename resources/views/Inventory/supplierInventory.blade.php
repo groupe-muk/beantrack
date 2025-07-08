@@ -43,22 +43,23 @@
     <x-stats-card
     title="Out Of Stock"
     value="6"
-    changeText="2 from last week"
+    :valueId="$outOfStock"
     iconClass="fa-exclamation-triangle"
     />
     <x-stats-card
     title="Low Stock Alerts"
     value="6"
-    changeText="2 from last week"
+    :valueId="$lowStock"
     iconClass="fa-long-arrow-down"
     />
     <x-stats-card
-    title="Total Value"
-    value="13,907.56"
-    unit="Ugx"
-    changeText="2 from last week"
+    title="Total Quantity"
+    :value="$totalQuantity"
+    valueId="total-quantity"
+    unit="kg"
     iconClass="fa-cube"
     />
+    
     </div>
   </div>
    <!-- Inventory Table -->
@@ -102,7 +103,13 @@
                                 {{ $rawCoffee->supplyCenter->name }}
                             </td>
                             <td class="px-5 py-5 border-b border-soft-gray dark:border-mild-gray text-sm text-gray-900 dark:text-off-white">
-                            </td>
+                                @if ($rawCoffee->quantity_in_stock > 10)
+                                    <span class="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs">In Stock</span>
+                                @elseif ($rawCoffee->quantity_in_stock > 0)
+                                    <span class="px-2 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs">Low Stock</span>
+                                @else
+                                    <span class="px-2 py-1 bg-red-100 text-red-700 rounded-full text-xs">Out of Stock</span>
+                                @endif
                             <td class="px-5 py-5 border-b border-soft-gray dark:border-mild-gray text-sm">
                                 <div class="flex items-center space-x-3">
                                     {{-- Edit button --}}
@@ -218,7 +225,7 @@
     </form>
 </x-modal> 
 
-@endsection
+
 
 @push('scripts')
   <script>
@@ -230,5 +237,160 @@
               sortable: false
           });
       }
+
+      function updateStatsCards() {
+    fetch('/supplierInventory/stats')
+        .then(response => response.json())
+        .then(data => {
+            // Update the card values by their IDs or classes
+            document.getElementById('out-of-stock-value').textContent = data.outOfStock || '0';
+            document.getElementById('low-stock-value').textContent = data.lowStock || '0';
+            document.getElementById('total-quantity').textContent = data.totalQuantity;
+
+        })
+        .catch(error => {
+            console.error('Error fetching stats:', error);
+        });
+  }
+  // Call once on page load
+   updateStatsCards();
+   // Refresh every 60 seconds
+   setInterval(updateStatsCards, 60000);
+    
+    // --- Essential Modal and Form Elements ---
+    // Delete Raw Coffee Confirmation
+    const deleteRawCoffeeForms = document.querySelectorAll('.delete-RawCoffee-form');
+    deleteRawCoffeeForms.forEach(form => {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const itemName = form.closest('tr').querySelector('td:nth-child(2)').textContent.trim();
+            
+            if (confirm(`Are you sure you want to delete "${itemName}"? This action cannot be undone.`)) {
+                form.submit();
+            }
+        });
+    });
+    const rawCoffeeModal = document.getElementById('addRawCoffeeModal');
+    const rawCoffeeForm = document.getElementById('addRawCoffeeForm');
+    // Add Raw Coffee Button
+    const addRawCoffeeButton = document.querySelector('button[data-modal-open="addRawCoffeeModal"]');
+
+    // Edit Raw Coffee Buttons
+    const editRawCoffeeButtons = document.querySelectorAll('.edit-RawCoffee-btn');
+    editRawCoffeeButtons.forEach(btn => {
+        btn.addEventListener('click', function() {
+            const itemId = btn.getAttribute('data-rawCoffee-id');
+            const itemName = btn.getAttribute('data-rawCoffee-name');
+            const itemGrade = btn.getAttribute('data-rawCoffee-grade');
+            const itemQuantity = btn.getAttribute('data-rawCoffee-quantity');
+            const itemLocation = btn.getAttribute('data-rawCoffee-location');
+
+            // Validation
+            if (!itemId || !itemName || !itemGrade || !itemQuantity || !itemLocation) {
+                console.error("Missing raw coffee data:", { itemId, itemName, itemGrade, itemQuantity, itemLocation });
+                alert("Error: Missing item data. Please refresh the page and try again.");
+                return;
+            }
+
+            if (rawCoffeeForm && rawCoffeeModal) {
+                rawCoffeeForm.reset();
+                
+                 // Update modal title and button text
+                const modalTitle = rawCoffeeModal.querySelector('h3');
+                const submitButton = rawCoffeeModal.querySelector('button[type="submit"]');
+                const methodInput = rawCoffeeForm.querySelector('input[name="_method"]');
+                
+                if (modalTitle) modalTitle.textContent = 'Edit Raw Coffee Item';
+                if (submitButton) submitButton.textContent = 'Update Item';
+                
+                // Set form action and method
+                const updateUrl = "{{ route('supplierInventory.update', ['rawCoffee' => ':id']) }}".replace(':id', encodeURIComponent(itemId));
+                rawCoffeeForm.action = updateUrl;
+                if (methodInput) methodInput.value = 'PATCH';
+
+                // Populate form fields
+                const nameSelect = document.getElementById('raw-coffee-name');
+                const gradeInput = document.getElementById('rawCoffeeGrade');
+                const quantityInput = document.getElementById('rawCoffeeQuantity');
+                const warehouseSelect = document.getElementById('coffeeProductWarehouse');
+                
+                if (nameSelect) nameSelect.value = itemId;
+                if (gradeInput) gradeInput.value = itemGrade;
+                if (quantityInput) quantityInput.value = itemQuantity;
+                if (warehouseSelect) {
+                    // Find warehouse by name and set the value
+                    for (let option of warehouseSelect.options) {
+                        if (option.text === itemLocation) {
+                            warehouseSelect.value = option.value;
+                            break;
+                        }
+                    }
+                }
+
+                // Open modal
+                rawCoffeeModal.classList.remove('hidden');
+                rawCoffeeModal.classList.add('flex');
+                document.body.style.overflow = 'hidden';
+            }
+        });
+    });
+
+
+    if (addRawCoffeeButton && rawCoffeeModal && rawCoffeeForm) {
+        addRawCoffeeButton.addEventListener('click', function() {
+            rawCoffeeForm.reset();
+            
+            // Update modal title and button text
+            const modalTitle = rawCoffeeModal.querySelector('h3');
+            const submitButton = rawCoffeeModal.querySelector('button[type="submit"]');
+            const methodInput = rawCoffeeForm.querySelector('input[name="_method"]');
+            
+            if (modalTitle) modalTitle.textContent = 'Add New Raw Coffee Item';
+            if (submitButton) submitButton.textContent = 'Add Item';
+            
+            rawCoffeeForm.action = "{{ route('supplierInventory.store') }}";
+            if (methodInput) methodInput.value = 'POST';
+
+            // Open modal
+            rawCoffeeModal.classList.remove('hidden');
+            rawCoffeeModal.classList.add('flex');
+            document.body.style.overflow = 'hidden';
+        });
+    }
+
+    function setupModalClose(modal) {
+        if (!modal) return;
+        
+        // Close on backdrop click
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+                document.body.style.overflow = 'auto';
+            }
+        });
+        
+        // Close on escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && !modal.classList.contains('hidden')) {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+                document.body.style.overflow = 'auto';
+            }
+        });
+        
+        // Close on cancel button
+        const cancelButton = modal.querySelector('button[data-modal-close]');
+        if (cancelButton) {
+            cancelButton.addEventListener('click', function() {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+                document.body.style.overflow = 'auto';
+            });
+        }
+    }
+      setupModalClose(rawCoffeeModal);
       </script>
 @endpush
+@endsection

@@ -13,13 +13,9 @@ class SupplyCenter extends Model
     protected $keyType = 'string';
     public $incrementing = false;
     protected $fillable = [
-        'id', 'name', 'location', 'manager','capacity'
+        'id', 'name', 'location', 'capacity', 'created_at', 'updated_at'
     ];
-    
-    // Corrected relationship: plural and correct class name
-    public function workers() {
-        return $this->hasMany(Worker::class, 'supply_center_id');
-     }
+
     public function suppliers()
     {
         return $this->hasMany(Supplier::class, 'supply_center_id');

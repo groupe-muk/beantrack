@@ -176,6 +176,11 @@ class DatabaseSeeder extends Seeder
             }
         }
         
+        // Seed price histories for products
+        $this->call([
+            PriceHistorySeeder::class,
+        ]);
+        
         // For now, we're only using the FixedSeeder to ensure that 
         // users, supply centers, suppliers, and wholesalers are created correctly
         // This satisfies the chat functionality requirements
