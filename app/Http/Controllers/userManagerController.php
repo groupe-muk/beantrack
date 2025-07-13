@@ -7,6 +7,7 @@ use App\Models\VendorApplication;
 use App\Models\Supplier;
 use App\Models\Wholesaler;
 use App\Models\SupplyCenter;
+use App\Services\VendorValidationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
@@ -219,28 +220,85 @@ class userManagerController extends Controller
 
         try {
             $application = VendorApplication::findOrFail($applicationId);
+            $previousStatus = $application->status;
             
+            // Update application status and validation message
             $application->update([
                 'status' => $validatedData['status'],
-                'validation_message' => 'Status updated by administrator'
+                'validation_message' => $this->getStatusUpdateMessage($validatedData['status'])
             ]);
 
-            // Send email notification if rejected
+            // Handle status-specific actions
             if ($validatedData['status'] === 'rejected') {
-                $this->sendRejectionEmail($application, $request->input('rejection_reason'));
+                // Send rejection email using the VendorValidationService
+                app(VendorValidationService::class)->rejectApplication($application, $request->input('rejection_reason'));
+            } elseif ($validatedData['status'] === 'approved' && $previousStatus !== 'approved') {
+                // Auto-create user account when status is changed to approved
+                try {
+                    $this->autoCreateVendorAccount($application);
+                } catch (\Exception $e) {
+                    // Log the error but don't fail the status update
+                    \Log::error('Failed to auto-create vendor account after approval', [
+                        'application_id' => $application->id,
+                        'error' => $e->getMessage()
+                    ]);
+                    
+                    return response()->json([
+                        'success' => true,
+                        'message' => 'Application status updated successfully, but failed to auto-create user account. Please create manually.',
+                        'warning' => 'Auto-creation failed: ' . $e->getMessage()
+                    ]);
+                }
             }
 
             return response()->json([
                 'success' => true,
-                'message' => 'Application status updated successfully'
+                'message' => $this->getSuccessMessage($validatedData['status'], $previousStatus)
             ]);
 
         } catch (\Exception $e) {
+            \Log::error('Failed to update vendor application status', [
+                'application_id' => $applicationId,
+                'error' => $e->getMessage()
+            ]);
+            
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to update application status'
             ], 500);
         }
+    }
+
+    /**
+     * Get appropriate validation message for status update
+     */
+    private function getStatusUpdateMessage(string $status): string
+    {
+        return match ($status) {
+            'pending' => 'Status updated to pending by administrator',
+            'under_review' => 'Application is under review by administrator',
+            'approved' => 'Application approved by administrator',
+            'rejected' => 'Application rejected by administrator',
+            default => 'Status updated by administrator'
+        };
+    }
+
+    /**
+     * Get appropriate success message for status update
+     */
+    private function getSuccessMessage(string $newStatus, string $previousStatus): string
+    {
+        if ($newStatus === 'approved' && $previousStatus !== 'approved') {
+            return 'Application approved and vendor account created successfully';
+        }
+        
+        return match ($newStatus) {
+            'rejected' => 'Application rejected successfully. Rejection email has been sent to the applicant.',
+            'approved' => 'Application approved successfully',
+            'under_review' => 'Application moved to under review',
+            'pending' => 'Application moved back to pending',
+            default => 'Application status updated successfully'
+        };
     }
 
     /**
@@ -259,20 +317,23 @@ class userManagerController extends Controller
         try {
             $application = VendorApplication::findOrFail($applicationId);
             
-            $application->update([
-                'status' => 'rejected',
-                'validation_message' => $validatedData['rejection_reason'] ?? 'Application rejected by administrator'
-            ]);
-
-            // Send rejection email
-            $this->sendRejectionEmail($application, $validatedData['rejection_reason']);
+            // Ensure rejection reason is properly handled (convert empty string to null)
+            $rejectionReason = !empty($validatedData['rejection_reason']) ? $validatedData['rejection_reason'] : null;
+            
+            // Use the VendorValidationService to handle rejection and email sending
+            app(VendorValidationService::class)->rejectApplication($application, $rejectionReason);
 
             return response()->json([
                 'success' => true,
-                'message' => 'Application rejected successfully'
+                'message' => 'Application rejected successfully. Rejection email has been sent to the applicant.'
             ]);
 
         } catch (\Exception $e) {
+            \Log::error('Failed to reject vendor application', [
+                'application_id' => $applicationId,
+                'error' => $e->getMessage()
+            ]);
+            
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to reject application'
@@ -354,49 +415,6 @@ class userManagerController extends Controller
                 'success' => false,
                 'message' => 'Failed to add vendor to system: ' . $e->getMessage()
             ], 500);
-        }
-    }
-
-    /**
-     * Send rejection email notification
-     */
-    private function sendRejectionEmail(VendorApplication $application, $reason = null)
-    {
-        try {
-            // Send email to Java validation server for processing
-            $emailData = [
-                'type' => 'rejection',
-                'email' => $application->email,
-                'applicantName' => $application->applicant_name,
-                'businessName' => $application->business_name,
-                'reason' => $reason ?? 'Your application did not meet our requirements.'
-            ];
-
-            \Log::info('Sending rejection email data to Java server', $emailData);
-
-            // Call Java server email endpoint using form data
-            $response = Http::timeout(10)
-                ->asForm()
-                ->post(config('services.validation_server.url', 'http://localhost:8081') . '/api/vendors/send-email', $emailData);
-
-            \Log::info('Java server response for rejection email', [
-                'status' => $response->status(),
-                'body' => $response->body()
-            ]);
-
-            if ($response->failed()) {
-                \Log::error('Java server returned error for rejection email', [
-                    'status' => $response->status(),
-                    'body' => $response->body()
-                ]);
-            }
-
-        } catch (\Exception $e) {
-            \Log::error('Failed to send rejection email', [
-                'application_id' => $application->id,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
         }
     }
 
@@ -539,6 +557,89 @@ class userManagerController extends Controller
             // Don't fail the user creation, but we could optionally flash an error message
             // session()->flash('warning', 'User created but there was an issue creating the associated record. Please contact support.');
         }
+    }
+
+    /**
+     * Automatically create vendor account when application is approved
+     */
+    private function autoCreateVendorAccount(VendorApplication $application)
+    {
+        // Check if user already exists
+        if ($application->created_user_id) {
+            \Log::info('User account already exists for application', [
+                'application_id' => $application->id,
+                'user_id' => $application->created_user_id
+            ]);
+            return; // Already created, skip
+        }
+
+        // Generate a secure random password
+        $temporaryPassword = $this->generateSecurePassword();
+
+        // Generate next user ID
+        $lastUser = User::orderBy('id', 'desc')->first();
+        $nextIdNumber = $lastUser ? intval(substr($lastUser->id, 1)) + 1 : 1;
+        $nextUserId = 'U' . str_pad($nextIdNumber, 5, '0', STR_PAD_LEFT);
+
+        \Log::info('Auto-creating vendor account', [
+            'application_id' => $application->id,
+            'next_user_id' => $nextUserId,
+            'email' => $application->email
+        ]);
+
+        // Create user account
+        $user = User::create([
+            'id' => $nextUserId,
+            'name' => $application->applicant_name,
+            'email' => $application->email,
+            'password' => Hash::make($temporaryPassword),
+            'role' => 'vendor',
+            'phone' => $application->phone_number
+        ]);
+
+        // Link application to user
+        $application->update([
+            'created_user_id' => $user->id
+        ]);
+
+        // Create wholesaler record for vendor
+        $this->createRoleSpecificRecord($user);
+
+        // Send welcome email with login credentials
+        $this->sendWelcomeEmail($application, $user, $temporaryPassword);
+
+        \Log::info('Vendor account auto-created successfully', [
+            'application_id' => $application->id,
+            'user_id' => $user->id,
+            'email' => $user->email
+        ]);
+    }
+
+    /**
+     * Generate a secure random password
+     */
+    private function generateSecurePassword($length = 12)
+    {
+        $lowercase = 'abcdefghijklmnopqrstuvwxyz';
+        $uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        $numbers = '0123456789';
+        $symbols = '!@#$%&*';
+        
+        // Ensure at least one character from each type
+        $password = '';
+        $password .= $lowercase[random_int(0, strlen($lowercase) - 1)];
+        $password .= $uppercase[random_int(0, strlen($uppercase) - 1)];
+        $password .= $numbers[random_int(0, strlen($numbers) - 1)];
+        $password .= $symbols[random_int(0, strlen($symbols) - 1)];
+        
+        // Fill the rest with random characters
+        $allChars = $lowercase . $uppercase . $numbers . $symbols;
+        for ($i = 4; $i < $length; $i++) {
+            $password .= $allChars[random_int(0, strlen($allChars) - 1)];
+        }
+        
+        // Shuffle the password
+        return str_shuffle($password);
     }
 }
 

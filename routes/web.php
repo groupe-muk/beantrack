@@ -127,6 +127,7 @@ Route::middleware(['auth'])->group(function () {
         Route::post('admin/vendor-applications/{application}/update-status', [userManagerController::class, 'updateVendorApplicationStatus'])->name('admin.vendor-applications.update-status');
         Route::post('admin/vendor-applications/{application}/reject', [userManagerController::class, 'rejectVendorApplication'])->name('admin.vendor-applications.reject-status');
         Route::post('admin/vendor-applications/{application}/add-to-system', [userManagerController::class, 'addVendorToSystem'])->name('admin.vendor-applications.add-to-system');
+        Route::post('admin/vendor-applications/{application}/retry-validation', [VendorApplicationController::class, 'retryValidation'])->name('admin.vendor-applications.retry-validation');
       
        // Order routes
         Route::prefix('orders')->name('orders.')->group(function () {
@@ -177,6 +178,12 @@ Route::middleware(['auth'])->group(function () {
             Route::get('/historical', [App\Http\Controllers\ReportController::class, 'getHistoricalReports'])->name('reports.historical');
             Route::get('/templates', [App\Http\Controllers\ReportController::class, 'getTemplates'])->name('reports.templates');
             Route::get('/recipients', [App\Http\Controllers\ReportController::class, 'getRecipients'])->name('reports.recipients');
+            
+            // Recipient CRUD operations
+            Route::post('/recipients', [App\Http\Controllers\ReportController::class, 'storeRecipient'])->name('reports.recipients.store');
+            Route::put('/recipients/{id}', [App\Http\Controllers\ReportController::class, 'updateRecipient'])->name('reports.recipients.update');
+            Route::delete('/recipients/{id}', [App\Http\Controllers\ReportController::class, 'deleteRecipient'])->name('reports.recipients.delete');
+            
             Route::post('/', [App\Http\Controllers\ReportController::class, 'store'])->name('reports.store');
             Route::post('/adhoc', [App\Http\Controllers\ReportController::class, 'generateAdhocReport'])->name('reports.adhoc');
             Route::get('/{report}/edit', [App\Http\Controllers\ReportController::class, 'edit'])->name('reports.edit');
