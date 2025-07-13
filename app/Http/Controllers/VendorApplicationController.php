@@ -276,7 +276,7 @@ class VendorApplicationController extends Controller
         $this->authorize('update', $application);
 
         $validator = Validator::make($request->all(), [
-            'reason' => 'nullable|string|max:1000'
+            'rejection_reason' => 'nullable|string|max:1000'
         ]);
 
         if ($validator->fails()) {
@@ -287,11 +287,12 @@ class VendorApplicationController extends Controller
         }
 
         try {
-            $this->validationService->rejectApplication($application, $request->reason);
+            // Use the validation service to handle rejection and email sending
+            $this->validationService->rejectApplication($application, $request->rejection_reason);
 
             return response()->json([
                 'success' => true,
-                'message' => 'Application rejected successfully'
+                'message' => 'Application rejected successfully. Rejection email has been sent to the applicant.'
             ]);
 
         } catch (Exception $e) {

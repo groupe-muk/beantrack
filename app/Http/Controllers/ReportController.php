@@ -32,6 +32,120 @@ class ReportController extends Controller
     }
 
     /**
+     * Generate role-based report title
+     */
+    private function generateRoleBasedTitle($baseTitle, ?User $user = null)
+    {
+        if (!$user) {
+            return $baseTitle;
+        }
+
+        switch ($user->role) {
+            case 'admin':
+                return 'Factory ' . $baseTitle;
+            case 'supplier':
+                return 'Supplier ' . $baseTitle;
+            case 'vendor':
+                return 'Vendor ' . $baseTitle;
+            default:
+                return $baseTitle;
+        }
+    }
+
+    /**
+     * Format money columns by updating headers to include currency
+     */
+    private function formatMoneyColumns($data, $currency = '$')
+    {
+        if (empty($data) || !is_array($data)) {
+            return $data;
+        }
+
+        // Get headers (first row)
+        $headers = $data[0] ?? [];
+        $dataRows = array_slice($data, 1);
+
+        // Map of columns that should have currency in header
+        $moneyColumns = [
+            'Revenue' => "Revenue ({$currency})",
+            'Total Price' => "Total Price ({$currency})",
+            'Total Amount' => "Total Amount ({$currency})",
+            'Amount' => "Amount ({$currency})",
+            'Unit Price' => "Unit Price ({$currency})",
+            'Price' => "Price ({$currency})",
+            'Total' => "Total ({$currency})",
+            'Cost' => "Cost ({$currency})",
+            'Value' => "Value ({$currency})"
+        ];
+
+        // Update headers and identify money column indices
+        $moneyColumnIndices = [];
+        foreach ($headers as $index => $header) {
+            if (isset($moneyColumns[$header])) {
+                $headers[$index] = $moneyColumns[$header];
+                $moneyColumnIndices[] = $index;
+            }
+        }
+
+        // Remove currency symbols from data values in money columns
+        foreach ($dataRows as &$row) {
+            foreach ($moneyColumnIndices as $columnIndex) {
+                if (isset($row[$columnIndex]) && is_string($row[$columnIndex])) {
+                    // Remove currency symbols ($ and UGX) and format as number
+                    $cleanValue = preg_replace('/[\$UGX,\s]/', '', $row[$columnIndex]);
+                    // Ensure it's still a valid number
+                    if (is_numeric($cleanValue)) {
+                        $row[$columnIndex] = number_format((float)$cleanValue, 2);
+                    }
+                }
+            }
+        }
+
+        // Reconstruct the data array
+        return array_merge([$headers], $dataRows);
+    }
+
+    /**
+     * Replace ID columns with serial numbers for better readability
+     */
+    private function addSerialNumbers($data)
+    {
+        if (empty($data) || !is_array($data)) {
+            return $data;
+        }
+
+        // Get headers (first row)
+        $headers = $data[0] ?? [];
+        $dataRows = array_slice($data, 1);
+
+        // Replace common ID column names with "S/N"
+        $idColumns = ['Order ID', 'Product ID', 'ID', 'Batch ID', 'Item ID', 'Transaction ID'];
+        
+        foreach ($headers as $index => $header) {
+            if (in_array($header, $idColumns)) {
+                $headers[$index] = 'S/N';
+                break; // Only replace the first ID column found
+            }
+        }
+
+        // Add serial numbers to data rows
+        foreach ($dataRows as $index => &$row) {
+            // Find the first column that was an ID column and replace with serial number
+            foreach ($idColumns as $idColumn) {
+                $originalHeaders = $data[0] ?? [];
+                $idColumnIndex = array_search($idColumn, $originalHeaders);
+                if ($idColumnIndex !== false) {
+                    $row[$idColumnIndex] = $index + 1; // Serial number starting from 1
+                    break; // Only replace the first ID column found
+                }
+            }
+        }
+
+        // Reconstruct the data array
+        return array_merge([$headers], $dataRows);
+    }
+
+    /**
      * Display the main reports dashboard
      */
     public function index()
@@ -741,7 +855,7 @@ class ReportController extends Controller
     }
 
     /**
-     * Get available recipients
+     * Get available recipients - simplified to only return individual users
      */
     public function getRecipients(Request $request)
     {
@@ -757,9 +871,7 @@ class ReportController extends Controller
                         'email' => $currentUser->email,
                         'role' => $currentUser->role
                     ]
-                ],
-                'internal_roles' => [], // No roles for suppliers
-                'suppliers' => []       // No other suppliers
+                ]
             ]);
         }
 
@@ -773,34 +885,16 @@ class ReportController extends Controller
                         'email' => $currentUser->email,
                         'role' => $currentUser->role
                     ]
-                ],
-                'internal_roles' => [], // No roles for vendors
-                'suppliers' => []       // No other suppliers
+                ]
             ]);
         }
 
-        // For admins, return all internal recipients
-        $internalRoles = [
-            'Finance Dept',
-            'Logistics Team',
-            'Production Team',
-            'Sales Team',
-            'Management',
-            'Quality Team',
-            'Compliance',
-            'Warehouse Team'
-        ];
-
-        $suppliers = Supplier::select('id', 'name')->get();
-        
-        // Only get users with 'admin' role, excluding 'supplier' and 'vendor' roles
+        // For admins, return all admin users - no department roles, just individual users
         $users = User::select('id', 'name', 'email', 'role')
-            ->where('role', '=', 'admin')
+            ->whereNotIn('role', ['supplier', 'vendor'])
             ->get();
 
         return response()->json([
-            'internal_roles' => $internalRoles,
-            'suppliers' => $suppliers,
             'users' => $users
         ]);
     }
@@ -1296,22 +1390,27 @@ class ReportController extends Controller
         $totalOrders = $orders->count();
         $avgOrderValue = $totalOrders > 0 ? $totalSales / $totalOrders : 0;
 
-        $data = [['Date', 'Product', 'Quantity', 'Revenue', 'Customer']];
+        $data = [['Order ID', 'Date', 'Product', 'Quantity', 'Revenue', 'Customer']];
         foreach ($orders as $order) {
             $productName = $order->coffeeProduct ? $order->coffeeProduct->name : 
                           ($order->rawCoffee ? $order->rawCoffee->type : 'Unknown Product');
             
             $data[] = [
+                $order->id,
                 $order->order_date ? $order->order_date->format('Y-m-d') : 'N/A',
                 $productName,
                 $order->quantity ?? 0,
-                '$' . number_format($order->total_amount ?? 0, 2),
+                number_format($order->total_amount ?? 0, 2),
                 $order->wholesaler ? $order->wholesaler->name : 'N/A'
             ];
         }
 
+        // Apply formatting helpers
+        $data = $this->formatMoneyColumns($data);
+        $data = $this->addSerialNumbers($data);
+
         return [
-            'title' => 'Sales Data Report',
+            'title' => $this->generateRoleBasedTitle('Sales Data Report', $user),
             'period' => $fromDate . ' to ' . $toDate,
             'summary' => [
                 'total_sales' => '$' . number_format($totalSales, 2),
@@ -1364,7 +1463,7 @@ class ReportController extends Controller
         }
 
         return [
-            'title' => 'Inventory Movements Report',
+            'title' => $this->generateRoleBasedTitle('Inventory Movements Report', $user),
             'period' => $fromDate . ' to ' . $toDate,
             'summary' => [
                 'total_movements' => $totalMovements,
@@ -1411,13 +1510,17 @@ class ReportController extends Controller
                 $order->wholesaler ? $order->wholesaler->name : 'N/A',
                 $order->order_date ? $order->order_date->format('Y-m-d') : 'N/A',
                 ucfirst($order->status ?? 'unknown'),
-                '$' . number_format($order->total_amount ?? 0, 2),
+                number_format($order->total_amount ?? 0, 2),
                 $productName
             ];
         }
 
+        // Apply formatting helpers
+        $data = $this->formatMoneyColumns($data);
+        $data = $this->addSerialNumbers($data);
+
         return [
-            'title' => 'Order History Report',
+            'title' => $this->generateRoleBasedTitle('Order History Report', $user),
             'period' => $fromDate . ' to ' . $toDate,
             'summary' => [
                 'total_orders' => $totalOrders,
@@ -1461,8 +1564,12 @@ class ReportController extends Controller
             ];
         }
 
+        // Apply formatting helpers
+        $data = $this->formatMoneyColumns($data);
+        $data = $this->addSerialNumbers($data);
+
         return [
-            'title' => 'Production Batches Report',
+            'title' => $this->generateRoleBasedTitle('Production Batches Report', $user),
             'period' => $fromDate . ' to ' . $toDate,
             'summary' => [
                 'total_batches' => $totalBatches,
@@ -1505,7 +1612,7 @@ class ReportController extends Controller
         }
 
         return [
-            'title' => 'Supplier Performance Report',
+            'title' => $this->generateRoleBasedTitle('Performance Report', $user),
             'period' => $fromDate . ' to ' . $toDate,
             'summary' => [
                 'total_suppliers' => $suppliers->count(),
@@ -1558,7 +1665,7 @@ class ReportController extends Controller
             }
 
             return [
-                'title' => 'Quality Control Report',
+                'title' => $this->generateRoleBasedTitle('Quality Control Report', $user),
                 'period' => $fromDate . ' to ' . $toDate,
                 'summary' => [
                     'total_products' => $products->count(),
@@ -1571,7 +1678,7 @@ class ReportController extends Controller
         } catch (\Exception $e) {
             // Fallback if there are database issues
             return [
-                'title' => 'Quality Control Report',
+                'title' => $this->generateRoleBasedTitle('Quality Control Report', $user),
                 'period' => $fromDate . ' to ' . $toDate,
                 'summary' => [
                     'total_products' => 0,
@@ -1911,7 +2018,7 @@ class ReportController extends Controller
             'Vendor Deliveries Report' => 'vendor_deliveries',
             'Vendor Payments Report' => 'vendor_payments',
             'Vendor Inventory Report' => 'vendor_inventory',
-            // Supplier templates
+                       // Supplier templates
             'Supplier Inventory Report' => 'supplier_inventory',
             'Supplier Orders Report' => 'supplier_orders',
             'Supplier Quality Report' => 'quality_metrics',
@@ -2070,14 +2177,18 @@ class ReportController extends Controller
                 $order->supplier->name ?? 'N/A',
                 $order->coffeeProduct->name ?? $order->rawCoffee->name ?? 'N/A',
                 $order->quantity ?? 0,
-                '$' . number_format($order->unit_price ?? 0, 2),
-                '$' . number_format($order->total_amount ?? 0, 2),
+                number_format($order->unit_price ?? 0, 2),
+                number_format($order->total_amount ?? 0, 2),
                 $order->status ?? 'N/A'
             ];
         }
 
+        // Apply formatting helpers
+        $data = $this->formatMoneyColumns($data);
+        $data = $this->addSerialNumbers($data);
+
         return [
-            'title' => 'Vendor Purchases Report',
+            'title' => $this->generateRoleBasedTitle('Purchases Report', $user),
             'period' => $fromDate . ' to ' . $toDate,
             'summary' => [
                 'total_spent' => '$' . number_format($totalAmount, 2),
@@ -2122,15 +2233,19 @@ class ReportController extends Controller
                 $order->supplier->name ?? 'N/A',
                 $order->coffeeProduct->name ?? $order->rawCoffee->name ?? 'N/A',
                 $order->quantity ?? 0,
-                '$' . number_format($order->unit_price ?? 0, 2),
-                '$' . number_format($order->total_amount ?? 0, 2),
+                number_format($order->unit_price ?? 0, 2),
+                number_format($order->total_amount ?? 0, 2),
                 $order->status ?? 'N/A',
                 $order->delivery_date ? $order->delivery_date->format('Y-m-d') : 'N/A'
             ];
         }
 
+        // Apply formatting helpers
+        $data = $this->formatMoneyColumns($data);
+        $data = $this->addSerialNumbers($data);
+
         return [
-            'title' => 'Vendor Orders Report',
+            'title' => $this->generateRoleBasedTitle('Orders Report', $user),
             'period' => $fromDate . ' to ' . $toDate,
             'summary' => [
                 'total_value' => '$' . number_format($totalAmount, 2),
@@ -2196,8 +2311,11 @@ class ReportController extends Controller
                 ];
             }
 
+            // Apply formatting helpers
+            $data = $this->addSerialNumbers($data);
+
             return [
-                'title' => 'Vendor Deliveries Report',
+                'title' => $this->generateRoleBasedTitle('Deliveries Report', $user),
                 'period' => $fromDate . ' to ' . $toDate,
                 'summary' => [
                     'total_deliveries' => $totalDeliveries,
@@ -2210,7 +2328,7 @@ class ReportController extends Controller
         } catch (\Exception $e) {
             // Fallback if there are database issues
             return [
-                'title' => 'Vendor Deliveries Report',
+                'title' => $this->generateRoleBasedTitle('Deliveries Report', $user),
                 'period' => $fromDate . ' to ' . $toDate,
                 'summary' => [
                     'total_deliveries' => 0,
@@ -2260,25 +2378,29 @@ class ReportController extends Controller
             $totalPayments = $orders->count();
             $avgPaymentAmount = $totalPayments > 0 ? $totalAmount / $totalPayments : 0;
 
-            $data = [['Order ID', 'Payment Date', 'Supplier', 'Product', 'Amount', 'Payment Method', 'Status']];
+            $data = [['S/N', 'Payment Date', 'Supplier', 'Product', 'Amount', 'Payment Method', 'Status']];
+            $serialNumber = 1;
             foreach ($orders as $order) {
                 $paymentDate = $hasPaymentDate ? 
                     ($order->payment_date ? $order->payment_date->format('Y-m-d') : 'N/A') :
                     $order->order_date->format('Y-m-d');
                     
                 $data[] = [
-                    $order->id,
+                    $serialNumber++,
                     $paymentDate,
                     $order->supplier->name ?? 'N/A',
                     $order->coffeeProduct->name ?? $order->rawCoffee->name ?? 'N/A',
-                    '$' . number_format($order->total_amount ?? 0, 2),
+                    number_format($order->total_amount ?? 0, 2),
                     $order->payment_method ?? 'Bank Transfer',
                     $order->payment_status ?? ($order->status == 'completed' ? 'Paid' : 'Pending')
                 ];
             }
 
+            // Format money columns to show currency in headers
+            $data = $this->formatMoneyColumns($data);
+
             return [
-                'title' => 'Vendor Payments Report',
+                'title' => $this->generateRoleBasedTitle('Payments Report', $user),
                 'period' => $fromDate . ' to ' . $toDate,
                 'summary' => [
                     'total_paid' => '$' . number_format($totalAmount, 2),
@@ -2291,7 +2413,7 @@ class ReportController extends Controller
         } catch (\Exception $e) {
             // Fallback if there are database issues
             return [
-                'title' => 'Vendor Payments Report',
+                'title' => $this->generateRoleBasedTitle('Payments Report', $user),
                 'period' => $fromDate . ' to ' . $toDate,
                 'summary' => [
                     'total_paid' => '$0.00',
@@ -2299,8 +2421,8 @@ class ReportController extends Controller
                     'average_payment' => '$0.00',
                     'vendor_name' => $user ? $user->name : 'N/A'
                 ],
-                'data' => [['Order ID', 'Payment Date', 'Supplier', 'Product', 'Amount', 'Payment Method', 'Status'],
-                           ['No data available', 'N/A', 'N/A', 'N/A', 'N/A', 'N/A', 'N/A']]
+                'data' => [['S/N', 'Payment Date', 'Supplier', 'Product', 'Amount', 'Payment Method', 'Status'],
+                           [1, 'N/A', 'N/A', 'N/A', 'N/A', 'N/A', 'N/A']]
             ];
         }
     }
@@ -2335,11 +2457,12 @@ class ReportController extends Controller
             return $item->current_quantity * ($item->unit_price ?? 0);
         });
 
-        $data = [['Item ID', 'Product', 'Current Quantity', 'Minimum Quantity', 'Maximum Quantity', 'Warehouse', 'Last Updated', 'Status']];
+        $data = [['S/N', 'Product', 'Current Quantity', 'Minimum Quantity', 'Maximum Quantity', 'Warehouse', 'Last Updated', 'Status']];
+        $serialNumber = 1;
         foreach ($inventory as $item) {
             $status = $item->current_quantity <= $item->minimum_quantity ? 'Low Stock' : 'Normal';
             $data[] = [
-                $item->id,
+                $serialNumber++,
                 $item->coffeeProduct->name ?? $item->rawCoffee->name ?? 'N/A',
                 $item->current_quantity ?? 0,
                 $item->minimum_quantity ?? 0,
@@ -2351,7 +2474,7 @@ class ReportController extends Controller
         }
 
         return [
-            'title' => 'Vendor Inventory Report',
+            'title' => $this->generateRoleBasedTitle('Inventory Report', $user),
             'period' => $fromDate . ' to ' . $toDate,
             'summary' => [
                 'total_items' => $totalItems,
@@ -2400,12 +2523,16 @@ class ReportController extends Controller
                 $productName,
                 $order->quantity ?? 0,
                 ucfirst($order->status ?? 'unknown'),
-                '$' . number_format($order->total_amount ?? 0, 2)
+                number_format($order->total_amount ?? 0, 2)
             ];
         }
 
+        // Apply formatting helpers
+        $data = $this->formatMoneyColumns($data);
+        $data = $this->addSerialNumbers($data);
+
         return [
-            'title' => 'Supplier Orders Report',
+            'title' => $this->generateRoleBasedTitle('Orders Report', $user),
             'period' => $fromDate . ' to ' . $toDate,
             'summary' => [
                 'total_orders' => $totalOrders,
@@ -2455,7 +2582,7 @@ class ReportController extends Controller
         }
 
         return [
-            'title' => 'Supplier Inventory Report',
+            'title' => $this->generateRoleBasedTitle('Inventory Report', $user),
             'period' => $fromDate . ' to ' . $toDate,
             'summary' => [
                 'total_items' => $totalItems,
@@ -2527,6 +2654,161 @@ class ReportController extends Controller
         } catch (\Exception $e) {
             // If anything goes wrong, return the original value
             return is_string($recipients) ? $recipients : 'Not specified';
+        }
+    }
+
+    /**
+     * Store a new recipient
+     */
+    public function storeRecipient(Request $request)
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'name' => 'required|string|max:255',
+                'email' => 'required|email|unique:users,email',
+                'department' => 'string|max:255', // Optional, will map to role
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            // Create new user as a report recipient
+            $user = User::create([
+                'name' => $request->name,
+                'email' => $request->email,
+                'role' => $request->department ?? 'report_recipient', // Use department as role
+                'password' => bcrypt('temp_password_' . uniqid()), // Temporary password
+                'email_verified_at' => now(),
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Recipient created successfully',
+                'data' => [
+                    'id' => "user_{$user->id}",
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'department' => $user->role,
+                    'status' => 'active', // Always active since we don't have status field
+                    'type' => 'user'
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Store recipient error:', ['error' => $e->getMessage()]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to create recipient: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Update an existing recipient
+     */
+    public function updateRecipient(Request $request, $id)
+    {
+        try {
+            // Handle the user_ prefix if present
+            $userId = str_replace('user_', '', $id);
+            
+            $user = User::find($userId);
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Recipient not found'
+                ], 404);
+            }
+
+            $validator = Validator::make($request->all(), [
+                'name' => 'required|string|max:255',
+                'email' => 'required|email|unique:users,email,' . $userId,
+                'department' => 'string|max:255', // Optional, will map to role
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            // Update user
+            $user->update([
+                'name' => $request->name,
+                'email' => $request->email,
+                'role' => $request->department ?? $user->role, // Update role if department provided
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Recipient updated successfully',
+                'data' => [
+                    'id' => "user_{$user->id}",
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'department' => $user->role,
+                    'status' => 'active', // Always active since we don't have status field
+                    'type' => 'user'
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Update recipient error:', ['error' => $e->getMessage()]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update recipient: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Delete a recipient
+     */
+    public function deleteRecipient($id)
+    {
+        try {
+            // Handle the user_ prefix if present
+            $userId = str_replace('user_', '', $id);
+            
+            $user = User::find($userId);
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Recipient not found'
+                ], 404);
+            }
+
+            // Check if this user is a regular admin - don't allow deletion of admin users
+            if ($user->role === 'admin') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Cannot delete admin users through recipient management'
+                ], 403);
+            }
+
+            // For report recipients, we can soft delete or hard delete
+            // Let's use soft delete to preserve data integrity
+            $userName = $user->name;
+            $user->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => "Recipient '{$userName}' has been deleted successfully"
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Delete recipient error:', ['error' => $e->getMessage()]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to delete recipient: ' . $e->getMessage()
+            ], 500);
         }
     }
 }

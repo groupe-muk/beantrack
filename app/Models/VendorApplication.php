@@ -160,11 +160,32 @@ class VendorApplication extends Model
     }
 
     /**
+     * Check if validation failed
+     */
+    public function hasValidationFailed(): bool
+    {
+        return $this->status === 'pending' && 
+               $this->validated_at !== null &&
+               $this->validation_message &&
+               (str_contains($this->validation_message, 'Failed to communicate') ||
+                str_contains($this->validation_message, 'validation_failed') ||
+                str_contains($this->validation_message, 'error'));
+    }
+
+    /**
      * Check if application is pending validation
      */
     public function isPendingValidation(): bool
     {
-        return $this->status === 'pending' && is_null($this->validated_at);
+        return $this->status === 'pending' && $this->validated_at === null;
+    }
+
+    /**
+     * Check if application is under review (successfully validated, visit scheduled)
+     */
+    public function isUnderReview(): bool
+    {
+        return $this->status === 'under_review';
     }
 
     /**
@@ -257,6 +278,51 @@ class VendorApplication extends Model
             'approved' => 'green',
             'rejected' => 'red',
             default => 'gray'
+        };
+    }
+
+    /**
+     * Get detailed status information
+     */
+    public function getDetailedStatusAttribute(): array
+    {
+        if ($this->hasValidationFailed()) {
+            return [
+                'status' => 'validation_failed',
+                'label' => 'Validation Failed',
+                'color' => 'red',
+                'description' => 'Validation server could not process the application'
+            ];
+        }
+
+        if ($this->isPendingValidation()) {
+            return [
+                'status' => 'awaiting_validation',
+                'label' => 'Awaiting Validation',
+                'color' => 'yellow',
+                'description' => 'Application is waiting to be validated'
+            ];
+        }
+
+        return [
+            'status' => $this->status,
+            'label' => $this->status_label,
+            'color' => $this->status_color,
+            'description' => $this->getStatusDescription()
+        ];
+    }
+
+    /**
+     * Get status description
+     */
+    private function getStatusDescription(): string
+    {
+        return match ($this->status) {
+            'pending' => 'Application is pending review',
+            'under_review' => 'Application has been validated and is under review',
+            'approved' => 'Application has been approved',
+            'rejected' => 'Application has been rejected',
+            default => 'Unknown status'
         };
     }
 
