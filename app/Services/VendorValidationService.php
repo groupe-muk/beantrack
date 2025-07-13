@@ -179,14 +179,18 @@ class VendorValidationService
                 'error' => $e->getMessage()
             ]);
 
-            // Update application with error status
+            // Update application with error status - keep as pending for manual review
             $application->update([
                 'validation_message' => 'Failed to communicate with validation server: ' . $e->getMessage(),
                 'validated_at' => now(),
-                'status' => 'under_review' // Will require manual admin review
+                'status' => 'pending' // Keep as pending instead of under_review for validation failures
             ]);
 
-            throw $e;
+            // Don't throw exception to allow application to be submitted
+            // Admin can retry validation manually
+            Log::info('Application marked as pending due to validation server error', [
+                'application_id' => $application->id
+            ]);
         }
     }
 
@@ -198,17 +202,55 @@ class VendorValidationService
         $status = $data['status'] ?? 'error';
         $message = $data['message'] ?? 'No message provided';
 
-        // Simply store the response from the Java validation server as-is
-        // The Java server determines the validation logic and status
+        // Determine final status based on validation server response
+        $finalStatus = $this->determineFinalStatus($status, $data);
+
+        // Store the response from the Java validation server
         $application->update([
             'validation_message' => $message,
             'validated_at' => now(),
-            'status' => $status, // Use status directly from Java server
+            'status' => $finalStatus,
             // Store any additional data returned by the Java validation server
             'financial_data' => $data['financial_data'] ?? null,
             'license_data' => $data['license_data'] ?? null,
-            'references' => $data['references'] ?? null
+            'references' => $data['references'] ?? null,
+            // Store visit date if provided and validation was successful
+            'visit_scheduled' => ($finalStatus === 'under_review' && isset($data['visit_date'])) 
+                ? $data['visit_date'] : null
         ]);
+
+        Log::info('Validation response processed', [
+            'application_id' => $application->id,
+            'validation_status' => $status,
+            'final_status' => $finalStatus,
+            'message' => $message
+        ]);
+    }
+
+    /**
+     * Determine final application status based on validation results
+     */
+    private function determineFinalStatus(string $validationStatus, array $data): string
+    {
+        switch ($validationStatus) {
+            case 'approved':
+                return 'approved';
+            
+            case 'rejected':
+                return 'rejected';
+            
+            case 'verified':
+            case 'validation_successful':
+                // Only set to under_review if validation was successful and visit is scheduled
+                return isset($data['visit_date']) ? 'under_review' : 'pending';
+            
+            case 'validation_failed':
+            case 'error':
+            case 'failed':
+            default:
+                // Keep as pending for failed validations - requires manual admin review
+                return 'pending';
+        }
     }
 
     /**
@@ -269,9 +311,12 @@ class VendorValidationService
      */
     public function rejectApplication(VendorApplication $application, ?string $reason = null): void
     {
+        // Convert empty string to null for consistent handling
+        $reason = !empty($reason) ? trim($reason) : null;
+        
         $application->update([
             'status' => 'rejected',
-            'validation_message' => $reason ?? $application->validation_message ?? 'Application rejected by administrator'
+            'validation_message' => $reason ?? 'Application rejected by administrator'
         ]);
 
         Log::info('Application rejected', [
@@ -279,8 +324,76 @@ class VendorValidationService
             'reason' => $reason
         ]);
 
-        // TODO: Send rejection email
-        // Mail::to($application->email)->send(new VendorApplicationRejected($application, $reason));
+        // Send rejection email notification
+        $this->sendRejectionEmail($application, $reason);
+    }
+
+    /**
+     * Send rejection email notification
+     */
+    private function sendRejectionEmail(VendorApplication $application, ?string $reason = null): void
+    {
+        try {
+            // Refresh application to get latest validation_message
+            $application->refresh();
+            
+            // Determine the rejection reason to send in email
+            // Priority: 1) Provided reason parameter 2) Updated validation_message 3) Default fallback
+            $rejectionReason = null;
+            
+            if (!empty($reason)) {
+                $rejectionReason = trim($reason);
+            } elseif (!empty($application->validation_message)) {
+                $rejectionReason = $application->validation_message;
+            } else {
+                $rejectionReason = 'Your application did not meet our requirements.';
+            }
+            
+            // Send email to Java validation server for processing
+            $emailData = [
+                'type' => 'rejection',
+                'email' => $application->email,
+                'applicantName' => $application->applicant_name,
+                'businessName' => $application->business_name,
+                'applicationId' => $application->id,
+                'reason' => $rejectionReason
+            ];
+
+            Log::info('Sending rejection email data to Java server', [
+                'emailData' => $emailData
+            ]);
+
+            // Call Java server email endpoint using form data
+            $response = Http::timeout(10)
+                ->asForm()
+                ->post($this->validationServerUrl . '/api/vendors/send-email', $emailData);
+
+            Log::info('Java server response for rejection email', [
+                'application_id' => $application->id,
+                'status' => $response->status(),
+                'body' => $response->body()
+            ]);
+
+            if ($response->failed()) {
+                Log::error('Java server returned error for rejection email', [
+                    'application_id' => $application->id,
+                    'status' => $response->status(),
+                    'body' => $response->body()
+                ]);
+            } else {
+                Log::info('Rejection email sent successfully', [
+                    'application_id' => $application->id,
+                    'email' => $application->email
+                ]);
+            }
+
+        } catch (Exception $e) {
+            Log::error('Failed to send rejection email', [
+                'application_id' => $application->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+        }
     }
 
     /**
@@ -296,10 +409,18 @@ class VendorValidationService
      */
     public function retryValidation(VendorApplication $application): void
     {
-        if (!$application->isPendingValidation()) {
-            throw new Exception('Application is not pending validation');
+        if (!$application->hasValidationFailed() && !$application->isPendingValidation()) {
+            throw new Exception('Application cannot be retried for validation');
         }
 
+        // Reset validation fields
+        $application->update([
+            'validated_at' => null,
+            'validation_message' => null,
+            'status' => 'pending'
+        ]);
+
+        // Send to validation server again
         $this->sendToValidationServer($application);
     }
 

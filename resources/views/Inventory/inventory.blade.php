@@ -196,9 +196,9 @@
                                 {{ $coffeeProduct->supplyCenter->name }}
                             </td>
                             <td class="px-5 py-5 border-b border-soft-gray dark:border-mild-gray text-sm text-gray-900 dark:text-off-white">
-                                @if ($coffeeProduct->quantity_in_stock > 10)
+                                @if ($coffeeProduct->quantity_in_stock > 30)
                                     <span class="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs">In Stock</span>
-                                @elseif ($coffeeProduct->quantity_in_stock > 0)
+                                @elseif ($coffeeProduct->quantity_in_stock > 20)
                                     <span class="px-2 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs">Low Stock</span>
                                 @else
                                     <span class="px-2 py-1 bg-red-100 text-red-700 rounded-full text-xs">Out of Stock</span>

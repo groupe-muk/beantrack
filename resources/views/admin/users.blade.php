@@ -49,11 +49,6 @@
                     data-tab="applications-tab">
                     Vendor Applications
                 </button>
-                <button 
-                    class="tab-button py-4 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300 whitespace-nowrap"
-                    data-tab="approved-vendors-tab">
-                    Add Approved Vendors
-                </button>
             </nav>
         </div>
 
@@ -201,52 +196,6 @@
                     </table>
                 </div>
             </div>
-
-            <!-- Approved Vendors Tab -->
-            <div id="approved-vendors-tab" class="tab-content hidden">
-                <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-xl font-bold text-dashboard-light dark:text-off-white">Add Approved Vendors</h2>
-                    <p class="text-sm text-gray-500 dark:text-gray-400">These vendors have been approved and are ready to be added to the system</p>
-                </div>
-
-                <div class="overflow-x-auto border-2 rounded-2xl p-4">
-                    <table id="approved-vendors-table" class="min-w-full leading-normal">
-                        <thead>
-                            <tr>
-                                <th class="px-5 py-5 border-b-2 border-soft-gray dark:border-mild-gray bg-transparent dark:bg-dark-background text-left text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider rounded-tl-lg">
-                                    Application ID
-                                </th>
-                                <th class="px-5 py-5 border-b-2 border-soft-gray dark:border-mild-gray bg-transparent dark:bg-dark-background text-left text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
-                                    Applicant
-                                </th>
-                                <th class="px-5 py-5 border-b-2 border-soft-gray dark:border-mild-gray bg-transparent dark:bg-dark-background text-left text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
-                                    Business Name
-                                </th>
-                                <th class="px-5 py-5 border-b-2 border-soft-gray dark:border-mild-gray bg-transparent dark:bg-dark-background text-left text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
-                                    Email
-                                </th>
-                                <th class="px-5 py-5 border-b-2 border-soft-gray dark:border-mild-gray bg-transparent dark:bg-dark-background text-left text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider rounded-tr-lg">
-                                    Actions
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody id="approved-vendors-tbody">
-                            <!-- Approved vendors will be loaded here via AJAX -->
-                            <tr>
-                                <td colspan="5" class="px-5 py-5 text-center text-gray-500 dark:text-gray-400">
-                                    <div class="flex justify-center">
-                                        <svg class="animate-spin h-5 w-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                        </svg>
-                                        <span class="ml-2">Loading approved vendors...</span>
-                                    </div>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
         </div>
     </div>
 </div>
@@ -289,65 +238,14 @@
     </form>
 </x-modal>
 
-<!-- Add Vendor Modal -->
-<x-modal 
-    id="addVendorModal" 
-    title="Add Vendor to System" 
-    size="md" 
-    submit-form="addVendorForm" 
-    submit-text="Add Vendor"
-    cancel-text="Cancel">
-    
-    <form id="addVendorForm">
-        @csrf
-        <input type="hidden" id="vendor-application-id" name="application_id" value="">
-        
-        <div class="mb-4">
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Applicant Details
-            </label>
-            <div class="bg-gray-50 dark:bg-gray-800 p-3 rounded-md">
-                <p class="text-sm"><strong>Name:</strong> <span id="vendor-name"></span></p>
-                <p class="text-sm"><strong>Email:</strong> <span id="vendor-email"></span></p>
-                <p class="text-sm"><strong>Business:</strong> <span id="vendor-business"></span></p>
-            </div>
-        </div>
-
-        <div class="mb-4">
-            <label for="default_password" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Default Password
-            </label>
-            <div class="flex">
-                <input type="password" id="default_password" name="default_password" required minlength="8"
-                       class="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-l-md shadow-sm focus:outline-none focus:ring-coffee-brown focus:border-coffee-brown dark:bg-dark-background dark:text-off-white"
-                       placeholder="Enter default password (min. 8 characters)">
-                <button type="button" id="generate-password" 
-                        class="px-3 py-2 bg-gray-200 dark:bg-gray-600 border border-l-0 border-gray-300 dark:border-gray-600 rounded-r-md text-sm hover:bg-gray-300 dark:hover:bg-gray-500">
-                    Generate
-                </button>
-            </div>
-            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">This password will be sent to the vendor via email</p>
-        </div>
-
-        <div class="mb-6">
-            <label for="confirm_password" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Confirm Password
-            </label>
-            <input type="password" id="confirm_password" name="confirm_password" required minlength="8"
-                   class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-coffee-brown focus:border-coffee-brown dark:bg-dark-background dark:text-off-white"
-                   placeholder="Confirm password">
-        </div>
-    </form>
-</x-modal>
-
 <!-- Vendor Details Modal -->
 <x-modal 
     id="vendorDetailsModal" 
     title="Vendor Application Details" 
-    size="lg" 
-    cancel-text="Close">
+    size="2xl"
+    :showFooter="false">
     
-    <div id="vendor-details-content">
+    <div id="vendor-details-content" class="space-y-6">
         <!-- Application Information -->
         <div class="mb-6">
             <h3 class="text-lg font-semibold text-gray-900 dark:text-off-white mb-4">Application Information</h3>
@@ -442,12 +340,6 @@
                     Download Documents
                 </button>
             </div>
-            <div>
-                <button id="add-vendor-btn" onclick="openAddVendorModalFromDetails()" 
-                        class="bg-light-brown hover:bg-brown text-white px-4 py-2 rounded text-sm" style="display: none;">
-                    Add to System
-                </button>
-            </div>
         </div>
     </div>
 </x-modal>
@@ -537,7 +429,6 @@
         
         // Load initial data
         loadVendorApplications();
-        loadApprovedVendors();
     });
 
     function initializeTabs() {
@@ -567,8 +458,6 @@
                 // Load data for specific tabs
                 if (targetTab === 'applications-tab') {
                     loadVendorApplications();
-                } else if (targetTab === 'approved-vendors-tab') {
-                    loadApprovedVendors();
                 }
             });
         });
@@ -697,12 +586,17 @@
         // Status change handling
         document.getElementById('status').addEventListener('change', function() {
             const rejectionField = document.getElementById('rejection-reason-field');
+            const rejectionTextarea = document.getElementById('rejection_reason');
             if (this.value === 'rejected') {
                 rejectionField.style.display = 'block';
-                document.getElementById('rejection_reason').required = true;
+                rejectionTextarea.required = true;
+                // Clear any previous value to ensure fresh input
+                rejectionTextarea.value = '';
             } else {
                 rejectionField.style.display = 'none';
-                document.getElementById('rejection_reason').required = false;
+                rejectionTextarea.required = false;
+                // Clear the value when not rejecting
+                rejectionTextarea.value = '';
             }
         });
 
@@ -711,20 +605,6 @@
         updateStatusForm.addEventListener('submit', function(e) {
             e.preventDefault();
             updateApplicationStatus();
-        });
-
-        // Add Vendor Form Submission
-        const addVendorForm = document.getElementById('addVendorForm');
-        addVendorForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            addVendorToSystem();
-        });
-
-        // Password generation
-        document.getElementById('generate-password').addEventListener('click', function() {
-            const password = generateRandomPassword();
-            document.getElementById('default_password').value = password;
-            document.getElementById('confirm_password').value = password;
         });
     }
 
@@ -799,9 +679,16 @@
                 <td class="px-5 py-5 border-b border-soft-gray text-sm">${app.applicant_name}</td>
                 <td class="px-5 py-5 border-b border-soft-gray text-sm">${app.business_name}</td>
                 <td class="px-5 py-5 border-b border-soft-gray text-sm">
-                    <span class="px-2 py-1 text-xs rounded-full ${getStatusBadgeClass(app.status)}">
-                        ${getStatusLabel(app.status)}
-                    </span>
+                    <div class="flex flex-col space-y-1">
+                        <span class="px-2 py-1 text-xs rounded-full text-center ${getStatusBadgeClass(app.status)}">
+                            ${getStatusLabel(app.status)}
+                        </span>
+                        ${app.status === 'pending' && app.validated_at && app.validation_message ? `
+                            <span class="px-2 py-1 text-xs rounded-full text-center ${getValidationStatusBadgeClass(app.status, app.validation_message)}">
+                                ${getValidationStatusLabel(app.status, app.validation_message)}
+                            </span>
+                        ` : ''}
+                    </div>
                 </td>
                 <td class="px-5 py-5 border-b border-soft-gray text-sm">
                     <button onclick="openUpdateStatusModal('${app.id}', '${app.status}')" 
@@ -812,80 +699,15 @@
                             class="text-green-600 hover:text-green-900 text-xs">
                         View Details
                     </button>
-                </td>
-            </tr>
-        `).join('');
-    }
-
-    async function loadApprovedVendors() {
-        const tbody = document.getElementById('approved-vendors-tbody');
-        
-        try {
-            tbody.innerHTML = `
-                <tr>
-                    <td colspan="5" class="px-5 py-5 text-center text-gray-500">
-                        <div class="flex justify-center items-center">
-                            <svg class="animate-spin h-5 w-5 text-gray-500 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                            Loading approved vendors...
-                        </div>
-                    </td>
-                </tr>
-            `;
-
-            const response = await fetch('/api/vendor-applications?status=approved&not_added=true', {
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'Content-Type': 'application/json',
-                }
-            });
-
-            if (!response.ok) {
-                throw new Error('Failed to load approved vendors');
-            }
-
-            const data = await response.json();
-            displayApprovedVendors(data.applications || []);
-
-        } catch (error) {
-            console.error('Error loading approved vendors:', error);
-            tbody.innerHTML = `
-                <tr>
-                    <td colspan="5" class="px-5 py-5 text-center text-red-500">
-                        Error loading approved vendors. Please refresh the page.
-                    </td>
-                </tr>
-            `;
-        }
-    }
-
-    function displayApprovedVendors(vendors) {
-        const tbody = document.getElementById('approved-vendors-tbody');
-        
-        if (vendors.length === 0) {
-            tbody.innerHTML = `
-                <tr>
-                    <td colspan="5" class="px-5 py-5 text-center text-gray-500">
-                        No approved vendors ready to be added.
-                    </td>
-                </tr>
-            `;
-            return;
-        }
-
-        tbody.innerHTML = vendors.map(vendor => `
-            <tr class="hover:bg-gray-50 dark:hover:bg-mild-gray transition-colors">
-                <td class="px-5 py-5 border-b border-soft-gray text-sm font-mono">${vendor.id}</td>
-                <td class="px-5 py-5 border-b border-soft-gray text-sm">${vendor.applicant_name}</td>
-                <td class="px-5 py-5 border-b border-soft-gray text-sm">${vendor.business_name}</td>
-                <td class="px-5 py-5 border-b border-soft-gray text-sm">${vendor.email}</td>
-                <td class="px-5 py-5 border-b border-soft-gray text-sm">
-                    <button onclick="openAddVendorModal('${vendor.id}', '${vendor.applicant_name}', '${vendor.email}', '${vendor.business_name}')" 
-                            class="bg-coffee-brown hover:bg-hover-brown text-white px-3 py-1 rounded text-xs">
-                        Add to System
-                    </button>
+                    ${app.status === 'pending' && app.validated_at && app.validation_message && 
+                      (app.validation_message.includes('Failed to communicate') || 
+                       app.validation_message.includes('validation_failed') ||
+                       app.validation_message.includes('error')) ? `
+                        <button onclick="retryValidation('${app.id}')" 
+                                class="text-purple-600 hover:text-purple-900 text-xs ml-3">
+                            Retry Validation
+                        </button>
+                    ` : ''}
                 </td>
             </tr>
         `).join('');
@@ -895,32 +717,22 @@
         document.getElementById('application-id').value = applicationId;
         document.getElementById('status').value = currentStatus;
         
+        // Always clear the rejection reason when opening modal
+        document.getElementById('rejection_reason').value = '';
+        
         // Handle rejection reason field visibility
         const rejectionField = document.getElementById('rejection-reason-field');
+        const rejectionTextarea = document.getElementById('rejection_reason');
         if (currentStatus === 'rejected') {
             rejectionField.style.display = 'block';
+            rejectionTextarea.required = true;
         } else {
             rejectionField.style.display = 'none';
+            rejectionTextarea.required = false;
         }
         
         document.getElementById('updateStatusModal').classList.remove('hidden');
         document.getElementById('updateStatusModal').classList.add('flex');
-        document.body.style.overflow = 'hidden';
-    }
-
-    function openAddVendorModal(applicationId, name, email, businessName) {
-        document.getElementById('vendor-application-id').value = applicationId;
-        document.getElementById('vendor-name').textContent = name;
-        document.getElementById('vendor-email').textContent = email;
-        document.getElementById('vendor-business').textContent = businessName;
-        
-        // Generate default password
-        const defaultPassword = generateRandomPassword();
-        document.getElementById('default_password').value = defaultPassword;
-        document.getElementById('confirm_password').value = defaultPassword;
-        
-        document.getElementById('addVendorModal').classList.remove('hidden');
-        document.getElementById('addVendorModal').classList.add('flex');
         document.body.style.overflow = 'hidden';
     }
 
@@ -952,12 +764,15 @@
                 document.getElementById('updateStatusModal').classList.add('hidden');
                 document.body.style.overflow = 'auto';
                 
-                // Show success message
-                showNotification('Status updated successfully', 'success');
+                // Show appropriate message
+                if (data.warning) {
+                    showNotification(data.message + ' Note: ' + data.warning, 'warning');
+                } else {
+                    showNotification(data.message || 'Status updated successfully', 'success');
+                }
                 
                 // Reload applications
                 loadVendorApplications();
-                loadApprovedVendors();
             } else {
                 showNotification(data.message || 'Failed to update status', 'error');
             }
@@ -965,53 +780,6 @@
         } catch (error) {
             console.error('Error updating status:', error);
             showNotification('An error occurred while updating the status', 'error');
-        }
-    }
-
-    async function addVendorToSystem() {
-        const form = document.getElementById('addVendorForm');
-        const formData = new FormData(form);
-        const applicationId = document.getElementById('vendor-application-id').value;
-        
-        // Validate password confirmation
-        const password = document.getElementById('default_password').value;
-        const confirmPassword = document.getElementById('confirm_password').value;
-        
-        if (password !== confirmPassword) {
-            showNotification('Passwords do not match', 'error');
-            return;
-        }
-        
-        try {
-            const response = await fetch(`/admin/vendor-applications/${applicationId}/add-to-system`, {
-                method: 'POST',
-                body: formData,
-                headers: {
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || 
-                                   document.querySelector('input[name="_token"]')?.value,
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
-            });
-
-            const data = await response.json();
-
-            if (data.success) {
-                // Close modal
-                document.getElementById('addVendorModal').classList.add('hidden');
-                document.body.style.overflow = 'auto';
-                
-                // Show success message
-                showNotification('Vendor added to system successfully. Login credentials have been sent via email.', 'success');
-                
-                // Reload approved vendors list
-                loadApprovedVendors();
-            } else {
-                showNotification(data.message || 'Failed to add vendor to system', 'error');
-            }
-
-        } catch (error) {
-            console.error('Error adding vendor:', error);
-            showNotification('An error occurred while adding the vendor', 'error');
         }
     }
 
@@ -1042,6 +810,41 @@
             'rejected': 'Rejected'
         };
         return labels[status] || 'Unknown';
+    }
+
+    function getValidationStatusBadgeClass(status, validationMessage) {
+        // If status is pending and there's a validation message, it likely means validation failed
+        if (status === 'pending' && validationMessage && 
+            (validationMessage.includes('Failed to communicate') || 
+             validationMessage.includes('validation_failed') ||
+             validationMessage.includes('error'))) {
+            return 'bg-red-100 text-red-800'; // Validation failed
+        }
+        
+        // If status is pending without validation message, it's truly pending
+        if (status === 'pending') {
+            return 'bg-yellow-100 text-yellow-800'; // Awaiting validation
+        }
+        
+        // Use standard status colors for other cases
+        return getStatusBadgeClass(status);
+    }
+
+    function getValidationStatusLabel(status, validationMessage) {
+        // If status is pending and there's a validation message indicating failure
+        if (status === 'pending' && validationMessage && 
+            (validationMessage.includes('Failed to communicate') || 
+             validationMessage.includes('validation_failed') ||
+             validationMessage.includes('error'))) {
+            return 'Validation Failed';
+        }
+        
+        // If status is pending without validation message, it's truly pending
+        if (status === 'pending') {
+            return 'Awaiting Validation';
+        }
+        
+        return getStatusLabel(status);
     }
 
     async function viewApplicationDetails(applicationId) {
@@ -1094,84 +897,84 @@
         const content = document.getElementById('vendor-details-content');
         content.innerHTML = `
             <!-- Application Information -->
-            <div class="mb-6">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-off-white mb-4">Application Information</h3>
-                <div class="grid grid-cols-2 gap-4">
+            <div class="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
+                <h3 class="text-base font-semibold text-gray-900 dark:text-off-white mb-3">Application Information</h3>
+                <div class="grid grid-cols-2 gap-3 text-sm">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Application ID</label>
-                        <p class="text-sm text-gray-900 dark:text-off-white font-mono">${app.id}</p>
+                        <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Application ID</label>
+                        <p class="text-gray-900 dark:text-off-white font-mono">${app.id}</p>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Status</label>
-                        <span class="px-2 py-1 text-xs rounded-full ${getStatusBadgeClass(app.status)}">
+                        <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Status</label>
+                        <span class="px-2 py-1 text-xs rounded-full text-center ${getStatusBadgeClass(app.status)}">
                             ${getStatusLabel(app.status)}
                         </span>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Submitted On</label>
-                        <p class="text-sm text-gray-900 dark:text-off-white">${formatDate(app.created_at)}</p>
+                        <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Submitted On</label>
+                        <p class="text-gray-900 dark:text-off-white">${formatDate(app.created_at)}</p>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Validated On</label>
-                        <p class="text-sm text-gray-900 dark:text-off-white">${app.validated_at ? formatDate(app.validated_at) : 'Not validated'}</p>
+                        <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Validated On</label>
+                        <p class="text-gray-900 dark:text-off-white">${app.validated_at ? formatDate(app.validated_at) : 'Not validated'}</p>
                     </div>
                 </div>
             </div>
 
             <!-- Applicant Information -->
-            <div class="mb-6">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-off-white mb-4">Applicant Information</h3>
-                <div class="grid grid-cols-2 gap-4">
+            <div class="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
+                <h3 class="text-base font-semibold text-gray-900 dark:text-off-white mb-3">Applicant Information</h3>
+                <div class="grid grid-cols-2 gap-3 text-sm">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Full Name</label>
-                        <p class="text-sm text-gray-900 dark:text-off-white">${app.applicant_name}</p>
+                        <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Full Name</label>
+                        <p class="text-gray-900 dark:text-off-white">${app.applicant_name}</p>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Business Name</label>
-                        <p class="text-sm text-gray-900 dark:text-off-white">${app.business_name}</p>
+                        <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Business Name</label>
+                        <p class="text-gray-900 dark:text-off-white">${app.business_name}</p>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Email</label>
-                        <p class="text-sm text-gray-900 dark:text-off-white">${app.email}</p>
+                        <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
+                        <p class="text-gray-900 dark:text-off-white break-all">${app.email}</p>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Phone Number</label>
-                        <p class="text-sm text-gray-900 dark:text-off-white">${app.phone_number}</p>
+                        <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Phone Number</label>
+                        <p class="text-gray-900 dark:text-off-white">${app.phone_number}</p>
                     </div>
                 </div>
             </div>
 
             <!-- Documents -->
-            <div class="mb-6">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-off-white mb-4">Submitted Documents</h3>
-                <div class="grid grid-cols-2 gap-4">
+            <div class="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
+                <h3 class="text-base font-semibold text-gray-900 dark:text-off-white mb-3">Submitted Documents</h3>
+                <div class="grid grid-cols-2 gap-3 text-sm">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Bank Statement</label>
-                        <div class="text-sm">
+                        <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Bank Statement</label>
+                        <div>
                             ${app.bank_statement_path ? 
                                 `<a href="/admin/vendor-applications/${app.id}/download/bank-statement" 
-                                   class="text-blue-600 hover:text-blue-800 flex items-center">
-                                   <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                   class="text-blue-600 hover:text-blue-800 flex items-center text-xs">
+                                   <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
                                        <path d="M4 18h12V6h-4V2H4v16zm-2 1V1h10l4 4v14H2z"/>
                                    </svg>
-                                   Download Bank Statement
+                                   Download
                                  </a>` : 
-                                '<span class="text-gray-500">Not uploaded</span>'
+                                '<span class="text-gray-500 text-xs">Not uploaded</span>'
                             }
                         </div>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Trading License</label>
-                        <div class="text-sm">
+                        <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Trading License</label>
+                        <div>
                             ${app.trading_license_path ? 
                                 `<a href="/admin/vendor-applications/${app.id}/download/trading-license" 
-                                   class="text-blue-600 hover:text-blue-800 flex items-center">
-                                   <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                   class="text-blue-600 hover:text-blue-800 flex items-center text-xs">
+                                   <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
                                        <path d="M4 18h12V6h-4V2H4v16zm-2 1V1h10l4 4v14H2z"/>
                                    </svg>
-                                   Download Trading License
+                                   Download
                                  </a>` : 
-                                '<span class="text-gray-500">Not uploaded</span>'
+                                '<span class="text-gray-500 text-xs">Not uploaded</span>'
                             }
                         </div>
                     </div>
@@ -1180,40 +983,53 @@
 
             <!-- Validation Details -->
             ${app.validation_message ? `
-                <div class="mb-6">
-                    <h3 class="text-lg font-semibold text-gray-900 dark:text-off-white mb-4">Validation Details</h3>
-                    <div class="bg-gray-50 dark:bg-gray-800 p-3 rounded-md">
-                        <p class="text-sm text-gray-900 dark:text-off-white">${app.validation_message}</p>
+                <div class="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
+                    <h3 class="text-base font-semibold text-gray-900 dark:text-off-white mb-3">Validation Details</h3>
+                    <div class="space-y-2">
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Validation Status</label>
+                            <span class="px-2 py-1 text-xs rounded-full text-center ${getValidationStatusBadgeClass(app.status, app.validation_message)}">
+                                ${getValidationStatusLabel(app.status, app.validation_message)}
+                            </span>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Message</label>
+                            <p class="text-sm text-gray-900 dark:text-off-white p-2 bg-white dark:bg-gray-700 rounded border break-words">${app.validation_message}</p>
+                        </div>
+                        ${app.validated_at ? `
+                            <div>
+                                <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Validated At</label>
+                                <p class="text-sm text-gray-900 dark:text-off-white">${formatDate(app.validated_at)}</p>
+                            </div>
+                        ` : ''}
                     </div>
                 </div>
             ` : ''}
 
             <!-- Visit Information -->
             ${app.visit_scheduled ? `
-                <div class="mb-6">
-                    <h3 class="text-lg font-semibold text-gray-900 dark:text-off-white mb-4">Visit Information</h3>
+                <div class="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
+                    <h3 class="text-base font-semibold text-gray-900 dark:text-off-white mb-3">Visit Information</h3>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Scheduled Visit Date</label>
+                        <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Scheduled Visit Date</label>
                         <p class="text-sm text-gray-900 dark:text-off-white">${formatDate(app.visit_scheduled)}</p>
                     </div>
                 </div>
             ` : ''}
 
             <!-- Action Buttons -->
-            <div class="flex justify-between pt-4 border-t border-gray-200 dark:border-gray-700">
-                <div class="flex space-x-2">
-                    <button onclick="openUpdateStatusModalFromDetails('${app.id}', '${app.status}')" 
-                            class="bg-light-brown hover:bg-brown text-white px-4 py-2 rounded text-sm">
-                        Update Status
-                    </button>
-                </div>
-                <div>
-                    ${app.status === 'approved' && !app.created_user_id ? `
-                        <button onclick="openAddVendorModalFromDetails('${app.id}', '${app.applicant_name}', '${app.email}', '${app.business_name}')" 
-                                class="bg-coffee-brown hover:bg-hover-brown text-white px-4 py-2 rounded text-sm">
-                            Add to System
+            <div class="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
+                <div class="flex justify-between items-center">
+                    <div class="flex space-x-2">
+                        <button onclick="openUpdateStatusModalFromDetails('${app.id}', '${app.status}')" 
+                                class="bg-light-brown hover:bg-brown text-white px-3 py-2 rounded text-sm">
+                            Update Status
                         </button>
-                    ` : ''}
+                    </div>
+                    <button onclick="closeVendorDetailsModal()" 
+                            class="px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-200 dark:bg-gray-600 rounded-md hover:bg-gray-300 dark:hover:bg-gray-500">
+                        Close
+                    </button>
                 </div>
             </div>
         `;
@@ -1221,20 +1037,16 @@
 
     function openUpdateStatusModalFromDetails(applicationId, currentStatus) {
         // Close details modal first
-        document.getElementById('vendorDetailsModal').classList.add('hidden');
-        document.body.style.overflow = 'auto';
+        closeVendorDetailsModal();
         
         // Open update status modal
         openUpdateStatusModal(applicationId, currentStatus);
     }
 
-    function openAddVendorModalFromDetails(applicationId, name, email, businessName) {
-        // Close details modal first
+    function closeVendorDetailsModal() {
         document.getElementById('vendorDetailsModal').classList.add('hidden');
+        document.getElementById('vendorDetailsModal').classList.remove('flex');
         document.body.style.overflow = 'auto';
-        
-        // Open add vendor modal
-        openAddVendorModal(applicationId, name, email, businessName);
     }
 
     function formatDate(dateString) {
@@ -1259,16 +1071,47 @@
         notification.className = `fixed top-4 right-4 z-50 px-4 py-3 rounded-md shadow-lg ${
             type === 'success' ? 'bg-green-100 border border-green-400 text-green-700' :
             type === 'error' ? 'bg-red-100 border border-red-400 text-red-700' :
+            type === 'warning' ? 'bg-yellow-100 border border-yellow-400 text-yellow-700' :
             'bg-blue-100 border border-blue-400 text-blue-700'
         }`;
         notification.textContent = message;
 
         document.body.appendChild(notification);
 
-        // Remove after 5 seconds
+        // Remove after 7 seconds for warnings (longer than other notifications)
         setTimeout(() => {
             notification.remove();
-        }, 5000);
+        }, type === 'warning' ? 7000 : 5000);
+    }
+
+    async function retryValidation(applicationId) {
+        try {
+            showNotification('Retrying validation...', 'info');
+
+            const response = await fetch(`/admin/vendor-applications/${applicationId}/retry-validation`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || 
+                                   document.querySelector('input[name="_token"]')?.value,
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                showNotification(data.message || 'Validation retry initiated successfully', 'success');
+                // Reload applications to show updated status
+                loadVendorApplications();
+            } else {
+                showNotification(data.message || 'Failed to retry validation', 'error');
+            }
+
+        } catch (error) {
+            console.error('Error retrying validation:', error);
+            showNotification('An error occurred while retrying validation', 'error');
+        }
     }
 </script>
 @endpush

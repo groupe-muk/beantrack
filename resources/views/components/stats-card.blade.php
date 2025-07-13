@@ -50,7 +50,7 @@
             @endif
         >{{ $value }}</span>
         @if ($unit)      
-            <span class="text-lg font-normal text-gray-500 ml-1">{{ $unit }}</span>
+            <span class="text-3xl font-bold text-coffee-brown ml-1">{{ $unit }}</span>
         @endif
     </p>
     </div>
@@ -58,7 +58,7 @@
     {{-- Bottom Row: Change Text --}}
     
     @if ($changeText)
-    <div>
+    <div class="flex">
         <i class="fa-solid {{ $changeIconClass }} text-xs {{ $changeColorClass }}"></i>  
         <p class="text-xs font-medium {{ $changeColorClass }} ml-1 mt-auto"> {{-- mt-auto pushes it to the bottom --}}
             {{ $changeText }}
