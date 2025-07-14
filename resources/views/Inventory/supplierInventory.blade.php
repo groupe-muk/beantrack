@@ -2,395 +2,174 @@
 
 @section('content')
 <div class="p-5 bg-light-background">
-<!-- Header Section -->
-  
+  <!-- Header Section -->
   <h1 class="text-3xl font-bold text-dashboard-light">Supplier Coffee Inventory Management</h1>
-
   <p class="text-soft-brown mb-4">Manage your coffee stock and track availability</p>
 
   @if (session('success'))
-        <div class="bg-status-background-green border border-progress-bar-green text-status-text-green px-4 py-3 rounded relative mb-4" role="alert">
-            <strong class="font-bold">Success!</strong>
-            <span class="block sm:inline">{{ session('success') }}</span>
-        </div>
-    @endif
-    @if (session('error'))
-        <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
-            <strong class="font-bold">Error!</strong>
-            <span class="block sm:inline">{{ session('error') }}</span>
-        </div>
-    @endif
-    @if (session('info'))
-        <div class="bg-blue-100 border border-blue-400 text-blue-700 px-4 py-3 rounded relative mb-4" role="alert">
-            <strong class="font-bold">Info!</strong>
-            <span class="block sm:inline">{{ session('info') }}</span>
-        </div>
-    @endif
-    @if ($errors->any())
-        <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
-            <strong class="font-bold">Error!</strong>
-            <span class="block sm:inline">Please check the form below for errors.</span>
-            <ul class="mt-2 list-disc list-inside">
-                @foreach ($errors->all() as $error)
-                    <li>{{ $error }}</li>
-                @endforeach
-            </ul>
-        </div>
-    @endif 
-    <!-- Stats Section -->
-  <div class="space-y-6">
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 w-full">
-    <x-stats-card
-    title="Out Of Stock"
-    value="6"
-    :valueId="$outOfStock"
-    iconClass="fa-exclamation-triangle"
-    />
-    <x-stats-card
-    title="Low Stock Alerts"
-    value="6"
-    :valueId="$lowStock"
-    iconClass="fa-long-arrow-down"
-    />
-    <x-stats-card
-    title="Total Quantity"
-    :value="$totalQuantity"
-    valueId="total-quantity"
-    unit="kg"
-    iconClass="fa-cube"
-    />
-    
+    <div class="bg-status-background-green border border-progress-bar-green text-status-text-green px-4 py-3 rounded relative mb-4" role="alert">
+      <strong class="font-bold">Success!</strong>
+      <span class="block sm:inline">{{ session('success') }}</span>
     </div>
+  @endif
+
+  @if ($errors->any())
+    <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
+      <strong class="font-bold">Error!</strong>
+      <ul class="mt-2 list-disc list-inside">
+        @foreach ($errors->all() as $error)
+          <li>{{ $error }}</li>
+        @endforeach
+      </ul>
+    </div>
+  @endif
+
+  <!-- Stats Section -->
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+    <x-stats-card
+      title="Arabica"
+      :value="number_format($arabicaQuantity, 2)"
+      unit="kg"
+      iconClass="fa-cube"
+    />
+    <x-stats-card
+      title="Robusta"
+      :value="number_format($robustaQuantity, 2)"
+      unit="kg"
+      iconClass="fa-cube"
+    />
+    <x-stats-card
+      title="Mountain Blend"
+      :value="number_format($mountainBrewQuantity, 2)"
+      unit="kg"
+      iconClass="fa-cube"
+    />
+    <x-stats-card
+      title="Morning Brew"
+      :value="number_format($morningBrewQuantity, 2)"
+      unit="kg"
+      iconClass="fa-cube"
+    />
   </div>
-   <!-- Inventory Table -->
+
+  <!-- Inventory Table -->
   <div class="mt-10">
-  <div class="flex justify-between items-center mb-6">
-    <h1 class="text-2xl font-semibold text-dashboard-light pb-5">Raw Coffee</h1>
-      <div>
-        <button class="bg-light-brown text-white px-4 py-2 rounded" data-mode="add" data-modal-open="addRawCoffeeModal">+ Add Item</button>
-      </div>
-  </div>
-  
-    <div class="bg-white rounded shadow overflow-x-auto p-4">
-      <table class="min-w-full leading-normal" id="search-table">
+    <div class="flex justify-between items-center mb-6">
+      <h2 class="text-2xl font-semibold text-dashboard-light">Inventory Items</h2>
+      <button class="bg-light-brown text-white px-4 py-2 rounded" data-modal-open="addItemModal">+ Add Item</button>
+    </div>
+
+    <div class="bg-white rounded shadow overflow-x-auto">
+      <table class="min-w-full leading-normal">
         <thead>
-          <tr class="bg-gray-100 text-left">
-            <th class="px-4 py-2">SKU</th>
-            <th class="px-4 py-2">Product Name</th>
-            <th class="px-4 py-2">Grade</th>
-            <th class="px-4 py-2">Quantity</th>
-            <th class="px-4 py-2">Warehouse</th>
-            <th class="px-4 py-2">Status</th>
-            <th class="px-4 py-2">Actions</th>
+          <tr class="bg-gray-100">
+            <th class="px-5 py-3 border-b border-gray-200 text-left text-sm font-semibold text-gray-700">SKU</th>
+            <th class="px-5 py-3 border-b border-gray-200 text-left text-sm font-semibold text-gray-700">Product Name</th>
+            <th class="px-5 py-3 border-b border-gray-200 text-left text-sm font-semibold text-gray-700">Total Quantity</th>
+            <th class="px-5 py-3 border-b border-gray-200 text-left text-sm font-semibold text-gray-700">Status</th>
+            <th class="px-5 py-3 border-b border-gray-200 text-left text-sm font-semibold text-gray-700">Actions</th>
           </tr>
         </thead>
         <tbody>
-        @forelse ($rawCoffeeInventory as $rawCoffee)
-                        <tr class="hover:bg-gray-50 dark:hover:bg-mild-gray transition-colors duration-150">
-                            <td class="px-5 py-5 border-b border-soft-gray dark:border-mild-gray text-sm text-gray-900 dark:text-off-white">
-                                {{ $rawCoffee->rawCoffee->id }}
-                            </td>
-                            <td class="px-5 py-5 border-b border-soft-gray dark:border-mild-gray text-sm text-gray-900 dark:text-off-white">
-                                {{ $rawCoffee->rawCoffee->coffee_type }}
-                            </td>
-                            <td class="px-5 py-5 border-b border-soft-gray dark:border-mild-gray text-sm text-gray-900 dark:text-off-white">
-                                {{ $rawCoffee->rawCoffee->grade }}
-                            </td>
-                            <td class="px-5 py-5 border-b border-soft-gray dark:border-mild-gray text-sm text-gray-900 dark:text-off-white">
-                                {{ $rawCoffee->quantity_in_stock }}
-                            </td>
-                            <td class="px-5 py-5 border-b border-soft-gray dark:border-mild-gray text-sm text-gray-900 dark:text-off-white">
-                                {{ $rawCoffee->supplyCenter->name }}
-                            </td>
-                            <td class="px-5 py-5 border-b border-soft-gray dark:border-mild-gray text-sm text-gray-900 dark:text-off-white">
-                                @if ($rawCoffee->quantity_in_stock > 10)
-                                    <span class="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs">In Stock</span>
-                                @elseif ($rawCoffee->quantity_in_stock > 0)
-                                    <span class="px-2 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs">Low Stock</span>
-                                @else
-                                    <span class="px-2 py-1 bg-red-100 text-red-700 rounded-full text-xs">Out of Stock</span>
-                                @endif
-                            <td class="px-5 py-5 border-b border-soft-gray dark:border-mild-gray text-sm">
-                                <div class="flex items-center space-x-3">
-                                    {{-- Edit button --}}
-                                    <button 
-                                        type="button"
-                                        class="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-600 transition-colors duration-200 text-xs cursor-pointer edit-RawCoffee-btn"
-                                        data-rawCoffee-id="{{ $rawCoffee->rawCoffee->id }}"
-                                        data-rawCoffee-name="{{ $rawCoffee->rawCoffee->coffee_type }}"
-                                        data-rawCoffee-grade="{{ $rawCoffee->rawCoffee->grade }}"
-                                        data-rawCoffee-quantity="{{ $rawCoffee->quantity_in_stock }}"
-                                        data-rawCoffee-location="{{ $rawCoffee->supplyCenter->name }}"
-                                        data-mode="edit">
-                                        Edit
-                                    </button>
-                                    {{-- Delete button --}}
-                                    <form action="{{ route('supplierInventory.destroy', $rawCoffee->rawCoffee->id) }}" method="POST" class="inline delete-RawCoffee-form">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-600 transition-colors duration-200 text-xs cursor-pointer">
-                                            Delete
-                                        </button>
-                                    </form>
-                                </div>
-                            </td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="4" class="px-5 py-5 border-b border-soft-gray dark:border-mild-gray text-center text-sm text-gray-500 dark:text-gray-400">
-                                No items found.
-                            </td>
-                        </tr>
-                    @endforelse
+          @forelse ($inventoryItems as $item)
+            <tr class="hover:bg-gray-50">
+              <td class="px-5 py-3 border-b border-gray-200 text-sm">
+                {{ sprintf('RC%05d', $item->id) }}
+              </td>
+              <td class="px-5 py-3 border-b border-gray-200 text-sm">
+                {{ $item->name }}
+              </td>
+              <td class="px-5 py-3 border-b border-gray-200 text-sm">
+                {{ number_format($item->total_quantity, 2) }} kg
+              </td>
+              <td class="px-5 py-3 border-b border-gray-200 text-sm">
+                @if ($item->total_quantity > 10)
+                  <span class="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs">In Stock</span>
+                @else
+                  <span class="px-2 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs">Low Stock</span>
+                @endif
+              </td>
+              <td class="px-5 py-3 border-b border-gray-200 text-sm">
+                <button 
+                  type="button"
+                  class="text-blue-600 hover:text-blue-900 mr-3 view-details-btn"
+                  data-id="{{ $item->id }}">
+                  View Details
+                </button>
+              </td>
+            </tr>
+          @empty
+            <tr>
+              <td colspan="5" class="px-5 py-3 border-b border-gray-200 text-sm text-center text-gray-500">
+                No items found.
+              </td>
+            </tr>
+          @endforelse
         </tbody>
       </table>
     </div>
-    <x-modal 
-    id="addRawCoffeeModal" 
-    title="Add New Raw Coffee Item" 
-    size="md" 
-    submit-form="addRawCoffeeForm" 
-    submit-text="Add Item"
-    cancel-text="Cancel">
-    
-    <form action="{{ route('supplierInventory.store') }}" method="POST" id="addRawCoffeeForm">
-        @csrf
-        <input type="hidden" name="_method" id="form-method" value="">
-        
-        {{-- Name Field --}}
-        <div class="mb-4">
-            <label for="name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Product Name
-            </label>
-            <select name="raw_coffee_id" id="raw-coffee-name" required>
-              <option value="">Select Raw Coffee Item</option>
-              @foreach($rawCoffeeItems as $rawCoffeeItem)
-              <option value="{{ $rawCoffeeItem->id }}">{{ $rawCoffeeItem->coffee_type }}</option>
-              @endforeach
-            </select>
-            @error('raw_coffee_name')
-                <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
-            @enderror
-        </div>
+  </div>
+</div>
 
-        {{-- Grade Field --}}
-        <div class="mb-4">
-            <label for="grade" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Grade
-            </label>
-            <input type="text" 
-                   id="rawCoffeeGrade" 
-                   name="grade" 
-                   required
-                   class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-coffee-brown focus:border-coffee-brown dark:bg-dark-background dark:text-off-white"
-                   placeholder="Enter coffee grade"
-                   value="{{ old('grade') }}">
-            @error('grade')
-                <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
-            @enderror
-        </div>
+<!-- Add/Edit Item Modal -->
+<x-modal id="addItemModal" title="Add New Item" size="md">
+  <form id="inventoryForm" method="POST" action="{{ route('supplierInventory.store') }}">
+    @csrf
+    <input type="hidden" name="_method" value="POST">
 
-        {{-- Quantity Field --}}
-        <div class="mb-4">
-            <label for="quantity" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Quantity
-            </label>
-            <input type="number" 
-                   id="rawCoffeeQuantity" 
-                   name="quantity_in_stock" 
-                   required
-                   class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-coffee-brown focus:border-coffee-brown dark:bg-dark-background dark:text-off-white"
-                   placeholder="Enter Quantity"
-                   value="{{ old('quantity') }}">
-            @error('quantity')
-                <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
-            @enderror
-        </div>
+    <div class="space-y-4">
+      <!-- Product Selection -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Product</label>
+        <select name="product_id" class="w-full rounded border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+          <option value="">Select a product</option>
+          @foreach($products as $product)
+            <option value="{{ $product->id }}">{{ $product->name }}</option>
+          @endforeach
+        </select>
+      </div>
 
-        {{-- Warehouse Field --}}
-        <div class="mb-4">
-            <label for="warehouse" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Warehouse
-            </label>
-            <select name="supply_center_id" id="coffeeProductWarehouse">
-              <option value="">Select Warehouse</option>
-              @foreach($supplyCenters as $center)
-              <option value="{{ $center->id }}">{{ $center->name }}</option>
-              @endforeach
-            </select>
-            @error('supply-center-id')
-                <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
-            @enderror
-        </div>
-    </form>
-</x-modal> 
+      <!-- Quantity -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Quantity (kg)</label>
+        <input 
+          type="number" 
+          name="quantity" 
+          step="0.01" 
+          class="w-full rounded border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+          placeholder="Enter quantity">
+      </div>
 
+      <div class="flex justify-end space-x-3 pt-4">
+        <button type="button" class="px-4 py-2 text-gray-600 bg-gray-100 rounded hover:bg-gray-200" data-modal-close>Cancel</button>
+        <button type="submit" class="px-4 py-2 text-white bg-blue-600 rounded hover:bg-blue-700">Save</button>
+      </div>
+    </div>
+  </form>
+</x-modal>
 
+<!-- View Details Modal -->
+<x-modal id="viewDetailsModal" title="Item Details" size="md">
+  <div id="itemDetailsContent" class="space-y-4">
+    <!-- Content will be loaded dynamically -->
+  </div>
+  <div class="flex justify-end pt-4">
+    <button type="button" class="px-4 py-2 text-gray-600 bg-gray-100 rounded hover:bg-gray-200" data-modal-close>Close</button>
+  </div>
+</x-modal>
 
-@push('scripts')
-  <script>
-
-
-      if (document.getElementById("search-table") && typeof simpleDatatables.DataTable !== 'undefined') {
-          const dataTable = new simpleDatatables.DataTable("#search-table", {
-              searchable: true,
-              sortable: false
-          });
-      }
-
-      function updateStatsCards() {
-    fetch('/supplierInventory/stats')
-        .then(response => response.json())
-        .then(data => {
-            // Update the card values by their IDs or classes
-            document.getElementById('out-of-stock-value').textContent = data.outOfStock || '0';
-            document.getElementById('low-stock-value').textContent = data.lowStock || '0';
-            document.getElementById('total-quantity').textContent = data.totalQuantity;
-
-        })
-        .catch(error => {
-            console.error('Error fetching stats:', error);
-        });
-  }
-  // Call once on page load
-   updateStatsCards();
-   // Refresh every 60 seconds
-   setInterval(updateStatsCards, 60000);
-    
-    // --- Essential Modal and Form Elements ---
-    // Delete Raw Coffee Confirmation
-    const deleteRawCoffeeForms = document.querySelectorAll('.delete-RawCoffee-form');
-    deleteRawCoffeeForms.forEach(form => {
-        form.addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            const itemName = form.closest('tr').querySelector('td:nth-child(2)').textContent.trim();
-            
-            if (confirm(`Are you sure you want to delete "${itemName}"? This action cannot be undone.`)) {
-                form.submit();
-            }
-        });
-    });
-    const rawCoffeeModal = document.getElementById('addRawCoffeeModal');
-    const rawCoffeeForm = document.getElementById('addRawCoffeeForm');
-    // Add Raw Coffee Button
-    const addRawCoffeeButton = document.querySelector('button[data-modal-open="addRawCoffeeModal"]');
-
-    // Edit Raw Coffee Buttons
-    const editRawCoffeeButtons = document.querySelectorAll('.edit-RawCoffee-btn');
-    editRawCoffeeButtons.forEach(btn => {
-        btn.addEventListener('click', function() {
-            const itemId = btn.getAttribute('data-rawCoffee-id');
-            const itemName = btn.getAttribute('data-rawCoffee-name');
-            const itemGrade = btn.getAttribute('data-rawCoffee-grade');
-            const itemQuantity = btn.getAttribute('data-rawCoffee-quantity');
-            const itemLocation = btn.getAttribute('data-rawCoffee-location');
-
-            // Validation
-            if (!itemId || !itemName || !itemGrade || !itemQuantity || !itemLocation) {
-                console.error("Missing raw coffee data:", { itemId, itemName, itemGrade, itemQuantity, itemLocation });
-                alert("Error: Missing item data. Please refresh the page and try again.");
-                return;
-            }
-
-            if (rawCoffeeForm && rawCoffeeModal) {
-                rawCoffeeForm.reset();
-                
-                 // Update modal title and button text
-                const modalTitle = rawCoffeeModal.querySelector('h3');
-                const submitButton = rawCoffeeModal.querySelector('button[type="submit"]');
-                const methodInput = rawCoffeeForm.querySelector('input[name="_method"]');
-                
-                if (modalTitle) modalTitle.textContent = 'Edit Raw Coffee Item';
-                if (submitButton) submitButton.textContent = 'Update Item';
-                
-                // Set form action and method
-                const updateUrl = "{{ route('supplierInventory.update', ['rawCoffee' => ':id']) }}".replace(':id', encodeURIComponent(itemId));
-                rawCoffeeForm.action = updateUrl;
-                if (methodInput) methodInput.value = 'PATCH';
-
-                // Populate form fields
-                const nameSelect = document.getElementById('raw-coffee-name');
-                const gradeInput = document.getElementById('rawCoffeeGrade');
-                const quantityInput = document.getElementById('rawCoffeeQuantity');
-                const warehouseSelect = document.getElementById('coffeeProductWarehouse');
-                
-                if (nameSelect) nameSelect.value = itemId;
-                if (gradeInput) gradeInput.value = itemGrade;
-                if (quantityInput) quantityInput.value = itemQuantity;
-                if (warehouseSelect) {
-                    // Find warehouse by name and set the value
-                    for (let option of warehouseSelect.options) {
-                        if (option.text === itemLocation) {
-                            warehouseSelect.value = option.value;
-                            break;
-                        }
-                    }
-                }
-
-                // Open modal
-                rawCoffeeModal.classList.remove('hidden');
-                rawCoffeeModal.classList.add('flex');
-                document.body.style.overflow = 'hidden';
-            }
-        });
-    });
-
-
-    if (addRawCoffeeButton && rawCoffeeModal && rawCoffeeForm) {
-        addRawCoffeeButton.addEventListener('click', function() {
-            rawCoffeeForm.reset();
-            
-            // Update modal title and button text
-            const modalTitle = rawCoffeeModal.querySelector('h3');
-            const submitButton = rawCoffeeModal.querySelector('button[type="submit"]');
-            const methodInput = rawCoffeeForm.querySelector('input[name="_method"]');
-            
-            if (modalTitle) modalTitle.textContent = 'Add New Raw Coffee Item';
-            if (submitButton) submitButton.textContent = 'Add Item';
-            
-            rawCoffeeForm.action = "{{ route('supplierInventory.store') }}";
-            if (methodInput) methodInput.value = 'POST';
-
-            // Open modal
-            rawCoffeeModal.classList.remove('hidden');
-            rawCoffeeModal.classList.add('flex');
-            document.body.style.overflow = 'hidden';
-        });
-    }
-
-    function setupModalClose(modal) {
-        if (!modal) return;
-        
-        // Close on backdrop click
-        modal.addEventListener('click', function(e) {
-            if (e.target === modal) {
-                modal.classList.add('hidden');
-                modal.classList.remove('flex');
-                document.body.style.overflow = 'auto';
-            }
-        });
-        
-        // Close on escape key
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape' && !modal.classList.contains('hidden')) {
-                modal.classList.add('hidden');
-                modal.classList.remove('flex');
-                document.body.style.overflow = 'auto';
-            }
-        });
-        
-        // Close on cancel button
-        const cancelButton = modal.querySelector('button[data-modal-close]');
-        if (cancelButton) {
-            cancelButton.addEventListener('click', function() {
-                modal.classList.add('hidden');
-                modal.classList.remove('flex');
-                document.body.style.overflow = 'auto';
-            });
-        }
-    }
-      setupModalClose(rawCoffeeModal);
-      </script>
-@endpush
 @endsection
+
+@push('styles')
+<style>
+  /* Hide number input spinners */
+  input[type="number"] {
+    -moz-appearance: textfield;
+  }
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+</style>
+@endpush
