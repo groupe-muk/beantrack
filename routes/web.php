@@ -18,6 +18,7 @@ use App\Http\Controllers\supplierInventoryController;
 use App\Http\Controllers\SupplyCentersController;
 use App\Http\Controllers\userManagerController;
 use App\Http\Controllers\VendorApplicationController;
+use App\Http\Controllers\SupplierApplicationController;
 use App\Http\Controllers\vendorInventoryController;
 
 Route::get('/sample', [columnChartController::class, 'showColumnChart'])->name('column.chart');
@@ -36,6 +37,15 @@ Route::controller(VendorApplicationController::class)->group(function () {
     Route::post('/apply', 'store')->name('vendor.apply.store');
     Route::get('/check-status', 'checkStatus')->name('vendor.check-status');
     Route::get('/application/status', 'status')->name('vendor.application.status');
+});
+
+// Supplier Application Routes (Public - no authentication required)
+Route::controller(SupplierApplicationController::class)->group(function () {
+    Route::get('/supplier', 'supplierOnboarding')->name('supplier.onboarding');
+    Route::get('/supplier/apply', 'create')->name('supplier.apply');
+    Route::post('/supplier/apply', 'store')->name('supplier.apply.store');
+    Route::get('/supplier/check-status', 'checkStatus')->name('supplier.check-status');
+    Route::get('/supplier/application/status', 'status')->name('supplier.application.status');
 });
 
 // Authentication routes for guests
@@ -168,6 +178,17 @@ Route::middleware(['auth'])->group(function () {
 
         // Vendor Application Management Routes (Admin only)
         Route::prefix('admin/vendor-applications')->name('admin.vendor-applications.')->controller(VendorApplicationController::class)->group(function () {
+            Route::get('/', 'index')->name('index');
+            Route::get('/{application}', 'show')->name('show');
+            Route::post('/{application}/approve', 'approve')->name('approve');
+            Route::post('/{application}/reject', 'reject')->name('reject');
+            Route::post('/{application}/schedule-visit', 'scheduleVisit')->name('schedule-visit');
+            Route::get('/{application}/download/{type}', 'downloadDocument')->name('download-document');
+            Route::post('/{application}/retry-validation', 'retryValidation')->name('retry-validation');
+        });
+
+        // Supplier Application Management Routes (Admin only)
+        Route::prefix('admin/supplier-applications')->name('admin.supplier-applications.')->controller(SupplierApplicationController::class)->group(function () {
             Route::get('/', 'index')->name('index');
             Route::get('/{application}', 'show')->name('show');
             Route::post('/{application}/approve', 'approve')->name('approve');
