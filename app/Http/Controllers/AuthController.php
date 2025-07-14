@@ -147,7 +147,7 @@ class AuthController extends Controller
     {
         // Ensure user has an ID
         if (!$user->id) {
-            \Log::error('Cannot create role-specific record: User has no ID', [
+            Log::error('Cannot create role-specific record: User has no ID', [
                 'user_name' => $user->name,
                 'user_email' => $user->email,
                 'role' => $user->role
@@ -156,7 +156,7 @@ class AuthController extends Controller
         }
 
         try {
-            \Log::info('Creating role-specific record via AuthController', [
+            Log::info('Creating role-specific record via AuthController', [
                 'user_id' => $user->id,
                 'user_name' => $user->name,
                 'role' => $user->role
@@ -178,12 +178,12 @@ class AuthController extends Controller
                         'approved_date' => now()
                     ]);
                     
-                    \Log::info('Supplier record created successfully via AuthController', [
+                    Log::info('Supplier record created successfully via AuthController', [
                         'user_id' => $user->id,
                         'supplier_id' => $supplier->id
                     ]);
                 } else {
-                    \Log::error('No supply center found for supplier creation via AuthController', [
+                    Log::error('No supply center found for supplier creation via AuthController', [
                         'user_id' => $user->id
                     ]);
                 }

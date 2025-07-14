@@ -178,37 +178,44 @@ class dashboardController extends Controller
 
     private function getVendorDashboardData(): array
     {
+        $user = Auth::user();
+        $wholesaler = $user->wholesaler;
+        
+        // Get actual pending orders for this vendor
+        $pendingOrders = collect();
+        if ($wholesaler) {
+            $pendingOrders = Order::with(['coffeeProduct'])
+                ->where('wholesaler_id', $wholesaler->id)
+                ->where('status', 'pending')
+                ->latest()
+                ->take(4)
+                ->get()
+                ->map(function ($order) {
+                    return [
+                        'name' => $order->coffeeProduct->name ?? 'Unknown Product',
+                        'order_id' => $order->id,
+                        'quantity' => $order->quantity,
+                        'date' => $order->order_date ? $order->order_date->format('Y-m-d') : now()->format('Y-m-d'),
+                        'productName' => $order->coffeeProduct->name ?? 'Unknown Product',
+                    ];
+                });
+        }
+        
+        // If no orders, provide sample data
+        if ($pendingOrders->isEmpty()) {
+            $pendingOrders = collect([
+                [
+                    'name' => 'No orders yet',
+                    'order_id' => 'N/A',
+                    'quantity' => 0,
+                    'date' => now()->format('Y-m-d'),
+                    'productName' => 'Place your first order',
+                ],
+            ]);
+        }
+
         return [
-            'pendingOrders' => [
-                [
-                    'name' => 'Coffee House Roasters',
-                    'order_id' => 'CMD-1842',
-                    'quantity' => 200,
-                    'date' => '2025-05-28',
-                    'productName' => 'Arabica Grade A',
-                ],
-                [
-                    'name' => 'Bean & Brew Inc.',
-                    'order_id' => 'ES-903',
-                    'quantity' => 180,
-                    'date' => '2025-06-03',
-                    'productName' => 'Arabica Medium Roast',
-                ],
-                [
-                    'name' => 'Coffee House Roasters',
-                    'order_id' => 'CMD-1842',
-                    'quantity' => 200,
-                    'date' => '2025-05-28',
-                    'productName' => 'Arabica Grade A',
-                ],
-                [
-                    'name' => 'Bean & Brew Inc.',
-                    'order_id' => 'ES-903',
-                    'quantity' => 180,
-                    'date' => '2025-06-03',
-                    'productName' => 'Arabica Medium Roast',
-                ],
-            ],
+            'pendingOrders' => $pendingOrders->toArray(),
             
             'inventoryItems' => [
             [

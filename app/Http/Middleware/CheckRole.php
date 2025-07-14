@@ -6,6 +6,7 @@ use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Illuminate\Support\Facades\Auth;
+use Log;
 
 class CheckRole
 {
@@ -23,6 +24,7 @@ class CheckRole
         }
 
         if (!in_array($request->user()->role, $roles)) {
+            Log::info("User role not found");
             return $request->expectsJson()
                 ? response()->json(['message' => 'Forbidden'], 403)
                 : redirect()->route('dashboard')->with('error', 'You do not have permission to access this page.');
