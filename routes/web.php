@@ -19,6 +19,10 @@ use App\Http\Controllers\tableCardController;
 
 use App\Http\Controllers\SupplyCentersController;
 use App\Http\Controllers\InventoryController;
+use App\Http\Controllers\supplierInventoryController;
+use App\Http\Controllers\vendorInventoryController;
+use App\Http\Controllers\WorkerController;
+use App\Models\SupplyCenter;
 
 Route::get('/sample', [columnChartController::class, 'showColumnChart'])->name('column.chart');
 
@@ -50,7 +54,8 @@ Route::middleware(['guest'])->controller(AuthController::class)->group(function 
 // Routes for authenticated users
 Route::middleware(['auth'])->group(function () {
     Route::post('/logout',[AuthController::class, 'logout'])->name('logout');
-    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/dashboard', [dashboardController::class, 'index'])->name('dashboard');
+    Route::get('/dashboard/chart-data', [dashboardController::class, 'getChartData'])->name('dashboard.chart-data');
     // Chat Routes
     Route::get('/chat', [ChatController::class, 'index'])->name('chat.index');
     Route::get('/chat/unread', [ChatController::class, 'getUnreadCount'])->name('chat.unread');
@@ -109,15 +114,20 @@ Route::middleware(['auth'])->group(function () {
 
     /*Route::get('/dashboard', [AuthController::class, 'showApp'])->name('dashboard');*/
     
-    // Role-specific routes
-});
-
+    // Role-specific routes - Admin routes (require auth)
     Route::middleware(['role:admin'])->group(function () {
         //User management routes
         Route::get('admin/users', [userManagerController::class, 'index'])->name('admin.users.index');
         Route::post('admin/users', [userManagerController::class, 'store'])->name('admin.users.store');
         Route::patch('admin/users/{user}', [userManagerController::class, 'update'])->name('admin.users.update');
         Route::delete('admin/users/{user}', [userManagerController::class, 'destroy'])->name('admin.users.destroy');
+
+        // Vendor Application Management API Routes
+        Route::get('api/vendor-applications', [userManagerController::class, 'getVendorApplications'])->name('api.vendor-applications');
+        Route::post('admin/vendor-applications/{application}/update-status', [userManagerController::class, 'updateVendorApplicationStatus'])->name('admin.vendor-applications.update-status');
+        Route::post('admin/vendor-applications/{application}/reject', [userManagerController::class, 'rejectVendorApplication'])->name('admin.vendor-applications.reject-status');
+        Route::post('admin/vendor-applications/{application}/add-to-system', [userManagerController::class, 'addVendorToSystem'])->name('admin.vendor-applications.add-to-system');
+        Route::post('admin/vendor-applications/{application}/retry-validation', [VendorApplicationController::class, 'retryValidation'])->name('admin.vendor-applications.retry-validation');
       
        // Order routes
         Route::prefix('orders')->name('orders.')->group(function () {
@@ -135,9 +145,18 @@ Route::middleware(['auth'])->group(function () {
         //Inventory routes
         Route::get('/inventory', [InventoryController::class, 'index'])->name('inventory.index');
         Route::post('/inventory', [InventoryController::class, 'store'])->name('inventory.store');
-        Route::patch('/inventory/{rawCoffee}', [InventoryController::class, 'update'])->name('inventory.update');
-        //Route::patch('/inventory/{coffeeProduct}', [InventoryController::class, 'update'])->name('inventory.update');
-        Route::delete('/inventory/{rawCoffee}', [InventoryController::class, 'destroy'])->name('inventory.destroy');
+        Route::get('/inventory/stats', [InventoryController::class, 'stats'])->name('inventory.stats');
+
+        // Raw Coffee routes
+        Route::patch('/inventory/raw-coffee/{rawCoffee}', [InventoryController::class, 'updateRawCoffee'])->name('inventory.update.rawCoffee');
+        Route::delete('/inventory/raw-coffee/{rawCoffee}', [InventoryController::class, 'destroyRawCoffee'])->name('inventory.destroy.rawCoffee');
+
+        // Coffee Product routes  
+        Route::patch('/inventory/coffee-product/{coffeeProduct}', [InventoryController::class, 'updateCoffeeProduct'])->name('inventory.update.coffeeProduct');
+        Route::delete('/inventory/coffee-product/{coffeeProduct}', [InventoryController::class, 'destroyCoffeeProduct'])->name('inventory.destroy.coffeeProduct');
+
+
+
 
         // Vendor Application Management Routes (Admin only)
         Route::prefix('admin/vendor-applications')->name('admin.vendor-applications.')->controller(VendorApplicationController::class)->group(function () {
@@ -150,37 +169,107 @@ Route::middleware(['auth'])->group(function () {
             Route::post('/{application}/retry-validation', 'retryValidation')->name('retry-validation');
         });
 
-   
-    
+
+        // Report Management Routes for Admins - Protected by admin middleware
+        Route::prefix('reports')->group(function () {
+            Route::get('/', [App\Http\Controllers\ReportController::class, 'index'])->name('reports.index');
+            Route::get('/stats', [App\Http\Controllers\ReportController::class, 'getStats'])->name('reports.stats');
+            Route::get('/library', [App\Http\Controllers\ReportController::class, 'getReportLibrary'])->name('reports.library');
+            Route::get('/historical', [App\Http\Controllers\ReportController::class, 'getHistoricalReports'])->name('reports.historical');
+            Route::get('/templates', [App\Http\Controllers\ReportController::class, 'getTemplates'])->name('reports.templates');
+            Route::get('/recipients', [App\Http\Controllers\ReportController::class, 'getRecipients'])->name('reports.recipients');
+            
+            // Recipient CRUD operations
+            Route::post('/recipients', [App\Http\Controllers\ReportController::class, 'storeRecipient'])->name('reports.recipients.store');
+            Route::put('/recipients/{id}', [App\Http\Controllers\ReportController::class, 'updateRecipient'])->name('reports.recipients.update');
+            Route::delete('/recipients/{id}', [App\Http\Controllers\ReportController::class, 'deleteRecipient'])->name('reports.recipients.delete');
+            
+            Route::post('/', [App\Http\Controllers\ReportController::class, 'store'])->name('reports.store');
+            Route::post('/adhoc', [App\Http\Controllers\ReportController::class, 'generateAdhocReport'])->name('reports.adhoc');
+            Route::get('/{report}/edit', [App\Http\Controllers\ReportController::class, 'edit'])->name('reports.edit');
+            Route::put('/{report}', [App\Http\Controllers\ReportController::class, 'update'])->name('reports.update');
+            Route::post('/{report}/generate', [App\Http\Controllers\ReportController::class, 'generateNow'])->name('reports.generate');
+            Route::post('/{report}/pause', [App\Http\Controllers\ReportController::class, 'pause'])->name('reports.pause');
+            Route::post('/{report}/resume', [App\Http\Controllers\ReportController::class, 'resume'])->name('reports.resume');
+            Route::delete('/{report}', [App\Http\Controllers\ReportController::class, 'destroy'])->name('reports.destroy');
+            Route::get('/{report}/download', [App\Http\Controllers\ReportController::class, 'download'])->name('reports.download');
+            Route::get('/{report}/view', [App\Http\Controllers\ReportController::class, 'view'])->name('reports.view');
+        });
+    });
+
+    // Supplier routes - also require auth
     Route::middleware(['role:supplier'])->group(function () {
-        // Supplier routes
-    });
+    // Supplier-specific reports routes
+    Route::get('/reports/supplier', [App\Http\Controllers\ReportController::class, 'supplierIndex'])->name('reports.supplier');
     
-    Route::middleware(['role:vendor'])->group(function () {
-        // Vendor routes
+    // API endpoints for supplier reports (with supplier_only filtering) - use different URLs
+    Route::prefix('supplier-reports')->group(function () {
+        Route::get('/stats', [App\Http\Controllers\ReportController::class, 'getStats'])->name('reports.supplier.stats');
+        Route::get('/library', [App\Http\Controllers\ReportController::class, 'getReportLibrary'])->name('reports.supplier.library');
+        Route::get('/historical', [App\Http\Controllers\ReportController::class, 'getHistoricalReports'])->name('reports.supplier.historical');
+        Route::get('/templates', [App\Http\Controllers\ReportController::class, 'getTemplates'])->name('reports.supplier.templates');
+        Route::get('/recipients', [App\Http\Controllers\ReportController::class, 'getRecipients'])->name('reports.supplier.recipients');
+        Route::post('/', [App\Http\Controllers\ReportController::class, 'store'])->name('reports.supplier.store');
+        Route::post('/adhoc', [App\Http\Controllers\ReportController::class, 'generateAdhocReport'])->name('reports.supplier.adhoc');
+        Route::get('/{report}/edit', [App\Http\Controllers\ReportController::class, 'edit'])->name('reports.supplier.edit');
+        Route::put('/{report}', [App\Http\Controllers\ReportController::class, 'update'])->name('reports.supplier.update');
+        Route::post('/{report}/generate', [App\Http\Controllers\ReportController::class, 'generateNow'])->name('reports.supplier.generate');
+        Route::post('/{report}/pause', [App\Http\Controllers\ReportController::class, 'pause'])->name('reports.supplier.pause');
+        Route::post('/{report}/resume', [App\Http\Controllers\ReportController::class, 'resume'])->name('reports.supplier.resume');
+        Route::delete('/{report}', [App\Http\Controllers\ReportController::class, 'destroy'])->name('reports.supplier.destroy');
+        Route::get('/{report}/download', [App\Http\Controllers\ReportController::class, 'download'])->name('reports.supplier.download');
+        Route::get('/{report}/view', [App\Http\Controllers\ReportController::class, 'view'])->name('reports.supplier.view');
     });
-    
-    // Report Management Routes - Protected by auth middleware
-    Route::prefix('reports')->group(function () {
-        Route::get('/', [App\Http\Controllers\ReportController::class, 'index'])->name('reports.index');
-        Route::get('/stats', [App\Http\Controllers\ReportController::class, 'getStats'])->name('reports.stats');
-        Route::get('/library', [App\Http\Controllers\ReportController::class, 'getReportLibrary'])->name('reports.library');
-        Route::get('/historical', [App\Http\Controllers\ReportController::class, 'getHistoricalReports'])->name('reports.historical');
-        Route::get('/templates', [App\Http\Controllers\ReportController::class, 'getTemplates'])->name('reports.templates');
-        Route::get('/recipients', [App\Http\Controllers\ReportController::class, 'getRecipients'])->name('reports.recipients');
-        Route::post('/', [App\Http\Controllers\ReportController::class, 'store'])->name('reports.store');
-        Route::post('/adhoc', [App\Http\Controllers\ReportController::class, 'generateAdhocReport'])->name('reports.adhoc');
-        Route::get('/{report}/edit', [App\Http\Controllers\ReportController::class, 'edit'])->name('reports.edit');
-        Route::put('/{report}', [App\Http\Controllers\ReportController::class, 'update'])->name('reports.update');
-        Route::post('/{report}/generate', [App\Http\Controllers\ReportController::class, 'generateNow'])->name('reports.generate');
-        Route::post('/{report}/pause', [App\Http\Controllers\ReportController::class, 'pause'])->name('reports.pause');
-        Route::post('/{report}/resume', [App\Http\Controllers\ReportController::class, 'resume'])->name('reports.resume');
-        Route::delete('/{report}', [App\Http\Controllers\ReportController::class, 'destroy'])->name('reports.destroy');
-        Route::get('/{report}/download', [App\Http\Controllers\ReportController::class, 'download'])->name('reports.download');
-        Route::get('/{report}/view', [App\Http\Controllers\ReportController::class, 'view'])->name('reports.view');
-    });
+      
+       // Supplier inventory routes
+         Route::get('/supplierInventory', [supplierInventoryController::class, 'index'])->name('supplierInventory.index');
+         Route::post('/supplierInventory', [supplierInventoryController::class, 'store'])->name('supplierInventory.store');
+         Route::patch('/supplierInventory/{rawCoffee}', [supplierInventoryController::class, 'update'])->name('supplierInventory.update');
+        // Route::patch('/supplierInventory/{rawCoffee}', [supplierInventoryController::class, 'update'])->name('inventory.update');
+         Route::delete('/supplierInventory/{rawCoffee}', [supplierInventoryController::class, 'destroy'])->name('supplierInventory.destroy');
+         Route::get('/supplierInventory/stats', [supplierInventoryController::class, 'stats'])->name('supplierInventory.stats');
+
+
 });
 
+    // Vendor routes - also require auth  
+    Route::middleware(['role:vendor'])->group(function () {
+
+        // Vendor reports routes
+        Route::get('/reports/vendor', [App\Http\Controllers\ReportController::class, 'vendorIndex'])->name('reports.vendor');
+        
+        // API endpoints for vendor reports (with vendor_only filtering)
+        Route::prefix('vendor-reports')->group(function () {
+            Route::get('/stats', [App\Http\Controllers\ReportController::class, 'getStats'])->name('reports.vendor.stats');
+            Route::get('/library', [App\Http\Controllers\ReportController::class, 'getReportLibrary'])->name('reports.vendor.library');
+            Route::get('/historical', [App\Http\Controllers\ReportController::class, 'getHistoricalReports'])->name('reports.vendor.historical');
+            Route::get('/templates', [App\Http\Controllers\ReportController::class, 'getTemplates'])->name('reports.vendor.templates');
+            Route::get('/recipients', [App\Http\Controllers\ReportController::class, 'getRecipients'])->name('reports.vendor.recipients');
+            Route::post('/', [App\Http\Controllers\ReportController::class, 'store'])->name('reports.vendor.store');
+            Route::post('/adhoc', [App\Http\Controllers\ReportController::class, 'generateAdhocReport'])->name('reports.vendor.adhoc');
+            Route::get('/{report}/edit', [App\Http\Controllers\ReportController::class, 'edit'])->name('reports.vendor.edit');
+            Route::put('/{report}', [App\Http\Controllers\ReportController::class, 'update'])->name('reports.vendor.update');
+            Route::post('/{report}/generate', [App\Http\Controllers\ReportController::class, 'generateNow'])->name('reports.vendor.generate');
+            Route::post('/{report}/pause', [App\Http\Controllers\ReportController::class, 'pause'])->name('reports.vendor.pause');
+            Route::post('/{report}/resume', [App\Http\Controllers\ReportController::class, 'resume'])->name('reports.vendor.resume');
+            Route::delete('/{report}', [App\Http\Controllers\ReportController::class, 'destroy'])->name('reports.vendor.destroy');
+            Route::get('/{report}/download', [App\Http\Controllers\ReportController::class, 'download'])->name('reports.vendor.download');
+            Route::get('/{report}/view', [App\Http\Controllers\ReportController::class, 'view'])->name('reports.vendor.view');
+        });
+        
+       // Vendor inventory routes
+        Route::get('/vendorInventory', [vendorInventoryController::class, 'index'])->name('vendorInventory.index');
+         Route::post('/vendorInventory', [InventoryController::class, 'store'])->name('vendorInventory.store');
+          Route::patch('/vendorInventory/{coffeeProduct}', [vendorInventoryController::class, 'update'])->name('vendorInventory.update');
+        //Route::patch('/inventory/{coffeeProduct}', [InventoryController::class, 'update'])->name('inventory.update');
+        Route::delete('/inventoryInventory/{coffeeProduct}', [supplierInventoryController::class, 'destroy'])->name('vendorInventory.destroy');
+        Route::get('/inventory/{coffeeProduct}/edit', [InventoryController::class, 'edit'])->name('inventory.edit');
+        Route::get('/vendorInventory/stats', [vendorInventoryController::class, 'stats'])->name('vendorInventory.stats');
+
+
+
+    });
+}); // Close auth middleware group
 
 
 
@@ -205,3 +294,22 @@ Route::view('dashboard', 'dashboard')
 //     Route::redirect('settings', 'settings/profile');
 
 require __DIR__.'/auth.php';
+
+
+
+
+// Route::get('warehouses', SupplyCentersController::class);
+// Route::get('warehouses.staff', WorkerController::class);
+Route::get('/SupplyCenters', [SupplyCentersController::class, 'supplycenters'])->name('supplycenters');
+
+
+
+Route::get('/supplycenters', [SupplyCentersController::class, 'supplycenters'])->name('supplycenters.supplycenters');
+Route::post('/supplycenters', [SupplyCentersController::class, 'store'])->name('supplycenters.store');
+Route::patch('/supplycenters/{supplycenter}', [SupplyCentersController::class, 'update'])->name('supplycenters.update');
+Route::delete('/supplycenters/{supplycenters}', [SupplyCentersController::class, 'destroy'])->name('supplycenters.destroy');
+
+Route::post('/supplycenters/{supplycenter}/worker', [SupplyCentersController::class, 'storeWorker'])->name('worker.store');
+Route::patch('/worker/{worker}', [SupplyCentersController::class, 'updateWorker'])->name('worker.update');
+
+

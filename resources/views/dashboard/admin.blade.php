@@ -53,14 +53,16 @@
                 class="min-h-[200px]" 
             />
             
+
+            
             <x-column-graph-card
                     title="Inventory Levels"
                     column-chart-i-d="dailySalesChart"
                     :chart-data="$inventoryData"
                     :chart-data2="$inventoryData2"
                     :chart-categories="$inventoryCategories"
-                    seriesName="Current stock (kg)"
-                    seriesName2="Optimal Level(kg)"
+                    seriesName="Raw Coffee Stock (kg)"
+                    seriesName2="Coffee Products Stock (kg)"
                 />
 
 
@@ -70,12 +72,14 @@
         <div class="space-y-6">
 
             <x-ml-prediction-graph-card
-            title="ML Predictions"
-            chart-title="Demand Forecast"
+            title="Price Forecast Analytics"
+            chart-title="Coffee Price Predictions & Historical Trends"
             prediction-chart-i-d="mlPredictionsChart"
             :chart-data="$mlPredictionData"
             :chart-categories="$mlPredictionCategories"
             :description="$mlPredictionDescription"
+            :products="$products ?? collect()"
+            :current-product-id="$currentProductId ?? null"
             class="h-[600px]" {{-- Adjust height as needed for visual balance --}}
             />
 
@@ -92,13 +96,17 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 
             <x-line-graph-card
-             title="Quality Score"
+            title="Raw Coffee Defect Count Trends"
             line-chart-i-d="lineChart"
             :chart-data="$lineChartData"
             :chart-categories="$lineChartCategories"
             />
 
-    
+            <x-recent-reports-card
+                title="Recent Reports"
+                :reports="$recentReports"
+                class="min-h-[200px]" 
+            />
 
            
         </div>

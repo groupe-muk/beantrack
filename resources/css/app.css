@@ -48,6 +48,8 @@
     --color-status-background-blue: #D8EAFE;
     --color-status-text-gray: #1F2937;
     --color-status-background-gray: #F3F4F6;
+    --color-status-text-purple: #5521B5;
+    --color-status-background-purple: #EDEBFE;
     --color-progress-bar-green: #22C55E;
     --color-progress-bar-orange: #F59E08;
     --color-progress-bar-red: #EF4444;
@@ -98,5 +100,46 @@ select:focus[data-flux-control] {
 } */
 .btn{
     @apply text-white bg-coffee-brown hover:bg-brown focus:outline-none focus:ring-4 focus:ring-coffee-brown font-medium rounded-full text-sm px-5 py-2.5 text-center me-2 mb-2 dark:focus:ring-coffee-brown
+}
+
+/* Custom scrollbar styles for modal */
+.modal-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(156 163 175) transparent;
+}
+
+.modal-scrollbar::-webkit-scrollbar {
+    width: 6px;
+}
+
+.modal-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.modal-scrollbar::-webkit-scrollbar-thumb {
+    background-color: rgb(156 163 175);
+    border-radius: 3px;
+}
+
+.modal-scrollbar::-webkit-scrollbar-thumb:hover {
+    background-color: rgb(107 114 128);
+}
+
+.dark .modal-scrollbar {
+    scrollbar-color: rgb(107 114 128) transparent;
+}
+
+.dark .modal-scrollbar::-webkit-scrollbar-thumb {
+    background-color: rgb(107 114 128);
+}
+
+.dark .modal-scrollbar::-webkit-scrollbar-thumb:hover {
+    background-color: rgb(75 85 99);
+}
+
+/* Fade indicators for scrollable modal content */
+.fade-top.show, .fade-bottom.show {
+    opacity: 0.6;
+    transition: opacity 0.2s ease-in-out;
 }
 

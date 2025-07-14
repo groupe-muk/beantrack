@@ -14,16 +14,21 @@ return new class extends Migration {
             $table->text('description')->nullable();
             $table->enum('type', ['inventory', 'order_summary', 'performance', 'adhoc']);
             $table->string('recipient_id', 6);
+            $table->string('created_by', 6)->nullable(); // Track who created the report
             $table->enum('frequency', ['daily', 'weekly', 'monthly', 'quarterly', 'once']);
             $table->enum('format', ['pdf', 'excel', 'csv', 'dashboard'])->default('pdf');
             $table->text('recipients')->nullable();
             $table->time('schedule_time')->nullable();
             $table->string('schedule_day')->nullable();
             $table->enum('status', ['active', 'paused', 'failed', 'processing', 'completed'])->default('active');
+            $table->string('file_size')->nullable(); // File size of generated reports
             $table->json('content');
             $table->timestamp('last_sent')->nullable();
             $table->timestamps();
+            
+            // Foreign key constraints
             $table->foreign('recipient_id')->references('id')->on('users')->onDelete('cascade');
+            $table->foreign('created_by')->references('id')->on('users')->onDelete('set null');
         });
         DB::unprepared("CREATE TRIGGER before_reports_insert BEFORE INSERT ON reports FOR EACH ROW BEGIN DECLARE last_id INT; SELECT CAST(SUBSTRING(id, 2) AS UNSIGNED) INTO last_id FROM reports ORDER BY id DESC LIMIT 1; SET NEW.id = CONCAT('R', LPAD(COALESCE(last_id + 1, 1), 5, '0')); END");
     }

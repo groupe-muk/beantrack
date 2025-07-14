@@ -12,6 +12,7 @@
                     unit="kgs"
                     changeText="5.2% from last period"
                     changeIconClass="fa-arrow-up"
+                    changeType="positive"
                 />
                 <x-stats-card
                     title="Production Volume"
@@ -20,6 +21,7 @@
                     unit="kg"
                     changeText="1.2% from last period"
                     changeIconClass="fa-arrow-down"
+                    changeType="negative"
                 />
                 <x-stats-card
                     title="Delivery Schedule"
@@ -28,6 +30,7 @@
                     unit="shipments"
                     changeText="2.1% from last period"
                     changeIconClass="fa-arrow-up"
+                    changeType="positive"
                 />
                 <x-stats-card
                     title="Quality Score"
@@ -36,6 +39,7 @@
                     unit=""
                     changeText="0.5% from last period"
                     changeIconClass="fa-arrow-up"
+                    changeType="positive"
                 />
             </div>
         </div>

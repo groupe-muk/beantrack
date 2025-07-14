@@ -49,6 +49,9 @@ Ensure the PDF files follow the expected naming convention:
 The validation service expects files to be accessible at the paths you provide in the API call. Make sure the PDFs are in a location your server can access.
 
 ### Step 4: Test API Call
+Start the java server using the command in the terminal: cd "your project file path"\validation-server; ./mvnw spring-boot:run  
+eg. cd c:\Users\USER\Desktop\Coding\beantrack\validation-server;./mvnw spring-boot:run
+
 Use these parameters for testing:
 
 ```bash

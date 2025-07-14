@@ -41,37 +41,42 @@
   
   <!-- Stats Section -->
   <div class="space-y-6">
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 w-full">
-    <x-stats-card
-    title="Out Of Stock"
-    value="6"
-    changeText="2 from last week"
-    iconClass="fa-exclamation-triangle"
-    />
+   <div class="grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
+  
     <x-stats-card
     title="Low Stock Alerts"
-    value="6"
-    changeText="2 from last week"
+    :value="$lowStock"
+    valueId="low-stock-value"
     iconClass="fa-long-arrow-down"
     />
+    
     <x-stats-card
-    title="Total Value"
-    value="13,907.56"
-    unit="Ugx"
-    changeText="2 from last week"
+    title="Out Of Stock"
+    :value="$outOfStock"
+    valueId="out-of-stock-value"
+    iconClass="fa-exclamation-triangle"
+    />
+
+    <x-stats-card
+    title="Total Quantity"
+    :value="$totalQuantity"
+    valueId="total-quantity"
+    unit="kg"
     iconClass="fa-cube"
     />
-    </div>
+
+
+     </div>
   </div>
+
+
 
 
   <!-- Inventory Table -->
   <div class="mt-10">
   <div class="flex justify-between items-center mb-6">
     <h1 class="text-2xl font-semibold text-dashboard-light pb-5">Raw Coffee</h1>
-      <div>
         <button class="bg-light-brown text-white px-4 py-2 rounded" data-mode="add" data-modal-open="addRawCoffeeModal">+ Add Item</button>
-      </div>
   </div>
   
     <div class="bg-white rounded shadow overflow-x-auto p-4">
@@ -106,7 +111,14 @@
                                 {{ $rawCoffee->supplyCenter->name }}
                             </td>
                             <td class="px-5 py-5 border-b border-soft-gray dark:border-mild-gray text-sm text-gray-900 dark:text-off-white">
-                            </td>
+                                @if ($rawCoffee->quantity_in_stock > 10)
+                                    <span class="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs">In Stock</span>
+                                @elseif ($rawCoffee->quantity_in_stock > 0)
+                                    <span class="px-2 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs">Low Stock</span>
+                                @else
+                                    <span class="px-2 py-1 bg-red-100 text-red-700 rounded-full text-xs">Out of Stock</span>
+                                @endif
+                            </td>    
                             <td class="px-5 py-5 border-b border-soft-gray dark:border-mild-gray text-sm">
                                 <div class="flex items-center space-x-3">
                                     {{-- Edit button --}}
@@ -117,12 +129,12 @@
                                         data-rawCoffee-name="{{ $rawCoffee->rawCoffee->coffee_type }}"
                                         data-rawCoffee-grade="{{ $rawCoffee->rawCoffee->grade }}"
                                         data-rawCoffee-quantity="{{ $rawCoffee->quantity_in_stock }}"
-                                        data-rawCoffee-location="{{ $rawCoffee->supplyCenter->name }}"
+                                        data-rawCoffee-location="{{ $rawCoffee->supplyCenter->name}}"
                                         data-mode="edit">
                                         Edit
                                     </button>
                                     {{-- Delete button --}}
-                                    <form action="{{ route('inventory.destroy', $rawCoffee->rawCoffee->id) }}" method="POST" class="inline delete-RawCoffee-form">
+                                    <form action="{{ route('inventory.destroy.rawCoffee', $rawCoffee->rawCoffee->id) }}" method="POST" class="inline delete-RawCoffee-form">
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit" class="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-600 transition-colors duration-200 text-xs cursor-pointer">
@@ -134,7 +146,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="4" class="px-5 py-5 border-b border-soft-gray dark:border-mild-gray text-center text-sm text-gray-500 dark:text-gray-400">
+                            <td colspan="7" class="px-5 py-5 border-b border-soft-gray dark:border-mild-gray text-center text-sm text-gray-500 dark:text-gray-400">
                                 No items found.
                             </td>
                         </tr>
@@ -142,6 +154,8 @@
         </tbody>
       </table>
     </div>
+
+    
 
     <div class="flex justify-between items-center mb-6 pt-10">
     <h1 class="text-2xl font-semibold text-dashboard-light pb-5">Processed Coffee</h1>
@@ -182,23 +196,32 @@
                                 {{ $coffeeProduct->supplyCenter->name }}
                             </td>
                             <td class="px-5 py-5 border-b border-soft-gray dark:border-mild-gray text-sm text-gray-900 dark:text-off-white">
-                            </td>
+                                @if ($coffeeProduct->quantity_in_stock > 30)
+                                    <span class="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs">In Stock</span>
+                                @elseif ($coffeeProduct->quantity_in_stock > 20)
+                                    <span class="px-2 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs">Low Stock</span>
+                                @else
+                                    <span class="px-2 py-1 bg-red-100 text-red-700 rounded-full text-xs">Out of Stock</span>
+                                @endif
+                            </td>    
                             <td class="px-5 py-5 border-b border-soft-gray dark:border-mild-gray text-sm">
                                 <div class="flex items-center space-x-3">
                                     {{-- Edit button --}}
                                     <button 
                                         type="button"
                                         class="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-600 transition-colors duration-200 text-xs cursor-pointer edit-CoffeeProduct-btn"
-                                        data-coffeeProduct-id="{{ $coffeeProduct->CoffeeProduct->id }}"
-                                        data-coffeeProduct-name="{{ $coffeeProduct->CoffeeProduct->name }}"
-                                        data-coffeeProduct-category="{{ $coffeeProduct->category }}"
+                                        data-coffeeProduct-id="{{ $coffeeProduct->coffeeProduct->id }}"
+                                        data-coffeeProduct-name="{{ $coffeeProduct->coffeeProduct->name }}"
+                                        data-coffeeProduct-category="{{ $coffeeProduct->coffeeProduct->category }}"
                                         data-coffeeProduct-quantity="{{ $coffeeProduct->quantity_in_stock }}"
-                                        data-coffeeProduct-location="{{ $coffeeProduct->SupplyCenter->name }}"
+                                        data-coffeeProduct-location="{{ $coffeeProduct->supplyCenter->name }}"
                                         data-mode="edit">
                                         Edit
                                     </button>
+                                    
+                                    
                                     {{-- Delete button --}}
-                                    <form action="{{ route('inventory.destroy', $coffeeProduct->id) }}" method="POST" class="inline delete-CoffeeProduct-form">
+                                    <form action="{{ route('inventory.destroy.coffeeProduct', $coffeeProduct->coffeeProduct->id) }}" method="POST" class="inline delete-CoffeeProduct-form">
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit" class="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-600 transition-colors duration-200 text-xs cursor-pointer">
@@ -210,7 +233,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="4" class="px-5 py-5 border-b border-soft-gray dark:border-mild-gray text-center text-sm text-gray-500 dark:text-gray-400">
+                            <td colspan="7" class="px-5 py-5 border-b border-soft-gray dark:border-mild-gray text-center text-sm text-gray-500 dark:text-gray-400">
                                 No users found.
                             </td>
                         </tr>
@@ -250,36 +273,30 @@
 
         {{-- Grade Field --}}
         <div class="mb-4">
-            <label for="grade" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label for="rawCoffeeGrade" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Grade
             </label>
             <input type="text" 
-                   id="rawCoffeeGrade" 
-                   name="grade" 
-                   required
-                   class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-coffee-brown focus:border-coffee-brown dark:bg-dark-background dark:text-off-white"
-                   placeholder="Enter coffee grade"
-                   value="{{ old('grade') }}">
-            @error('grade')
-                <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
-            @enderror
+                id="rawCoffeeGrade" 
+                name="grade" 
+                required
+                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-coffee-brown focus:border-coffee-brown dark:bg-dark-background dark:text-off-white"
+                placeholder="Enter coffee grade"
+                value="{{ old('grade') }}">
         </div>
 
         {{-- Quantity Field --}}
         <div class="mb-4">
-            <label for="quantity" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label for="rawCoffeeQuantity" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Quantity
             </label>
             <input type="number" 
-                   id="rawCoffeeQuantity" 
-                   name="quantity_in_stock" 
-                   required
-                   class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-coffee-brown focus:border-coffee-brown dark:bg-dark-background dark:text-off-white"
-                   placeholder="Enter Quantity"
-                   value="{{ old('quantity') }}">
-            @error('quantity')
-                <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
-            @enderror
+                id="rawCoffeeQuantity" 
+                name="quantity_in_stock" 
+                required
+                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-coffee-brown focus:border-coffee-brown dark:bg-dark-background dark:text-off-white"
+                placeholder="Enter Quantity"
+                value="{{ old('quantity_in_stock') }}">
         </div>
 
         {{-- Warehouse Field --}}
@@ -346,20 +363,19 @@
         </div>
 
         {{-- Quantity Field --}}
-        <div class="mb-4">
-            <label for="quantity_in_stock" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Quantity
+       <div class="mb-4">
+            <label for="coffeeProductWarehouse" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Warehouse
             </label>
-            <input type="number" 
-                   id="coffee-product-quantity" 
-                   name="quantity_in_stock" 
-                   required
-                   class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-coffee-brown focus:border-coffee-brown dark:bg-dark-background dark:text-off-white"
-                   placeholder="Enter Quantity"
-                   value="{{ old('quantity_in_stock') }}">
-            @error('quantity_in_stock')
-                <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
-            @enderror
+            <select name="supply_center_id" 
+                    id="coffeeProductWarehouse" 
+                    required
+                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-coffee-brown focus:border-coffee-brown dark:bg-dark-background dark:text-off-white">
+                <option value="">Select Warehouse</option>
+                @foreach($supplyCenters as $center)
+                <option value="{{ $center->id }}">{{ $center->name }}</option>
+                @endforeach
+            </select>
         </div>
 
         {{-- Warehouse Field --}}
@@ -383,10 +399,9 @@
 @endsection
 
 @push('scripts')
-  <script>
-
-
-      if (document.getElementById("search-table") && typeof simpleDatatables.DataTable !== 'undefined') {
+<script>
+    
+     if (document.getElementById("search-table") && typeof simpleDatatables.DataTable !== 'undefined') {
           const dataTable = new simpleDatatables.DataTable("#search-table", {
               searchable: true,
               sortable: false
@@ -399,102 +414,265 @@
           });
       }
 
-  document.addEventListener('DOMContentLoaded', function () {
+document.addEventListener('DOMContentLoaded', function () {
 
     // --- Essential Modal and Form Elements ---
-    const modal1 = document.getElementById('addRawCoffeeModal');
-    const form1 = document.getElementById('addRawCoffeeForm');
-    const modal2 = document.getElementById('addCoffeeProductModal');
-    const form2 = document.getElementById('addCoffeeProductForm');
+    const rawCoffeeModal = document.getElementById('addRawCoffeeModal');
+    const rawCoffeeForm = document.getElementById('addRawCoffeeForm');
+    const processedCoffeeModal = document.getElementById('addProcessedCoffeeModal');
+    const processedCoffeeForm = document.getElementById('addProcessedCoffeeForm');
 
-  
-    const modalTitle = modal1.querySelector('h3');
-    const submitButton = modal1.querySelector('button[type="submit"]');
-    const methodInput = form1.querySelector('input[name="_method"]');
-
-    // --- Add New Raw Coffee Item Button ---
-    const addRawCoffeeButton = document.querySelector('button[data-mode="add"]');
-    if (addRawCoffeeButton) {
+    // Add Raw Coffee Button
+    const addRawCoffeeButton = document.querySelector('button[data-modal-open="addRawCoffeeModal"]');
+    if (addRawCoffeeButton && rawCoffeeModal && rawCoffeeForm) {
         addRawCoffeeButton.addEventListener('click', function() {
-            form1.reset();
-            modalTitle.textContent = 'Add New Raw Coffee Item';
-            submitButton.textContent = 'Add Item';
-            form1.action = "{{ route('inventory.store') }}";
-            methodInput.value = 'POST';
+            rawCoffeeForm.reset();
+            
+            // Update modal title and button text
+            const modalTitle = rawCoffeeModal.querySelector('h3');
+            const submitButton = rawCoffeeModal.querySelector('button[type="submit"]');
+            const methodInput = rawCoffeeForm.querySelector('input[name="_method"]');
+            
+            if (modalTitle) modalTitle.textContent = 'Add New Raw Coffee Item';
+            if (submitButton) submitButton.textContent = 'Add Item';
+            
+            rawCoffeeForm.action = "{{ route('inventory.store') }}";
+            if (methodInput) methodInput.value = 'POST';
 
+            // Open modal
+            rawCoffeeModal.classList.remove('hidden');
+            rawCoffeeModal.classList.add('flex');
+            document.body.style.overflow = 'hidden';
         });
     }
-      // --- Add New Processed Coffee Item Button ---
-const addProcessedCoffeeButton = document.querySelector('button[data-modal-open="addProcessedCoffeeModal"]');
-const modalProcessed = document.getElementById('addProcessedCoffeeModal');
-const formProcessed = document.getElementById('addProcessedCoffeeForm');
-if (addProcessedCoffeeButton && modalProcessed && formProcessed) {
-    addProcessedCoffeeButton.addEventListener('click', function() {
-        formProcessed.reset();
-        // Set modal title and button text if needed
-        modalProcessed.querySelector('h3').textContent = 'Add New Processed Coffee Item';
-        modalProcessed.querySelector('button[type="submit"]').textContent = 'Add Item';
-        formProcessed.action = "{{ route('inventory.store') }}";
-        formProcessed.querySelector('input[name="_method"]').value = 'POST';
 
-        // Open the modal
-        modalProcessed.classList.remove('hidden');
-        modalProcessed.classList.add('flex');
-        document.body.style.overflow = 'hidden';
-    });
-}
+    // Add Processed Coffee Button
+    const addProcessedCoffeeButton = document.querySelector('button[data-modal-open="addProcessedCoffeeModal"]');
+    if (addProcessedCoffeeButton && processedCoffeeModal && processedCoffeeForm) {
+        addProcessedCoffeeButton.addEventListener('click', function() {
+            processedCoffeeForm.reset();
+            
+            // Update modal title and button text
+            const modalTitle = processedCoffeeModal.querySelector('h3');
+            const submitButton = processedCoffeeModal.querySelector('button[type="submit"]');
+            const methodInput = processedCoffeeForm.querySelector('input[name="_method"]');
+            
+            if (modalTitle) modalTitle.textContent = 'Add New Processed Coffee Item';
+            if (submitButton) submitButton.textContent = 'Add Item';
+            
+            processedCoffeeForm.action = "{{ route('inventory.store') }}";
+            if (methodInput) methodInput.value = 'POST';
 
-    // --- Edit Raw Coffee Buttons ---
-    const editButtons = document.querySelectorAll('.edit-RawCoffee-btn');
+            // Open modal
+            processedCoffeeModal.classList.remove('hidden');
+            processedCoffeeModal.classList.add('flex');
+            document.body.style.overflow = 'hidden';
+        });
+    }
 
-    editButtons.forEach(btn => {
+    // Edit Raw Coffee Buttons
+    const editRawCoffeeButtons = document.querySelectorAll('.edit-RawCoffee-btn');
+    editRawCoffeeButtons.forEach(btn => {
         btn.addEventListener('click', function() {
             const itemId = btn.getAttribute('data-rawCoffee-id');
             const itemName = btn.getAttribute('data-rawCoffee-name');
             const itemGrade = btn.getAttribute('data-rawCoffee-grade');
             const itemQuantity = btn.getAttribute('data-rawCoffee-quantity');
             const itemLocation = btn.getAttribute('data-rawCoffee-location');
-            
 
-            // Verify we have the user data
+            // Validation
             if (!itemId || !itemName || !itemGrade || !itemQuantity || !itemLocation) {
-                console.error("Missing user data:", { itemId, itemName, itemGrade, itemQuantity, itemLocation });
-                alert("Error: Missing user data. Please refresh the page and try again.");
+                console.error("Missing raw coffee data:", { itemId, itemName, itemGrade, itemQuantity, itemLocation });
+                alert("Error: Missing item data. Please refresh the page and try again.");
                 return;
             }
 
-            form1.reset();
-            modalTitle.textContent = 'Edit Item';
-            submitButton.textContent = 'Update Item';
-            
-            // Build the update URL manually to ensure proper encoding
-            const updateUrl = "{{ route('inventory.update', ['rawCoffee' => ':id']) }}".replace(':id', encodeURIComponent(itemId));
-            form1.action = updateUrl;
-            methodInput.value = 'PATCH';
+            if (rawCoffeeForm && rawCoffeeModal) {
+                rawCoffeeForm.reset();
+                
+                // Update modal elements
+                const modalTitle = rawCoffeeModal.querySelector('h3');
+                const submitButton = rawCoffeeModal.querySelector('button[type="submit"]');
+                const methodInput = rawCoffeeForm.querySelector('input[name="_method"]');
+                
+                if (modalTitle) modalTitle.textContent = 'Edit Raw Coffee Item';
+                if (submitButton) submitButton.textContent = 'Update Item';
+                
+                // Set form action and method
+                const updateUrl = "{{ route('inventory.update.rawCoffee', ['rawCoffee' => ':id']) }}".replace(':id', encodeURIComponent(itemId));
+                rawCoffeeForm.action = updateUrl;
+                if (methodInput) methodInput.value = 'PATCH';
 
-            // Populate form fields
-            document.getElementById('raw-coffee-name').value = itemId;
-            document.getElementById('raw-coffee-grade').value = itemGrade;
-            document.getElementById('raw-coffee-quantity').value = itemQuantity;
-            document.getElementById('raw-coffee-location').value = itemLocation;
-                        
-            // Open the modal
-            modal1.classList.remove('hidden');
-            modal1.classList.add('flex');
-            document.body.style.overflow = 'hidden';
-        });
-    });
+                // Populate form fields
+                const nameSelect = document.getElementById('raw-coffee-name');
+                const gradeInput = document.getElementById('rawCoffeeGrade');
+                const quantityInput = document.getElementById('rawCoffeeQuantity');
+                const warehouseSelect = document.getElementById('coffeeProductWarehouse');
+                
+                if (nameSelect) nameSelect.value = itemId;
+                if (gradeInput) gradeInput.value = itemGrade;
+                if (quantityInput) quantityInput.value = itemQuantity;
+                if (warehouseSelect) {
+                    // Find warehouse by name and set the value
+                    for (let option of warehouseSelect.options) {
+                        if (option.text === itemLocation) {
+                            warehouseSelect.value = option.value;
+                            break;
+                        }
+                    }
+                }
 
-    // --- Delete Item Confirmation ---
-    const deleteForms = document.querySelectorAll('.delete-RawCoffee-form');
-    deleteForms.forEach(deleteForm => {
-        deleteForm.addEventListener('submit', function(e) {
-            if (!confirm('Are you sure you want to delete this item? This action cannot be undone.')) {
-                e.preventDefault();
+                // Open modal
+                rawCoffeeModal.classList.remove('hidden');
+                rawCoffeeModal.classList.add('flex');
+                document.body.style.overflow = 'hidden';
             }
         });
     });
 
-  });  
-  </script>
+    // Edit Processed Coffee Buttons
+    const editProcessedCoffeeButtons = document.querySelectorAll('.edit-CoffeeProduct-btn');
+    editProcessedCoffeeButtons.forEach(btn => {
+        btn.addEventListener('click', function() {
+            const itemId = btn.getAttribute('data-coffeeProduct-id');
+            const itemName = btn.getAttribute('data-coffeeProduct-name');
+            const itemCategory = btn.getAttribute('data-coffeeProduct-category');
+            const itemQuantity = btn.getAttribute('data-coffeeProduct-quantity');
+            const itemLocation = btn.getAttribute('data-coffeeProduct-location');
+
+            // Validation
+            if (!itemId || !itemName || !itemCategory || !itemQuantity || !itemLocation) {
+                console.error("Missing processed coffee data:", { itemId, itemName, itemCategory, itemQuantity, itemLocation });
+                alert("Error: Missing item data. Please refresh the page and try again.");
+                return;
+            }
+
+            if (processedCoffeeForm && processedCoffeeModal) {
+                processedCoffeeForm.reset();
+                
+                // Update modal elements
+                const modalTitle = processedCoffeeModal.querySelector('h3');
+                const submitButton = processedCoffeeModal.querySelector('button[type="submit"]');
+                const methodInput = processedCoffeeForm.querySelector('input[name="_method"]');
+                
+                if (modalTitle) modalTitle.textContent = 'Edit Processed Coffee Item';
+                if (submitButton) submitButton.textContent = 'Update Item';
+                
+                // Set form action and method
+                const updateUrl = "{{ route('inventory.update.coffeeProduct', ['coffeeProduct' => ':id']) }}".replace(':id', encodeURIComponent(itemId));
+                processedCoffeeForm.action = updateUrl;
+                if (methodInput) methodInput.value = 'PATCH';
+
+                // Populate form fields
+                const nameSelect = document.getElementById('coffee-product-name');
+                const categoryInput = document.getElementById('coffee-product-category');
+                const quantityInput = document.getElementById('coffee-product-quantity');
+                const warehouseSelect = document.getElementById('processedCoffeeWarehouse');
+                
+                if (nameSelect) nameSelect.value = itemId;
+                if (categoryInput) categoryInput.value = itemCategory;
+                if (quantityInput) quantityInput.value = itemQuantity;
+                if (warehouseSelect) {
+                    // Find warehouse by name and set the value
+                    for (let option of warehouseSelect.options) {
+                        if (option.text === itemLocation) {
+                            warehouseSelect.value = option.value;
+                            break;
+                        }
+                    }
+                }
+
+                // Open modal
+                processedCoffeeModal.classList.remove('hidden');
+                processedCoffeeModal.classList.add('flex');
+                document.body.style.overflow = 'hidden';
+            }
+        });
+    });
+
+    // Delete Raw Coffee Confirmation
+    const deleteRawCoffeeForms = document.querySelectorAll('.delete-RawCoffee-form');
+    deleteRawCoffeeForms.forEach(form => {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const itemName = form.closest('tr').querySelector('td:nth-child(2)').textContent.trim();
+            
+            if (confirm(`Are you sure you want to delete "${itemName}"? This action cannot be undone.`)) {
+                form.submit();
+            }
+        });
+    });
+
+    // Delete Processed Coffee Confirmation
+    const deleteProcessedCoffeeForms = document.querySelectorAll('.delete-CoffeeProduct-form');
+    deleteProcessedCoffeeForms.forEach(form => {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const itemName = form.closest('tr').querySelector('td:nth-child(2)').textContent.trim();
+            
+            if (confirm(`Are you sure you want to delete "${itemName}"? This action cannot be undone.`)) {
+                form.submit();
+            }
+        });
+    });
+
+    // Modal close functionality
+    function setupModalClose(modal) {
+        if (!modal) return;
+        
+        // Close on backdrop click
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+                document.body.style.overflow = 'auto';
+            }
+        });
+        
+        // Close on escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && !modal.classList.contains('hidden')) {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+                document.body.style.overflow = 'auto';
+            }
+        });
+        
+        // Close on cancel button
+        const cancelButton = modal.querySelector('button[data-modal-close]');
+        if (cancelButton) {
+            cancelButton.addEventListener('click', function() {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+                document.body.style.overflow = 'auto';
+            });
+        }
+    }
+    
+    // Setup modal close for both modals
+    setupModalClose(rawCoffeeModal);
+    setupModalClose(processedCoffeeModal);
+});
+  function updateStatsCards() {
+    fetch('/inventory/stats')
+        .then(response => response.json())
+        .then(data => {
+            // Update the card values by their IDs or classes
+            document.getElementById('out-of-stock-value').textContent = data.outOfStock || '0';
+            document.getElementById('low-stock-value').textContent = data.lowStock || '0';
+            document.getElementById('total-quantity').textContent = data.totalQuantity;
+
+        })
+        .catch(error => {
+            console.error('Error fetching stats:', error);
+        });
+  }
+  // Call once on page load
+   updateStatsCards();
+   // Refresh every 60 seconds
+   setInterval(updateStatsCards, 60000);
+
+</script>
 @endpush

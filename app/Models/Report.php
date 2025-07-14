@@ -17,13 +17,15 @@ class Report extends Model
         'name',
         'description',
         'type', 
-        'recipient_id', 
+        'recipient_id',
+        'created_by',
         'frequency', 
         'format',
         'recipients',
         'schedule_time',
         'schedule_day',
         'status',
+        'file_size',
         'content', 
         'last_sent'
     ];
@@ -57,6 +59,11 @@ class Report extends Model
     public function recipient()
     {
         return $this->belongsTo(User::class, 'recipient_id');
+    }
+
+    public function creator()
+    {
+        return $this->belongsTo(User::class, 'created_by');
     }
 
     // Scopes

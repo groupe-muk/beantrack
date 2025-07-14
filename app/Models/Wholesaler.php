@@ -25,4 +25,9 @@ class Wholesaler extends Model
     {
         return $this->hasMany(Order::class, 'wholesaler_id');
     }
+
+    public function warehouses()
+    {
+        return $this->hasMany(Warehouse::class, 'wholesaler_id');
+    }
 }

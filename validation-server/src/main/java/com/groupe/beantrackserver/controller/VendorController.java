@@ -1,18 +1,18 @@
 package com.groupe.beantrackserver.controller;
 
-import com.groupe.beantrackserver.models.VendorValidationResponse;
 import com.groupe.beantrackserver.models.VendorApplications;
+import com.groupe.beantrackserver.models.VendorValidationResponse;
+import com.groupe.beantrackserver.service.EmailService;
 import com.groupe.beantrackserver.service.VendorValidationService;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Map;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/vendors")
@@ -20,6 +20,9 @@ public class VendorController {
 
     @Autowired
     private VendorValidationService validationService;
+
+    @Autowired
+    private EmailService emailService;
 
     @PostMapping("/apply")
     public ResponseEntity<VendorValidationResponse> applyVendor(
@@ -90,6 +93,94 @@ public class VendorController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(Map.of("error", "Internal server error: " + e.getMessage()));
+        }
+    }
+
+    @PostMapping("/send-email")
+    public ResponseEntity<?> sendEmail(@RequestParam Map<String, String> emailData) {
+        try {
+            System.out.println("Received email request with data: " + emailData);
+            
+            String type = emailData.get("type");
+            String email = emailData.get("email");
+            String applicantName = emailData.get("applicantName");
+            String businessName = emailData.get("businessName");
+            
+            if (type == null || email == null || applicantName == null) {
+                System.err.println("Missing required parameters: type=" + type + ", email=" + email + ", applicantName=" + applicantName);
+                return ResponseEntity.badRequest()
+                    .body(Map.of("error", "Missing required parameters: type, email, applicantName"));
+            }
+
+            if ("rejection".equals(type)) {
+                String reason = emailData.getOrDefault("reason", "Your application did not meet our requirements.");
+                System.out.println("Sending rejection email to: " + email);
+                emailService.sendRejectionEmailDirect(email, applicantName, businessName, reason);
+                
+                return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "message", "Rejection email sent successfully"
+                ));
+                
+            } else if ("welcome".equals(type)) {
+                String userId = emailData.get("userId");
+                String password = emailData.get("password");
+                String loginUrl = emailData.get("loginUrl");
+                
+                if (userId == null || password == null) {
+                    System.err.println("Missing required parameters for welcome email: userId=" + userId + ", password=" + (password != null ? "[PRESENT]" : "[MISSING]"));
+                    return ResponseEntity.badRequest()
+                        .body(Map.of("error", "Missing required parameters for welcome email: userId, password"));
+                }
+                
+                System.out.println("Sending welcome email to: " + email);
+                emailService.sendWelcomeEmailDirect(email, applicantName, businessName, userId, password, loginUrl);
+                
+                return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "message", "Welcome email sent successfully"
+                ));
+                
+            } else {
+                System.err.println("Invalid email type: " + type);
+                return ResponseEntity.badRequest()
+                    .body(Map.of("error", "Invalid email type. Supported types: rejection, welcome"));
+            }
+            
+        } catch (Exception e) {
+            System.err.println("Failed to send email: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of("error", "Failed to send email: " + e.getMessage()));
+        }
+    }
+
+    @PostMapping("/test-email")
+    public ResponseEntity<?> testEmail(@RequestParam String email, @RequestParam String type) {
+        try {
+            if ("welcome".equals(type)) {
+                emailService.sendWelcomeEmailDirect(
+                    email, 
+                    "Test User", 
+                    "Test Business", 
+                    "U00001", 
+                    "testpass123", 
+                    "http://localhost:8000/login"
+                );
+                return ResponseEntity.ok(Map.of("success", true, "message", "Test welcome email sent"));
+            } else if ("rejection".equals(type)) {
+                emailService.sendRejectionEmailDirect(
+                    email, 
+                    "Test User", 
+                    "Test Business", 
+                    "This is a test rejection."
+                );
+                return ResponseEntity.ok(Map.of("success", true, "message", "Test rejection email sent"));
+            }
+            return ResponseEntity.badRequest().body(Map.of("error", "Invalid type"));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body(Map.of("error", e.getMessage()));
         }
     }
 }
