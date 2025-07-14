@@ -44,17 +44,17 @@ class ChatController extends Controller
             $vendors = Wholesaler::with('user')->get();
             Log::info("Vendors query result: ", ['count' => count($vendors), 'vendors' => $vendors]);
         } elseif ($user->role === 'supplier') {
-            $vendors = User::where('role', 'vendor')->get();
+            // $vendors = User::where('role', 'vendor')->get();
             $admins = User::where('role', 'admin')->get();
-            $suppliers = User::where('role', 'supplier')
-                ->where('id', '!=', $user->id)
-                ->get();
+            // $suppliers = User::where('role', 'supplier')
+            //     ->where('id', '!=', $user->id)
+            //     ->get();
         } elseif ($user->role === 'vendor') {
-            $suppliers = User::where('role', 'supplier')->get();
+            // $suppliers = User::where('role', 'supplier')->get();
             $admins = User::where('role', 'admin')->get();
-            $vendors = User::where('role', 'vendor')
-                ->where('id', '!=', $user->id)
-                ->get();
+            // $vendors = User::where('role', 'vendor')
+            //     ->where('id', '!=', $user->id)
+            //     ->get();
         }
         
         // Get most recent messages with each user for previews

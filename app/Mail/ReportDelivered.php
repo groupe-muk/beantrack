@@ -34,8 +34,13 @@ class ReportDelivered extends Mailable
      */
     public function envelope(): Envelope
     {
+        // Generate role-based title for email subject
+        $userId = $this->report->created_by ?? null;
+        $user = $userId ? \App\Models\User::find($userId) : null;
+        $roleBasedTitle = $this->generateRoleBasedTitle($this->report->name, $user);
+        
         return new Envelope(
-            subject: 'BeanTrack Report: ' . $this->report->name,
+            subject: 'BeanTrack Report: ' . $roleBasedTitle,
         );
     }
 
@@ -44,12 +49,17 @@ class ReportDelivered extends Mailable
      */
     public function content(): Content
     {
+        // Generate role-based title for email content
+        $userId = $this->report->created_by ?? null;
+        $user = $userId ? \App\Models\User::find($userId) : null;
+        $roleBasedTitle = $this->generateRoleBasedTitle($this->report->name, $user);
+        
         return new Content(
             view: 'emails.report-delivered',
             with: [
                 'report' => $this->report,
                 'recipient' => $this->recipient,
-                'reportName' => $this->report->name,
+                'reportName' => $roleBasedTitle,
                 'generatedAt' => $this->report->last_sent ? $this->report->last_sent->format('F j, Y g:i A') : 'Recently',
                 'format' => strtoupper($this->report->format ?? 'PDF'),
                 'fileSize' => $this->report->file_size ?? 'N/A'
@@ -121,6 +131,27 @@ class ReportDelivered extends Mailable
             case 'pdf':
             default:
                 return 'application/pdf';
+        }
+    }
+    
+    /**
+     * Generate role-based report title
+     */
+    private function generateRoleBasedTitle($baseTitle, ?\App\Models\User $user = null)
+    {
+        if (!$user) {
+            return $baseTitle;
+        }
+
+        switch ($user->role) {
+            case 'admin':
+                return 'Factory ' . $baseTitle;
+            case 'supplier':
+                return 'Supplier ' . $baseTitle;
+            case 'vendor':
+                return 'Vendor ' . $baseTitle;
+            default:
+                return $baseTitle;
         }
     }
 }

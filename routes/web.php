@@ -21,6 +21,8 @@ use App\Http\Controllers\SupplyCentersController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\supplierInventoryController;
 use App\Http\Controllers\vendorInventoryController;
+use App\Http\Controllers\WorkerController;
+use App\Models\SupplyCenter;
 
 Route::get('/sample', [columnChartController::class, 'showColumnChart'])->name('column.chart');
 
@@ -125,6 +127,7 @@ Route::middleware(['auth'])->group(function () {
         Route::post('admin/vendor-applications/{application}/update-status', [userManagerController::class, 'updateVendorApplicationStatus'])->name('admin.vendor-applications.update-status');
         Route::post('admin/vendor-applications/{application}/reject', [userManagerController::class, 'rejectVendorApplication'])->name('admin.vendor-applications.reject-status');
         Route::post('admin/vendor-applications/{application}/add-to-system', [userManagerController::class, 'addVendorToSystem'])->name('admin.vendor-applications.add-to-system');
+        Route::post('admin/vendor-applications/{application}/retry-validation', [VendorApplicationController::class, 'retryValidation'])->name('admin.vendor-applications.retry-validation');
       
        // Order routes
         Route::prefix('orders')->name('orders.')->group(function () {
@@ -176,6 +179,12 @@ Route::middleware(['auth'])->group(function () {
             Route::get('/historical', [App\Http\Controllers\ReportController::class, 'getHistoricalReports'])->name('reports.historical');
             Route::get('/templates', [App\Http\Controllers\ReportController::class, 'getTemplates'])->name('reports.templates');
             Route::get('/recipients', [App\Http\Controllers\ReportController::class, 'getRecipients'])->name('reports.recipients');
+            
+            // Recipient CRUD operations
+            Route::post('/recipients', [App\Http\Controllers\ReportController::class, 'storeRecipient'])->name('reports.recipients.store');
+            Route::put('/recipients/{id}', [App\Http\Controllers\ReportController::class, 'updateRecipient'])->name('reports.recipients.update');
+            Route::delete('/recipients/{id}', [App\Http\Controllers\ReportController::class, 'deleteRecipient'])->name('reports.recipients.delete');
+            
             Route::post('/', [App\Http\Controllers\ReportController::class, 'store'])->name('reports.store');
             Route::post('/adhoc', [App\Http\Controllers\ReportController::class, 'generateAdhocReport'])->name('reports.adhoc');
             Route::get('/{report}/edit', [App\Http\Controllers\ReportController::class, 'edit'])->name('reports.edit');
@@ -264,6 +273,8 @@ Route::middleware(['auth'])->group(function () {
     });
 }); // Close auth middleware group
 
+
+
 /*Route::view('dashboard', 'dashboard')
 
 Route::get('/SupplyCenters', function () {
@@ -285,3 +296,22 @@ Route::view('dashboard', 'dashboard')
 //     Route::redirect('settings', 'settings/profile');
 
 require __DIR__.'/auth.php';
+
+
+
+
+// Route::get('warehouses', SupplyCentersController::class);
+// Route::get('warehouses.staff', WorkerController::class);
+Route::get('/SupplyCenters', [SupplyCentersController::class, 'supplycenters'])->name('supplycenters');
+
+
+
+Route::get('/supplycenters', [SupplyCentersController::class, 'supplycenters'])->name('supplycenters.supplycenters');
+Route::post('/supplycenters', [SupplyCentersController::class, 'store'])->name('supplycenters.store');
+Route::patch('/supplycenters/{supplycenter}', [SupplyCentersController::class, 'update'])->name('supplycenters.update');
+Route::delete('/supplycenters/{supplycenters}', [SupplyCentersController::class, 'destroy'])->name('supplycenters.destroy');
+
+Route::post('/supplycenters/{supplycenter}/worker', [SupplyCentersController::class, 'storeWorker'])->name('worker.store');
+Route::patch('/worker/{worker}', [SupplyCentersController::class, 'updateWorker'])->name('worker.update');
+
+

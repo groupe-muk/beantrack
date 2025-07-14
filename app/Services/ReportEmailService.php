@@ -219,6 +219,99 @@ class ReportEmailService
     }
 
     /**
+     * Format money columns by updating headers to include currency
+     */
+    private function formatMoneyColumns($data, $currency = '$')
+    {
+        if (empty($data) || !is_array($data)) {
+            return $data;
+        }
+
+        // Get headers (first row)
+        $headers = $data[0] ?? [];
+        $dataRows = array_slice($data, 1);
+
+        // Map of columns that should have currency in header
+        $moneyColumns = [
+            'Revenue' => "Revenue ({$currency})",
+            'Total Price' => "Total Price ({$currency})",
+            'Total Amount' => "Total Amount ({$currency})",
+            'Amount' => "Amount ({$currency})",
+            'Unit Price' => "Unit Price ({$currency})",
+            'Price' => "Price ({$currency})",
+            'Total' => "Total ({$currency})",
+            'Cost' => "Cost ({$currency})",
+            'Value' => "Value ({$currency})"
+        ];
+
+        // Update headers and identify money column indices
+        $moneyColumnIndices = [];
+        foreach ($headers as $index => $header) {
+            if (isset($moneyColumns[$header])) {
+                $headers[$index] = $moneyColumns[$header];
+                $moneyColumnIndices[] = $index;
+            }
+        }
+
+        // Remove currency symbols from data values in money columns
+        foreach ($dataRows as &$row) {
+            foreach ($moneyColumnIndices as $columnIndex) {
+                if (isset($row[$columnIndex]) && is_string($row[$columnIndex])) {
+                    // Remove currency symbols ($ and UGX) and format as number
+                    $cleanValue = preg_replace('/[\$UGX,\s]/', '', $row[$columnIndex]);
+                    // Ensure it's still a valid number
+                    if (is_numeric($cleanValue)) {
+                        $row[$columnIndex] = number_format((float)$cleanValue, 2);
+                    }
+                }
+            }
+        }
+
+        // Reconstruct the data array
+        return array_merge([$headers], $dataRows);
+    }
+
+    /**
+     * Replace ID columns with serial numbers for better readability
+     */
+    private function addSerialNumbers($data)
+    {
+        if (empty($data) || !is_array($data)) {
+            return $data;
+        }
+
+        // Get headers (first row)
+        $headers = $data[0] ?? [];
+        $dataRows = array_slice($data, 1);
+
+        // Replace common ID column names with "S/N"
+        $idColumns = ['Order ID', 'Product ID', 'ID', 'Batch ID', 'Item ID', 'Transaction ID'];
+        
+        foreach ($headers as $index => $header) {
+            if (in_array($header, $idColumns)) {
+                $headers[$index] = 'S/N';
+                break; // Only replace the first ID column found
+            }
+        }
+
+        // Add serial numbers to data rows
+        foreach ($dataRows as $index => &$row) {
+            // Find the first column that was an ID column and replace with serial number
+            foreach ($idColumns as $idColumn) {
+                $originalHeaders = $data[0] ?? [];
+                $idColumnIndex = array_search($idColumn, $originalHeaders);
+                if ($idColumnIndex !== false) {
+                    $row[$idColumnIndex] = $index + 1; // Serial number starting from 1
+                    break; // Only replace the first ID column found
+                }
+            }
+        }
+
+        // Reconstruct the data array
+        return array_merge([$headers], $dataRows);
+    }
+
+    /**
      * Generate the report file
      */
     private function generateReportFile(Report $report): ?string
@@ -310,9 +403,16 @@ class ReportEmailService
             $reportType = $mappedType;
         }
 
+        // Get the current user from report creator or authenticated user
+        $userId = $report->created_by ?? (Auth::check() ? Auth::id() : null);
+        $user = $userId ? User::find($userId) : null;
+
+        // Generate role-based title
+        $roleBasedTitle = $this->generateRoleBasedTitle($report->name, $user);
+
         // Generate actual data from database
         return [
-            'title' => $report->name,
+            'title' => $roleBasedTitle,
             'type' => $reportType,
             'generated_at' => now(),
             'data' => $this->getActualDataForReportType($reportType, $content, $report),
@@ -403,18 +503,38 @@ class ReportEmailService
         $orders = $query->get();
 
         $data = [];
+        $serialNumber = 1;
         foreach ($orders as $order) {
             $productName = $order->coffeeProduct ? $order->coffeeProduct->name : 
                           ($order->rawCoffee ? $order->rawCoffee->type : 'Unknown Product');
             
             $data[] = [
-                'Order ID' => $order->id,
+                'S/N' => $serialNumber++,
                 'Date' => $order->order_date ? $order->order_date->format('Y-m-d') : 'N/A',
                 'Product' => $productName,
                 'Quantity' => $order->quantity ?? 0,
-                'Total Amount' => '$' . number_format($order->total_amount ?? 0, 2),
+                'Total Amount' => number_format($order->total_amount ?? 0, 2),
                 'Customer' => $order->wholesaler ? $order->wholesaler->name : 'N/A'
             ];
+        }
+
+        // Convert associative array to indexed array for money column formatting
+        if (!empty($data)) {
+            $headers = array_keys($data[0]);
+            $indexedData = [$headers];
+            foreach ($data as $row) {
+                $indexedData[] = array_values($row);
+            }
+            
+            // Format money columns to show currency in headers
+            $indexedData = $this->formatMoneyColumns($indexedData);
+            
+            // Convert back to associative array
+            $formattedHeaders = $indexedData[0];
+            $data = [];
+            for ($i = 1; $i < count($indexedData); $i++) {
+                $data[] = array_combine($formattedHeaders, $indexedData[$i]);
+            }
         }
 
         return $data ?: [['Message' => 'No sales data found for the specified date range']];
@@ -486,19 +606,39 @@ class ReportEmailService
         $orders = $query->orderBy('order_date', 'desc')->get();
 
         $data = [];
+        $serialNumber = 1;
         foreach ($orders as $order) {
             $productName = $order->coffeeProduct ? $order->coffeeProduct->name : 
                           ($order->rawCoffee ? $order->rawCoffee->type : 'Unknown Product');
             
             $data[] = [
-                'Order ID' => $order->id,
+                'S/N' => $serialNumber++,
                 'Date' => $order->order_date ? $order->order_date->format('Y-m-d') : 'N/A',
                 'Product' => $productName,
                 'Quantity' => $order->quantity ?? 0,
                 'Status' => ucfirst($order->status ?? 'unknown'),
-                'Total Amount' => '$' . number_format($order->total_amount ?? 0, 2),
+                'Total Amount' => number_format($order->total_amount ?? 0, 2),
                 'Customer' => $order->wholesaler ? $order->wholesaler->name : 'N/A'
             ];
+        }
+
+        // Convert associative array to indexed array for money column formatting
+        if (!empty($data)) {
+            $headers = array_keys($data[0]);
+            $indexedData = [$headers];
+            foreach ($data as $row) {
+                $indexedData[] = array_values($row);
+            }
+            
+            // Format money columns to show currency in headers
+            $indexedData = $this->formatMoneyColumns($indexedData);
+            
+            // Convert back to associative array
+            $formattedHeaders = $indexedData[0];
+            $data = [];
+            for ($i = 1; $i < count($indexedData); $i++) {
+                $data[] = array_combine($formattedHeaders, $indexedData[$i]);
+            }
         }
 
         return $data ?: [['Message' => 'No orders found for the specified date range']];
@@ -533,9 +673,28 @@ class ReportEmailService
                 'Product Name' => $product->name,
                 'Created Date' => $product->created_at->format('Y-m-d'),
                 'Raw Coffee Type' => $product->rawCoffee ? $product->rawCoffee->type : 'N/A',
-                'Price' => '$' . number_format($product->price ?? 0, 2),
+                'Price' => number_format($product->price ?? 0, 2),
                 'Quality Grade' => $product->quality_grade ?? 'N/A'
             ];
+        }
+
+        // Convert associative array to indexed array for money column formatting
+        if (!empty($data)) {
+            $headers = array_keys($data[0]);
+            $indexedData = [$headers];
+            foreach ($data as $row) {
+                $indexedData[] = array_values($row);
+            }
+            
+            // Format money columns to show currency in headers
+            $indexedData = $this->formatMoneyColumns($indexedData);
+            
+            // Convert back to associative array
+            $formattedHeaders = $indexedData[0];
+            $data = [];
+            for ($i = 1; $i < count($indexedData); $i++) {
+                $data[] = array_combine($formattedHeaders, $indexedData[$i]);
+            }
         }
 
         return $data ?: [['Message' => 'No production batches found for the specified date range']];
@@ -599,19 +758,39 @@ class ReportEmailService
         $orders = $query->orderBy('order_date', 'desc')->get();
 
         $data = [];
+        $serialNumber = 1;
         foreach ($orders as $order) {
             $productName = $order->coffeeProduct ? $order->coffeeProduct->name : 
                           ($order->rawCoffee ? $order->rawCoffee->type : 'Unknown Product');
             
             $data[] = [
-                'Order ID' => $order->id,
+                'S/N' => $serialNumber++,
                 'Supplier' => $order->supplier ? $order->supplier->name : 'N/A',
                 'Product' => $productName,
                 'Quantity' => $order->quantity ?? 0,
                 'Status' => ucfirst($order->status ?? 'unknown'),
                 'Date' => $order->order_date ? $order->order_date->format('Y-m-d') : 'N/A',
-                'Total Amount' => '$' . number_format($order->total_amount ?? 0, 2)
+                'Total Amount' => number_format($order->total_amount ?? 0, 2)
             ];
+        }
+
+        // Convert associative array to indexed array for money column formatting
+        if (!empty($data)) {
+            $headers = array_keys($data[0]);
+            $indexedData = [$headers];
+            foreach ($data as $row) {
+                $indexedData[] = array_values($row);
+            }
+            
+            // Format money columns to show currency in headers
+            $indexedData = $this->formatMoneyColumns($indexedData);
+            
+            // Convert back to associative array
+            $formattedHeaders = $indexedData[0];
+            $data = [];
+            for ($i = 1; $i < count($indexedData); $i++) {
+                $data[] = array_combine($formattedHeaders, $indexedData[$i]);
+            }
         }
 
         return $data ?: [['Message' => 'No supplier orders found for the specified date range']];
@@ -636,19 +815,23 @@ class ReportEmailService
         $totalAmount = $orders->sum('total_price');
         $avgPurchase = $totalPurchases > 0 ? $totalAmount / $totalPurchases : 0;
         
-        $data = [['Order ID', 'Product', 'Raw Coffee', 'Supplier', 'Quantity', 'Total Price', 'Status', 'Order Date']];
+        $data = [['S/N', 'Product', 'Raw Coffee', 'Supplier', 'Quantity', 'Total Price', 'Status', 'Order Date']];
+        $serialNumber = 1;
         foreach ($orders as $order) {
             $data[] = [
-                $order->id,
+                $serialNumber++,
                 $order->coffeeProduct->name ?? 'N/A',
                 $order->rawCoffee->name ?? 'N/A',
                 $order->supplier->company_name ?? 'N/A',
                 $order->quantity ?? 0,
-                '$' . number_format($order->total_price ?? 0, 2),
+                number_format($order->total_price ?? 0, 2),
                 ucfirst($order->status),
                 $order->created_at->format('Y-m-d')
             ];
         }
+        
+        // Format money columns to show currency in headers
+        $data = $this->formatMoneyColumns($data);
         
         return [
             'title' => 'Vendor Purchases Report',
@@ -683,19 +866,23 @@ class ReportEmailService
         $pendingOrders = $orders->where('status', 'pending')->count();
         $completedOrders = $orders->where('status', 'completed')->count();
         
-        $data = [['Order ID', 'Product', 'Raw Coffee', 'Supplier', 'Quantity', 'Status', 'Order Date', 'Total Price']];
+        $data = [['S/N', 'Product', 'Raw Coffee', 'Supplier', 'Quantity', 'Status', 'Order Date', 'Total Price']];
+        $serialNumber = 1;
         foreach ($orders as $order) {
             $data[] = [
-                $order->id,
+                $serialNumber++,
                 $order->coffeeProduct->name ?? 'N/A',
                 $order->rawCoffee->name ?? 'N/A',
                 $order->supplier->company_name ?? 'N/A',
                 $order->quantity ?? 0,
                 ucfirst($order->status),
                 $order->created_at->format('Y-m-d'),
-                '$' . number_format($order->total_price ?? 0, 2)
+                number_format($order->total_price ?? 0, 2)
             ];
         }
+
+        // Format money columns to show currency in headers
+        $data = $this->formatMoneyColumns($data);
         
         return [
             'title' => 'Vendor Orders Report',
@@ -730,19 +917,23 @@ class ReportEmailService
         $totalDeliveries = $orders->count();
         $totalAmount = $orders->sum('total_price');
         
-        $data = [['Order ID', 'Product', 'Raw Coffee', 'Supplier', 'Quantity', 'Order Date', 'Status', 'Total Price']];
+        $data = [['S/N', 'Product', 'Raw Coffee', 'Supplier', 'Quantity', 'Order Date', 'Status', 'Total Price']];
+        $serialNumber = 1;
         foreach ($orders as $order) {
             $data[] = [
-                $order->id,
+                $serialNumber++,
                 $order->coffeeProduct->name ?? 'N/A',
                 $order->rawCoffee->name ?? 'N/A',
                 $order->supplier->company_name ?? 'N/A',
                 $order->quantity ?? 0,
                 $order->created_at->format('Y-m-d'),
                 ucfirst($order->status),
-                '$' . number_format($order->total_price ?? 0, 2)
+                number_format($order->total_price ?? 0, 2)
             ];
         }
+
+        // Format money columns to show currency in headers
+        $data = $this->formatMoneyColumns($data);
         
         return [
             'title' => 'Vendor Deliveries Report',
@@ -775,19 +966,23 @@ class ReportEmailService
         $totalAmount = $orders->sum('total_price');
         $avgPayment = $totalPayments > 0 ? $totalAmount / $totalPayments : 0;
         
-        $data = [['Order ID', 'Product', 'Raw Coffee', 'Supplier', 'Total Price', 'Quantity', 'Status', 'Order Date']];
+        $data = [['S/N', 'Product', 'Raw Coffee', 'Supplier', 'Total Price', 'Quantity', 'Status', 'Order Date']];
+        $serialNumber = 1;
         foreach ($orders as $order) {
             $data[] = [
-                $order->id,
+                $serialNumber++,
                 $order->coffeeProduct->name ?? 'N/A',
                 $order->rawCoffee->name ?? 'N/A',
                 $order->supplier->company_name ?? 'N/A',
-                '$' . number_format($order->total_price ?? 0, 2),
+                number_format($order->total_price ?? 0, 2),
                 $order->quantity ?? 0,
                 ucfirst($order->status),
                 $order->created_at->format('Y-m-d')
             ];
         }
+
+        // Format money columns to show currency in headers
+        $data = $this->formatMoneyColumns($data);
         
         return [
             'title' => 'Vendor Payments Report',
@@ -1156,6 +1351,10 @@ class ReportEmailService
             ];
         }
         
+        // Apply formatting helpers
+        $data = $this->formatMoneyColumns($data);
+        $data = $this->addSerialNumbers($data);
+        
         return [
             'title' => 'Generic Report',
             'period' => $fromDate . ' to ' . $toDate,
@@ -1249,5 +1448,26 @@ class ReportEmailService
         ];
 
         return $reportTypeMapping[$template] ?? 'inventory_movements';
+    }
+
+    /**
+     * Generate role-based report title
+     */
+    private function generateRoleBasedTitle($baseTitle, ?User $user = null)
+    {
+        if (!$user) {
+            return $baseTitle;
+        }
+
+        switch ($user->role) {
+            case 'admin':
+                return 'Factory ' . $baseTitle;
+            case 'supplier':
+                return 'Supplier ' . $baseTitle;
+            case 'vendor':
+                return 'Vendor ' . $baseTitle;
+            default:
+                return $baseTitle;
+        }
     }
 }

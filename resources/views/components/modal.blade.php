@@ -15,15 +15,16 @@
         'md' => 'max-w-md',
         'lg' => 'max-w-lg',
         'xl' => 'max-w-xl',
-        '2xl' => 'max-w-2xl'
+        '2xl' => 'max-w-2xl',
+        '3xl' => 'max-w-3xl'
     ];
     $modalSize = $sizeClasses[$size] ?? $sizeClasses['md'];
 @endphp
 
-<div id="{{ $id }}" {{ $attributes->merge(['class' => 'fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50']) }}>
-    <div class="bg-white dark:bg-warm-gray rounded-2xl shadow-xl p-6 w-full {{ $modalSize }} mx-4">
+<div id="{{ $id }}" {{ $attributes->merge(['class' => 'fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 p-4']) }}>
+    <div class="bg-white dark:bg-warm-gray rounded-2xl shadow-xl w-full {{ $modalSize }} mx-4 max-h-[90vh] overflow-hidden flex flex-col">
         {{-- Modal Header --}}
-        <div class="flex justify-between items-center mb-6">
+        <div class="flex justify-between items-center p-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
             <h3 class="text-xl font-bold text-dashboard-light dark:text-off-white">{{ $title }}</h3>
             <button 
                 data-modal-close="{{ $id }}" 
@@ -35,13 +36,13 @@
         </div>
 
         {{-- Modal Body --}}
-        <div class="modal-body">
+        <div class="flex-1 overflow-y-auto p-6 modal-scrollbar">
             {{ $slot }}
         </div>
 
         {{-- Modal Footer (optional) --}}
         @if($showFooter)
-            <div class="flex justify-end space-x-3 mt-6">
+            <div class="flex justify-end space-x-3 p-6 border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
                 {{ $footer ?? '' }}
                 @if(empty($footer))
                     <button 

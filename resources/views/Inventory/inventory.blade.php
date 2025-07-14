@@ -175,6 +175,7 @@
             </tr>
         </thead>
         <tbody>
+
             @php
                 $consolidatedCoffeeProducts = $coffeeProductInventory->groupBy('name')->map(function($items) {
                     return (object)[
@@ -223,6 +224,68 @@
                     </td>
                 </tr>
             @endforelse
+
+           @forelse ($coffeeProductInventory as $coffeeProduct)
+                        <tr class="hover:bg-gray-50 dark:hover:bg-mild-gray transition-colors duration-150">
+                            <td class="px-5 py-5 border-b border-soft-gray dark:border-mild-gray text-sm text-gray-900 dark:text-off-white">
+                                {{ $coffeeProduct->coffeeProduct->id }}
+                            </td>
+                            <td class="px-5 py-5 border-b border-soft-gray dark:border-mild-gray text-sm text-gray-900 dark:text-off-white">
+                                {{ $coffeeProduct->coffeeProduct->name }}
+                            </td>
+                            <td class="px-5 py-5 border-b border-soft-gray dark:border-mild-gray text-sm text-gray-900 dark:text-off-white">
+                                {{ $coffeeProduct->coffeeProduct->category }}
+                            </td>
+                            <td class="px-5 py-5 border-b border-soft-gray dark:border-mild-gray text-sm text-gray-900 dark:text-off-white">
+                                {{ $coffeeProduct->quantity_in_stock }}
+                            </td>
+                            <td class="px-5 py-5 border-b border-soft-gray dark:border-mild-gray text-sm text-gray-900 dark:text-off-white">
+                                {{ $coffeeProduct->supplyCenter->name }}
+                            </td>
+                            <td class="px-5 py-5 border-b border-soft-gray dark:border-mild-gray text-sm text-gray-900 dark:text-off-white">
+                                @if ($coffeeProduct->quantity_in_stock > 30)
+                                    <span class="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs">In Stock</span>
+                                @elseif ($coffeeProduct->quantity_in_stock > 20)
+                                    <span class="px-2 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs">Low Stock</span>
+                                @else
+                                    <span class="px-2 py-1 bg-red-100 text-red-700 rounded-full text-xs">Out of Stock</span>
+                                @endif
+                            </td>    
+                            <td class="px-5 py-5 border-b border-soft-gray dark:border-mild-gray text-sm">
+                                <div class="flex items-center space-x-3">
+                                    {{-- Edit button --}}
+                                    <button 
+                                        type="button"
+                                        class="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-600 transition-colors duration-200 text-xs cursor-pointer edit-CoffeeProduct-btn"
+                                        data-coffeeProduct-id="{{ $coffeeProduct->coffeeProduct->id }}"
+                                        data-coffeeProduct-name="{{ $coffeeProduct->coffeeProduct->name }}"
+                                        data-coffeeProduct-category="{{ $coffeeProduct->coffeeProduct->category }}"
+                                        data-coffeeProduct-quantity="{{ $coffeeProduct->quantity_in_stock }}"
+                                        data-coffeeProduct-location="{{ $coffeeProduct->supplyCenter->name }}"
+                                        data-mode="edit">
+                                        Edit
+                                    </button>
+                                    
+                                    
+                                    {{-- Delete button --}}
+                                    <form action="{{ route('inventory.destroy.coffeeProduct', $coffeeProduct->coffeeProduct->id) }}" method="POST" class="inline delete-CoffeeProduct-form">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-600 transition-colors duration-200 text-xs cursor-pointer">
+                                            Delete
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="7" class="px-5 py-5 border-b border-soft-gray dark:border-mild-gray text-center text-sm text-gray-500 dark:text-gray-400">
+                                No users found.
+                            </td>
+                        </tr>
+                    @endforelse
+
         </tbody>
     </table>
 </div>

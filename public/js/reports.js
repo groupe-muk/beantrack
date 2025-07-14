@@ -8,6 +8,9 @@ let currentLibraryData = [];
 let currentHistoricalData = [];
 let currentRecipientsData = []; // Store current recipients for edit operations
 
+// Make currentRecipientsData globally accessible
+window.currentRecipientsData = currentRecipientsData;
+
 // Initialize page
 document.addEventListener('DOMContentLoaded', function() {
     setupTabNavigation();
@@ -17,7 +20,6 @@ document.addEventListener('DOMContentLoaded', function() {
     setupCreateReportModal();
     setupActionButtonHandlers();
     setupSearchAndFilters();
-    setupRecipientsModal();
     
     // Update stats cards on page load
     updateStatsCards();
@@ -784,7 +786,16 @@ function openCreateReportModal() {
     document.getElementById('createReportModal').classList.remove('hidden');
     currentStep = 1;
     updateWizardStep();
-    loadRecipientsForWizard(); // Load recipients dynamically
+    
+    // Only load recipients if we don't have current data
+    // This preserves any changes made in the recipients modal
+    if (!window.currentRecipientsData || window.currentRecipientsData.length === 0) {
+        console.log('No current recipients data, loading fresh data for wizard');
+        loadRecipientsForWizard();
+    } else {
+        console.log('Using existing recipients data for wizard');
+        loadRecipientsForWizard(); // Still call to populate the UI with existing data
+    }
 }
 
 function closeCreateReportModal() {
@@ -1598,11 +1609,28 @@ async function handleEditFormSubmit(e) {
 // Recipients Management Functions
 function openRecipientsModal() {
     document.getElementById('recipientsModal').classList.remove('hidden');
-    loadRecipients();
+    
+    // Check if we have current data with changes, if so use it
+    if (currentRecipientsData && currentRecipientsData.length > 0) {
+        console.log('Using existing currentRecipientsData for modal:', currentRecipientsData);
+        updateRecipientsTable(currentRecipientsData);
+    } else {
+        console.log('No existing data, loading fresh from backend');
+        loadRecipients();
+    }
 }
 
 function closeRecipientsModal() {
+    console.log('Closing recipients modal...');
     document.getElementById('recipientsModal').classList.add('hidden');
+    
+    // Refresh wizard recipients if the function exists
+    if (typeof window.refreshWizardRecipients === 'function') {
+        console.log('Refreshing wizard recipients after modal close...');
+        window.refreshWizardRecipients();
+    } else {
+        console.log('refreshWizardRecipients function not available');
+    }
 }
 
 function openRecipientFormModal(recipientId = null) {
@@ -1619,7 +1647,6 @@ function openRecipientFormModal(recipientId = null) {
             document.getElementById('recipient-name').value = recipient.name;
             document.getElementById('recipient-email').value = recipient.email;
             document.getElementById('recipient-department').value = recipient.department;
-            document.getElementById('recipient-status').value = recipient.status || 'active';
         }
     } else {
         title.textContent = 'Add Recipient';
@@ -1635,7 +1662,7 @@ function closeRecipientFormModal() {
 }
 
 function loadRecipients(includeSuppliers = false) {
-    // Load real data from backend instead of using mock data
+    // Simple function to load existing users only
     fetch('/reports/recipients', {
         method: 'GET',
         headers: {
@@ -1645,64 +1672,41 @@ function loadRecipients(includeSuppliers = false) {
     })
     .then(response => response.json())
     .then(data => {
-        // Transform backend data to match expected format
+        // Transform backend data to simple user list
         const recipients = [];
         
-        // Add users as recipients (backend already filters out supplier/vendor roles)
+        // Add users as recipients
         if (data.users) {
             data.users.forEach(user => {
                 recipients.push({
                     id: `user_${user.id}`,
                     name: user.name,
                     email: user.email,
-                    department: user.role || 'User',
-                    status: 'active',
+                    role: user.role || 'User',
                     type: 'user'
                 });
             });
         }
         
-        // Add internal roles as recipients
-        if (data.internal_roles) {
-            data.internal_roles.forEach((role, index) => {
-                recipients.push({
-                    id: `role_${index}`,
-                    name: role,
-                    email: `${role.toLowerCase().replace(/\s+/g, '')}@beantrack.com`,
-                    department: role,
-                    status: 'active',
-                    type: 'role'
-                });
-            });
-        }
-        
-        // Only include suppliers/vendors if explicitly requested (for report delivery, not admin management)
-        if (includeSuppliers && data.suppliers) {
-            data.suppliers.forEach(supplier => {
-                recipients.push({
-                    id: `supplier_${supplier.id}`,
-                    name: supplier.name,
-                    email: `contact@${supplier.name.toLowerCase().replace(/\s+/g, '')}.com`,
-                    department: 'Supplier',
-                    status: 'active',
-                    type: 'supplier'
-                });
-            });
-        }
-        
-        updateRecipientsTable(recipients);
-        
-        // Store recipients data globally for edit operations
+        // Store recipients data globally
         currentRecipientsData = recipients;
+        window.currentRecipientsData = currentRecipientsData;
+        console.log('Recipients loaded:', currentRecipientsData);
     })
     .catch(error => {
         console.error('Error loading recipients:', error);
-        // Fallback to mock data if backend fails
-        const recipients = getExtendedMockRecipients();
-        updateRecipientsTable(recipients);
+        // Fallback to simple mock data
+        const recipients = [
+            { id: 'user_1', name: 'John Doe', email: 'john@beantrack.com', role: 'Admin', type: 'user' },
+            { id: 'user_2', name: 'Jane Smith', email: 'jane@beantrack.com', role: 'Admin', type: 'user' }
+        ];
         currentRecipientsData = recipients;
+        window.currentRecipientsData = currentRecipientsData;
     });
 }
+
+// Note: Recipients management functions removed - we now only load existing users
+// No more CRUD operations for recipients
 
 function updateRecipientsTable(recipients) {
     const tbody = document.getElementById('recipients-tbody');
@@ -1765,24 +1769,62 @@ function getExtendedMockRecipients() {
     ];
 }
 
-function deleteRecipient(recipientId, recipientName) {
+async function deleteRecipient(recipientId, recipientName) {
     if (!confirm(`Are you sure you want to delete the recipient "${recipientName}"? This action cannot be undone.`)) {
         return;
     }
 
-    // For now, simulate deletion since there's no backend endpoint for individual recipient deletion
-    // In a real implementation, you would call: DELETE /reports/recipients/{id}
     try {
-        // Remove from current data
-        currentRecipientsData = currentRecipientsData.filter(r => r.id !== recipientId);
-        updateRecipientsTable(currentRecipientsData);
+        console.log('Deleting recipient via API:', recipientId, recipientName);
         
-        showNotification(`Recipient "${recipientName}" has been deleted`, 'success');
+        const response = await fetch(`/reports/recipients/${recipientId}`, {
+            method: 'DELETE',
+            headers: {
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            }
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showNotification(result.message, 'success');
+            
+            // Force reload recipients from backend to get fresh data
+            loadRecipients(false, true);
+            
+            // Refresh wizard recipients immediately after deletion
+            if (typeof window.refreshWizardRecipients === 'function') {
+                console.log('Refreshing wizard after deletion...');
+                window.refreshWizardRecipients();
+            }
+        } else {
+            showNotification(result.message || 'Error deleting recipient', 'error');
+        }
+        
     } catch (error) {
         console.error('Delete recipient error:', error);
         showNotification('Error deleting recipient', 'error');
     }
 }
+
+// Helper function to reset/clear all recipients data
+function resetRecipientsData() {
+    console.log('Resetting all recipients data...');
+    currentRecipientsData = [];
+    window.currentRecipientsData = [];
+    
+    // Clear the table if modal is open
+    const tbody = document.getElementById('recipients-tbody');
+    if (tbody) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-gray-500">No recipients loaded</td></tr>';
+    }
+    
+    console.log('Recipients data reset complete');
+}
+
+// Make it globally available
+window.resetRecipientsData = resetRecipientsData;
 
 // Setup modal event listeners
 function setupRecipientsModal() {
@@ -1792,12 +1834,18 @@ function setupRecipientsModal() {
     // Add recipient button
     document.getElementById('add-recipient-btn').addEventListener('click', () => openRecipientFormModal());
     
+    // Refresh recipients button
+    document.getElementById('refresh-recipients-btn').addEventListener('click', () => {
+        console.log('Force refreshing recipients from backend...');
+        loadRecipients(false, true); // Force reload from backend
+    });
+    
     // Close recipient form modal
     document.getElementById('close-recipient-form-modal').addEventListener('click', closeRecipientFormModal);
     document.getElementById('cancel-recipient').addEventListener('click', closeRecipientFormModal);
     
     // Recipient form submission
-    document.getElementById('recipient-form').addEventListener('submit', function(e) {
+    document.getElementById('recipient-form').addEventListener('submit', async function(e) {
         e.preventDefault();
         
         const formData = new FormData(e.target);
@@ -1805,31 +1853,56 @@ function setupRecipientsModal() {
         const isEdit = recipientId && recipientId !== '';
         
         const recipientData = {
-            id: recipientId || `user_${Date.now()}`, // Generate ID for new recipients
             name: formData.get('name'),
             email: formData.get('email'),
-            department: formData.get('department'),
-            status: formData.get('status') || 'active',
-            type: 'user'
+            department: formData.get('department') || 'User'
         };
         
         try {
+            let response;
+            
             if (isEdit) {
-                // Update existing recipient in current data
-                const index = currentRecipientsData.findIndex(r => r.id == recipientId);
-                if (index !== -1) {
-                    currentRecipientsData[index] = { ...currentRecipientsData[index], ...recipientData };
-                }
-                showNotification(`Recipient "${recipientData.name}" has been updated`, 'success');
+                // Update existing recipient via API
+                response = await fetch(`/reports/recipients/${recipientId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                    },
+                    body: JSON.stringify(recipientData)
+                });
             } else {
-                // Add new recipient to current data
-                currentRecipientsData.push(recipientData);
-                showNotification(`Recipient "${recipientData.name}" has been added`, 'success');
+                // Create new recipient via API
+                response = await fetch('/reports/recipients', {
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                    },
+                    body: JSON.stringify(recipientData)
+                });
             }
             
-            // Update the table with new data
-            updateRecipientsTable(currentRecipientsData);
-            closeRecipientFormModal();
+            const result = await response.json();
+            
+            if (result.success) {
+                showNotification(result.message, 'success');
+                
+                // Force reload recipients from backend
+                loadRecipients(false, true);
+                
+                // Refresh wizard recipients after add/edit
+                if (typeof window.refreshWizardRecipients === 'function') {
+                    window.refreshWizardRecipients();
+                }
+                
+                closeRecipientFormModal();
+            } else {
+                showNotification(result.message || 'Error saving recipient', 'error');
+            }
+            
         } catch (error) {
             console.error('Save recipient error:', error);
             showNotification('Error saving recipient', 'error');
