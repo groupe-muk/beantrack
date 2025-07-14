@@ -16,6 +16,7 @@
     </div>
     
     <!-- Tabs -->
+    @if($user->role === 'admin')
     <div class="border-b border-gray-200 dark:border-gray-700">
         <ul class="flex flex-wrap -mb-px text-sm font-medium text-center text-gray-500 dark:text-gray-400" id="tabLinks">
             <li class="mr-2">
@@ -40,10 +41,26 @@
             @endif
         </ul>
     </div>
+    @else
+    @if(isset($admins) && count($admins) > 0)
+            <ul class="flex flex-wrap -mb-px text-sm font-medium text-center text-gray-500 dark:text-gray-400" id="tabLinks">
+
+            <li>
+                <a href="#" class="inline-flex items-center p-4 border-b-2 border-transparent rounded-t-lg hover:text-gray-600 hover:border-gray-300 dark:hover:text-gray-300 group" id="admins-tab" data-tab="admins-tab-content">
+                    Admins
+                    <span class="bg-gray-100 text-blue-800 text-xs font-medium mr-2 px-2.5 py-0.5 rounded-full dark:bg-blue-900 dark:text-blue-300 ml-2">{{ count($admins) }}</span>
+                </a>
+            </li>
+            </ul>
+     @endif       
+    @endif
+    
     
     <!-- Tab Content -->
     <div id="tab-content">
-        <!-- Suppliers Tab -->
+    
+    @if($user->role === 'admin')
+         <!-- Suppliers Tab -->
         <div class="p-4 rounded-lg bg-gray-50 dark:bg-gray-800 tab-content active" id="suppliers-tab-content">
             <div class="grid gap-4">                @foreach($suppliers as $supplier)
                 <a href="{{ route('chat.room', $supplier->user ? $supplier->user->id : $supplier->id) }}" class="block">
@@ -144,6 +161,42 @@
             </div>
         </div>
         @endif
+    @else
+
+        <!-- Admins Tab -->
+        @if(isset($admins) && count($admins) > 0)
+        <div class="p-4 rounded-lg bg-gray-50 dark:bg-gray-800 tab-content active" id="admins-tab-content">
+            <div class="grid gap-4">
+                @foreach($admins as $admin)
+                <a href="{{ route('chat.room', $admin->id) }}" class="block">
+                    <div class="flex items-center p-3 bg-white rounded-lg shadow-sm hover:bg-gray-50 transition-all">
+                        <div class="relative">
+                            <div class="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center text-red-600 font-semibold text-lg">
+                                {{ strtoupper(substr($admin->name, 0, 1)) }}
+                            </div>
+                            <span class="bg-green-500 w-3 h-3 rounded-full absolute bottom-0 right-0 border-2 border-white"></span>
+                        </div>
+                        <div class="ml-4">
+                            <h3 class="text-md font-semibold">{{ $admin->name }}</h3>
+                            <p class="text-sm text-gray-500">{{ $admin->email }}</p>
+                            @php
+                                $lastMessage = $recentMessages->firstWhere('contact_id', $admin->id);
+                            @endphp
+                            @if($lastMessage)
+                                <p class="text-xs text-gray-500 mt-1 truncate w-64">
+                                    {{ \Carbon\Carbon::parse($lastMessage->created_at)->diffForHumans() }}: {{ $lastMessage->content }}
+                                </p>
+                            @endif
+                        </div>
+                    </div>
+                </a>
+                @endforeach
+            </div>
+        </div>
+        @endif
+
+    @endif
+       
     </div>
 </div>
 
