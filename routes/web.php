@@ -1,28 +1,24 @@
 <?php
 
-use App\Http\Controllers\dashboardController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ChatController;
-use App\Http\Controllers\MessageAttachmentController;
-use App\Http\Controllers\VendorApplicationController;
 use App\Livewire\Settings\Appearance;
 use App\Livewire\Settings\Password;
 use App\Livewire\Settings\Profile;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
 use App\Http\Controllers\columnChartController;
-
-
-use App\Http\Controllers\OrderController;
-use App\Http\Controllers\userManagerController;
-use App\Http\Controllers\tableCardController;
-
-use App\Http\Controllers\SupplyCentersController;
+use App\Http\Controllers\dashboardController;
 use App\Http\Controllers\InventoryController;
+use App\Http\Controllers\MessageAttachmentController;
+use App\Http\Controllers\tableCardController;
+use App\Http\Controllers\OrderController;
 use App\Http\Controllers\supplierInventoryController;
+use App\Http\Controllers\SupplyCentersController;
+use App\Http\Controllers\userManagerController;
+use App\Http\Controllers\VendorApplicationController;
 use App\Http\Controllers\vendorInventoryController;
-use App\Http\Controllers\WorkerController;
-use App\Models\SupplyCenter;
 
 Route::get('/sample', [columnChartController::class, 'showColumnChart'])->name('column.chart');
 
@@ -56,6 +52,18 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/logout',[AuthController::class, 'logout'])->name('logout');
     Route::get('/dashboard', [dashboardController::class, 'index'])->name('dashboard');
     Route::get('/dashboard/chart-data', [dashboardController::class, 'getChartData'])->name('dashboard.chart-data');
+    
+    // Debug route to check user role
+    Route::get('/debug/user-role', function() {
+        $user = Auth::user();
+        return response()->json([
+            'user_id' => $user->id,
+            'role' => $user->role,
+            'wholesaler' => $user->wholesaler,
+            'is_vendor' => $user->role === 'vendor'
+        ]);
+    })->name('debug.user.role');
+    
     // Chat Routes
     Route::get('/chat', [ChatController::class, 'index'])->name('chat.index');
     Route::get('/chat/unread', [ChatController::class, 'getUnreadCount'])->name('chat.unread');
@@ -230,11 +238,43 @@ Route::middleware(['auth'])->group(function () {
          Route::get('/supplierInventory/stats', [supplierInventoryController::class, 'stats'])->name('supplierInventory.stats');
 
 
-});
+    });
 
-    // Vendor routes - also require auth  
+    // Vendor routes - also require auth (vendors have 'vendor' role in DB)
     Route::middleware(['role:vendor'])->group(function () {
 
+        // Vendor order management routes
+        Route::get('/vendor/orders', [OrderController::class, 'vendorIndex'])->name('orders.vendor.index');
+        Route::get('/vendor/orders/create', [OrderController::class, 'vendorCreate'])->name('orders.vendor.create');
+        Route::post('/vendor/orders', [OrderController::class, 'vendorStore'])->name('orders.vendor.store');
+        Route::get('/vendor/orders/{order}', [OrderController::class, 'vendorShow'])->name('orders.vendor.show');
+        Route::patch('/vendor/orders/{order}/cancel', [OrderController::class, 'vendorCancel'])->name('orders.vendor.cancel');
+        
+        // Debug route to test vendor order store
+        Route::post('/debug/vendor/orders', function(Request $request) {
+            \Log::info('Debug: Vendor order store route accessed', [
+                'user' => Auth::user(),
+                'request_data' => $request->all(),
+                'route' => request()->route()->getName()
+            ]);
+            return response()->json(['message' => 'Debug route accessed successfully']);
+        })->name('debug.vendor.orders');
+        
+        // Temporary debug route to test POST method
+        Route::match(['GET', 'POST'], '/debug/test-post', function(Request $request) {
+            \Log::info('Debug: Test POST route accessed', [
+                'method' => $request->method(),
+                'user' => Auth::user(),
+                'request_data' => $request->all(),
+                'route' => request()->route()->getName()
+            ]);
+            return response()->json([
+                'message' => 'Debug test route accessed successfully',
+                'method' => $request->method(),
+                'data' => $request->all()
+            ]);
+        })->name('debug.test.post');
+        
         // Vendor reports routes
         Route::get('/reports/vendor', [App\Http\Controllers\ReportController::class, 'vendorIndex'])->name('reports.vendor');
         
@@ -293,7 +333,6 @@ Route::view('dashboard', 'dashboard')
 // Route::middleware(['auth'])->group(function () {
 //     Route::redirect('settings', 'settings/profile');
 
-require __DIR__.'/auth.php';
 
 
 
@@ -311,5 +350,8 @@ Route::delete('/supplycenters/{supplycenters}', [SupplyCentersController::class,
 
 Route::post('/supplycenters/{supplycenter}/worker', [SupplyCentersController::class, 'storeWorker'])->name('worker.store');
 Route::patch('/worker/{worker}', [SupplyCentersController::class, 'updateWorker'])->name('worker.update');
+
+require __DIR__.'/auth.php';
+
 
 

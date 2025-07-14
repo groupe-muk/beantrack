@@ -233,6 +233,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
+
     
     // User search functionality
     const userSearch = document.getElementById('user-search');
