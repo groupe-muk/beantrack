@@ -40,19 +40,27 @@
     {{-- Middle Row: Value and Unit --}}
     <div class="flex mb-4 flex-wrap">
     <p class="text-4xl font-bold text-coffee-brown leading-tight" data-value="{{ $value }}">
-        <span
-            @if($title === 'Out Of Stock')
-                id="out-of-stock-value"
-            @elseif($title === 'Low Stock Alerts')
-                id="low-stock-value"
-            @elseif($title === 'Total Quantity')
-                id="total-quantity"
-            @endif
-        >{{ $value }}</span>
-        @if ($unit)      
+            <span
+                @if($title === 'Out Of Stock')
+                    id="out-of-stock-value"
+                @elseif($title === 'Low Stock Alerts')
+                    id="low-stock-value"
+                @elseif($title === 'Total Quantity')
+                    id="total-quantity"
+                @elseif($title === 'Arabica Quantity')
+                    id="raw-coffee-arabica-quantity"
+                @elseif($title === 'Robusta Quantity')
+                    id="raw-coffee-robusta-quantity"
+                @elseif($title === 'Mountain Blend')
+                    id="processed-coffee-mountain-brew-quantity"
+                @elseif($title === 'Morning Brew')
+                    id="processed-coffee-morning-brew-quantity"
+                @endif
+            >{{ $value }}</span>
+            @if ($unit)      
             <span class="text-lg font-normal text-gray-500 ml-1">{{ $unit }}</span>
-        @endif
-    </p>
+            @endif
+        </p>
     </div>
 
     {{-- Bottom Row: Change Text --}}

@@ -13,7 +13,7 @@ class RawCoffee extends Model
     protected $keyType = 'string';
     public $incrementing = false;
     protected $fillable = [
-        'id', 'supplier_id', 'coffee_type', 'grade', 'screen_size', 'defect_count', 'harvest_date', 'created_at', 'updated_at'
+        'supplier_id', 'coffee_type', 'grade', 'screen_size', 'defect_count', 'harvest_date', 'created_at', 'updated_at'
     ];
 
     protected $casts = [
