@@ -16,7 +16,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <h5 class="text-3xl font-bold leading-none text-gray-800 dark:text-white">{{ $title }}</h5>
-                    <p class="text-gray-600 text-sm mt-2">AI-powered price forecasting with historical data analysis</p>
+                    <p class="text-gray-600 text-sm mt-2">AI-powered demand forecasting with historical data analysis</p>
                 </div>
                 
                 <!-- Coffee Type Selector -->
@@ -197,7 +197,7 @@
                                 
                                 const seriesName = w.globals.seriesNames[seriesIndex];
                                 const prefix = seriesName === 'Actual' ? 'Historical: ' : 'Predicted: ';
-                                return prefix + '$' + value.toFixed(2) + '/lb';
+                                return prefix + value.toFixed(3) + ' tonnes';
                             }
                         },
                         marker: {
@@ -214,14 +214,14 @@
                             if (actualValue !== null) {
                                 content += `<div class="flex items-center mb-1">
                                     <div class="w-3 h-3 rounded-full bg-blue-600 mr-2"></div>
-                                    <span class="text-sm">Historical: <strong>$${actualValue.toFixed(2)}/lb</strong></span>
+                                    <span class="text-sm">Historical: <strong>${actualValue.toFixed(3)} tonnes</strong></span>
                                 </div>`;
                             }
                             
                             if (predictedValue !== null) {
                                 content += `<div class="flex items-center">
                                     <div class="w-3 h-3 rounded-full bg-purple-600 mr-2"></div>
-                                    <span class="text-sm">ML Forecast: <strong>$${predictedValue.toFixed(2)}/lb</strong></span>
+                                    <span class="text-sm">ML Forecast: <strong>${predictedValue.toFixed(3)} tonnes</strong></span>
                                 </div>`;
                             }
                             
@@ -257,7 +257,7 @@
                     },
                     yaxis: {
                         title: {
-                            text: 'Price ($/lb)',
+                            text: 'Demand (tonnes)',
                             style: {
                                 fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, sans-serif',
                                 fontSize: '14px',
@@ -273,7 +273,7 @@
                                 colors: textColor
                             },
                             formatter: function(value) {
-                                return '$' + value.toFixed(2);
+                                return value.toFixed(3) + ' tonnes';
                             }
                         },
                         axisBorder: {
@@ -417,7 +417,7 @@
                             // Update chart title if needed
                             const chartTitleElement = document.querySelector('.text-xl.text-gray-800.font-semibold');
                             if (chartTitleElement && data.productName) {
-                                chartTitleElement.textContent = `${data.productName} - Coffee Price Predictions & Historical Trends`;
+                                chartTitleElement.textContent = `${data.productName} - Coffee Demand Predictions & Historical Trends`;
                             }
                         })
                         .catch(error => {
