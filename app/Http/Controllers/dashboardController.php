@@ -77,7 +77,7 @@ class dashboardController extends Controller
         return response()->json([
             'series' => $forecastData['series'],
             'categories' => $forecastData['categories'],
-            'productName' => $product->rawCoffee->coffee_type ?? $product->name
+            'productName' => $product->name
         ]);
     }
 
