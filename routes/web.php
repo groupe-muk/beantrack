@@ -224,12 +224,22 @@ Route::middleware(['auth'])->group(function () {
       
        // Supplier inventory routes
          Route::get('/supplierInventory', [supplierInventoryController::class, 'index'])->name('supplierInventory.index');
-         Route::post('/supplierInventory', [supplierInventoryController::class, 'store'])->name('supplierInventory.store');
+         Route::post('/supplierInventory', [supplierInventoryController::class, 'store'])->name('supplierInventory.store')->middleware(['auth','role:supplier']);
          Route::get('/supplierInventory/stats', [supplierInventoryController::class, 'stats'])->name('supplierInventory.stats');
          Route::get('/supplierInventory/details/{type}', [supplierInventoryController::class, 'getDetails'])->name('supplierInventory.details');
          Route::get('/supplierInventory/{id}/edit', [supplierInventoryController::class, 'edit'])->name('supplierInventory.edit');
          Route::patch('/supplierInventory/{id}', [supplierInventoryController::class, 'update'])->name('supplierInventory.update');
          Route::delete('/supplierInventory/{id}', [supplierInventoryController::class, 'destroy'])->name('supplierInventory.destroy');
+         Route::get('/supplierInventory/details/{type}',[supplierInventoryController::class, 'getDetails'])
+             ->name('supplierInventory.details')
+             ->middleware(['auth', 'role:supplier']);
+         Route::put('/supplierInventory/item/{id}', [supplierInventoryController::class, 'updateItem'])
+             ->name('supplierInventory.updateItem')
+             ->middleware(['auth', 'role:supplier']);
+         Route::get('/supplierInventory/item/{id}', [supplierInventoryController::class, 'getItem'])
+             ->name('supplierInventory.getItem')
+             ->middleware(['auth', 'role:supplier']);
+
 
 
 });
