@@ -665,6 +665,12 @@ class dashboardController extends Controller
             
             // Handle different formats of recipients data
             if (is_string($recipients)) {
+                // First check if it already contains names (not user IDs)
+                if (!preg_match('/^[U]\d{5}/', $recipients) && !preg_match('/^\d+$/', $recipients)) {
+                    // If it doesn't look like user IDs, it's probably already names
+                    return $recipients;
+                }
+                
                 // Try parsing as JSON first
                 $decoded = json_decode($recipients, true);
                 if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
@@ -689,6 +695,13 @@ class dashboardController extends Controller
                 return 'Not specified';
             }
 
+            // Check if the first element looks like a name rather than an ID
+            $firstElement = $recipientIds[0];
+            if (!preg_match('/^[U]\d{5}$/', $firstElement) && !is_numeric($firstElement)) {
+                // These are already names, not IDs
+                return implode(', ', $recipientIds);
+            }
+
             // Get user names from database
             $users = User::whereIn('id', $recipientIds)
                          ->select('id', 'name')
@@ -700,8 +713,12 @@ class dashboardController extends Controller
                 if (isset($users[$id])) {
                     $names[] = $users[$id]->name;
                 } else {
-                    // If user not found, show the ID
-                    $names[] = "User #{$id}";
+                    // If user not found, show just the name or a generic label
+                    if (is_string($id) && !preg_match('/^[U]\d{5}$/', $id)) {
+                        $names[] = $id; // It's already a name
+                    } else {
+                        $names[] = "Unknown User";
+                    }
                 }
             }
 
