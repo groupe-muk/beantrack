@@ -19,6 +19,8 @@ class supplierInventoryController extends Controller
         $supplyCenters = SupplyCenter::all();
         $rawCoffeeItems = RawCoffee::all();
 
+        
+
         // Calculate quantities for each coffee type and grade
         $coffeeTypes = ['Arabica', 'Robusta'];
         $grades = ['A', 'B'];
@@ -46,6 +48,33 @@ class supplierInventoryController extends Controller
         // Calculate trends for cards
         $arabicaTrend = $this->calculateTrend('Arabica');
         $robustaTrend = $this->calculateTrend('Robusta');
+        
+         // Create inventory items for the table
+    $inventoryItems = collect();
+    foreach ($coffeeTypes as $type) {
+        $totalTypeQuantity = $typeGradeQuantities["{$type}_A"] + $typeGradeQuantities["{$type}_B"];
+        
+        // Find a raw coffee item with this type to use its ID
+        $rawCoffee = RawCoffee::where('coffee_type', $type)->first();
+        
+        if ($rawCoffee) {
+            $inventoryItems->push((object)[
+                'id' => preg_replace('/[^0-9]/', '', $rawCoffee->id), // Extract only numbers from ID
+                'name' => $type,
+                'total_quantity' => $totalTypeQuantity
+            ]);
+        }
+    }
+
+    // Define products variable for form dropdowns
+    $products = RawCoffee::select('id', 'coffee_type as name', 'grade')
+        ->get()
+        ->map(function($item) {
+            return (object)[
+                'id' => $item->id,
+                'name' => "{$item->name} (Grade {$item->grade})"
+            ];
+        });
 
         return view('Inventory.supplierInventory', compact(
             'rawCoffeeInventory',
@@ -59,7 +88,11 @@ class supplierInventoryController extends Controller
             'typeGradeQuantities',
             'typeGradeTrends',
             'coffeeTypes',
-            'grades'
+            'grades',
+            'inventoryItems',
+            'products'
+
+
         ));
     }
 
@@ -93,65 +126,26 @@ class supplierInventoryController extends Controller
     // Store a new inventory item
     public function store(Request $request)
     {
-        try {
-            $validated = $request->validate([
-                'coffee_type' => 'required|in:Arabica,Robusta',
-                'grade' => 'required|in:A,B',
-                'quantity_in_stock' => 'required|numeric|min:0|regex:/^\d*\.?\d{0,2}$/',
-                'supply_center_name' => 'required|string'
-            ]);
+        $validated = $request->validate([
+        'raw_coffee_id' => 'required',
+        'quantity_in_stock' => 'required|numeric|min:0',
+        'supply_center_id' => 'required'
+    ]);
+    
+    // Create the inventory item
+    $inventory = new Inventory();
+    $inventory->raw_coffee_id = $validated['raw_coffee_id'];
+    $inventory->quantity_in_stock = $validated['quantity_in_stock'];
+    $inventory->supply_center_id = $validated['supply_center_id'];
+    $inventory->save();
+    
+    return redirect()
+        ->route('supplierInventory.index')
+        ->with('success', 'Inventory item added successfully');
+}
 
-            DB::beginTransaction();
-
-            // Get or create supply center by name
-            $supplyCenter = SupplyCenter::firstOrCreate(
-                ['name' => $validated['supply_center_name']]
-            );
-
-            // First, get or create the raw coffee record
-            $rawCoffee = RawCoffee::firstOrCreate(
-                [
-                    'coffee_type' => $validated['coffee_type'],
-                    'grade' => $validated['grade']
-                ]
-            );
-
-            // Create the inventory record
-            $inventory = new Inventory();
-            $inventory->raw_coffee_id = $rawCoffee->id;
-            $inventory->supply_center_id = $supplyCenter->id;
-            $inventory->quantity_in_stock = $validated['quantity_in_stock'];
-            $inventory->save();
-
-            DB::commit();
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Inventory item added successfully',
-                'data' => $inventory
-            ]);
-
-        } catch (ValidationException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation error',
-                'errors' => $e->errors()
-            ], 422);
-        } catch (\Exception $e) {
-            DB::rollBack();
-            \Log::error('Error adding inventory item: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'Error adding inventory item: ' . $e->getMessage()
-            ], 500);
-        }
-    }
-     // (Optional) Show a single item
-    public function show($id)
-    {
-        return Inventory::findOrFail($id);
-    }
-
+        
+    
     public function edit($id)
     {
         $inventory = Inventory::with(['supplyCenter', 'rawCoffee'])
@@ -275,6 +269,48 @@ class supplierInventoryController extends Controller
             'gradeQuantities' => $gradeQuantities,
             'inventoryItems' => $inventoryItems
         ]);
+    }
+
+    /**
+     * Get a specific inventory item for editing
+     */
+    public function getItem($id)
+    {
+        $inventoryItem = Inventory::findOrFail($id);
+        return response()->json($inventoryItem);
+    }
+
+    /**
+     * Update a specific inventory item
+     */
+    public function updateItem(Request $request, $id)
+    {
+        $validated = $request->validate([
+            'raw_coffee_id' => 'required',
+            'quantity_in_stock' => 'required|numeric|min:0',
+            'supply_center_id' => 'required',
+            'grade' => 'required|string|max:10',
+        ]);
+        
+        $inventoryItem = Inventory::findOrFail($id);
+        $inventoryItem->update($validated);
+        
+        return redirect()
+            ->route('supplierInventory.index')
+            ->with('success', 'Inventory item updated successfully');
+    }
+
+    /**
+     * Delete a specific inventory item
+     */
+    public function deleteItem($id)
+    {
+        $inventoryItem = Inventory::findOrFail($id);
+        $inventoryItem->delete();
+        
+        return redirect()
+            ->route('supplierInventory.index')
+            ->with('success', 'Inventory item deleted successfully');
     }
 }
 

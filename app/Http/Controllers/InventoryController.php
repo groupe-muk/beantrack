@@ -13,61 +13,63 @@ class InventoryController extends Controller
     // Get all inventory items
     public function index()
     {
-        // Get all raw coffee types and grades with their quantities
-        $rawCoffeeTypes = ['Arabica', 'Robusta'];
-        $rawCoffeeGrades = ['A', 'B'];
+    
+    // Get all unique coffee types and grades from the database
+    $rawCoffeeTypes = RawCoffee::distinct()->pluck('coffee_type')->toArray();
+    $rawCoffeeGrades = RawCoffee::distinct()->pluck('grade')->toArray();
+    
+    $rawCoffeeInventory = collect();
+    
+    foreach ($rawCoffeeTypes as $coffeeType) {
+        // Find the first raw coffee record for this type (we'll use its ID for all grades)
+        $firstRawCoffee = RawCoffee::where('coffee_type', $coffeeType)->first();
         
-        $rawCoffeeInventory = collect();
-        
-        foreach ($rawCoffeeTypes as $coffeeType) {
-            // Find the first raw coffee record for this type (we'll use its ID for all grades)
-            $firstRawCoffee = RawCoffee::where('coffee_type', $coffeeType)->first();
+        foreach ($rawCoffeeGrades as $grade) {
+            // Find existing raw coffee record with this type and grade
+            $rawCoffee = RawCoffee::where('coffee_type', $coffeeType)
+                ->where('grade', $grade)
+                ->first();
             
-            foreach ($rawCoffeeGrades as $grade) {
-                // Find existing raw coffee record with this type and grade
-                $rawCoffee = RawCoffee::where('coffee_type', $coffeeType)
-                    ->where('grade', $grade)
+            if ($rawCoffee) {
+                $inventory = Inventory::where('raw_coffee_id', $rawCoffee->id)
+                    ->select(
+                        \DB::raw('COALESCE(SUM(quantity_in_stock), 0) as total_quantity'),
+                        \DB::raw('MAX(updated_at) as last_updated')
+                    )
                     ->first();
                 
-                if ($rawCoffee) {
-                    $inventory = Inventory::where('raw_coffee_id', $rawCoffee->id)
-                        ->select(
-                            \DB::raw('COALESCE(SUM(quantity_in_stock), 0) as total_quantity'),
-                            \DB::raw('MAX(updated_at) as last_updated')
-                        )
-                        ->first();
-                    
-                    $rawCoffeeInventory->push((object) [
-                        'id' => $firstRawCoffee ? $firstRawCoffee->id : $rawCoffee->id,
-                        'coffee_type' => $coffeeType,
-                        'grade' => $grade,
-                        'total_quantity' => $inventory ? $inventory->total_quantity : 0,
-                        'last_updated' => $inventory ? $inventory->last_updated : null
-                    ]);
-                } else {
-                    // Create a placeholder entry with 0 quantity
-                    $rawCoffeeInventory->push((object) [
-                        'id' => $firstRawCoffee ? $firstRawCoffee->id : null,
-                        'coffee_type' => $coffeeType,
-                        'grade' => $grade,
-                        'total_quantity' => 0,
-                        'last_updated' => null
-                    ]);
-                }
+                $rawCoffeeInventory->push((object) [
+                    'id' => $firstRawCoffee ? $firstRawCoffee->id : $rawCoffee->id,
+                    'coffee_type' => $coffeeType,
+                    'grade' => $grade,
+                    'total_quantity' => $inventory ? $inventory->total_quantity : 0,
+                    'last_updated' => $inventory ? $inventory->last_updated : null
+                ]);
+            } else {
+                // Create a placeholder entry with 0 quantity
+                $rawCoffeeInventory->push((object) [
+                    'id' => $firstRawCoffee ? $firstRawCoffee->id : null,
+                    'coffee_type' => $coffeeType,
+                    'grade' => $grade,
+                    'total_quantity' => 0,
+                    'last_updated' => null
+                ]);
             }
         }
+    }
 
-        // Get all coffee product names and categories with their quantities
-        $coffeeProductNames = ['Mountain Blend', 'Morning Brew'];
-        $coffeeProductCategories = ['Premium', 'Standard'];
+    // Get all unique coffee product names and categories from the database
+    $coffeeProductNames = CoffeeProduct::distinct()->pluck('name')->toArray();
+    $coffeeProductCategories = CoffeeProduct::distinct()->pluck('category')->toArray();
+    
+    $coffeeProductInventory = collect();
+    
+    foreach ($coffeeProductNames as $productName) {
+        // Find the first coffee product record for this name
+        $firstCoffeeProduct = CoffeeProduct::where('name', $productName)->first();
         
-        $coffeeProductInventory = collect();
-        
-        foreach ($coffeeProductNames as $productName) {
-            // Find the first coffee product record for this name (we'll use its ID for all categories)
-            $firstCoffeeProduct = CoffeeProduct::where('name', $productName)->first();
+        foreach ($coffeeProductCategories as $category) {
             
-            foreach ($coffeeProductCategories as $category) {
                 // Find existing coffee product record with this name and category
                 $coffeeProduct = CoffeeProduct::where('name', $productName)
                     ->where('category', $category)
@@ -105,45 +107,47 @@ class InventoryController extends Controller
         $rawCoffeeItems = RawCoffee::all();
         $coffeeProductItems = CoffeeProduct::all();
         
-        // Calculate quantities for raw coffee types
-        $rawCoffeeArabicaQuantity = Inventory::join('raw_coffee', 'inventory.raw_coffee_id', '=', 'raw_coffee.id')
-            ->where('raw_coffee.coffee_type', 'Arabica')
-            ->sum('inventory.quantity_in_stock');
-            
-        $rawCoffeeRobustaQuantity = Inventory::join('raw_coffee', 'inventory.raw_coffee_id', '=', 'raw_coffee.id')
-            ->where('raw_coffee.coffee_type', 'Robusta')
-            ->sum('inventory.quantity_in_stock');
         
-        // Calculate quantities for processed coffee products
-        $processedCoffeeMountainBrewQuantity = Inventory::join('coffee_product', 'inventory.coffee_product_id', '=', 'coffee_product.id')
-            ->where('coffee_product.name', 'Mountain Blend')
-            ->sum('inventory.quantity_in_stock');
-            
-        $processedCoffeeMorningBrewQuantity = Inventory::join('coffee_product', 'inventory.coffee_product_id', '=', 'coffee_product.id')
-            ->where('coffee_product.name', 'Morning Brew')
-            ->sum('inventory.quantity_in_stock');
+    
+// Calculate quantities for raw coffee types
+$rawCoffeeArabicaQuantity = Inventory::join('raw_coffee', 'inventory.raw_coffee_id', '=', 'raw_coffee.id')
+    ->where('raw_coffee.coffee_type', 'Arabica')
+    ->sum('inventory.quantity_in_stock');
+    
+$rawCoffeeRobustaQuantity = Inventory::join('raw_coffee', 'inventory.raw_coffee_id', '=', 'raw_coffee.id')
+    ->where('raw_coffee.coffee_type', 'Robusta')
+    ->sum('inventory.quantity_in_stock');
 
-        // Calculate percentage changes from previous week
-        $arabicaChange = $this->calculatePercentageChange('Arabica');
-        $robustaChange = $this->calculatePercentageChange('Robusta');
-        $mountainBrewChange = $this->calculatePercentageChange('Mountain Blend');
-        $morningBrewChange = $this->calculatePercentageChange('Morning Brew');
+// Calculate quantities for processed coffee products
+$processedCoffeeMountainBrewQuantity = Inventory::join('coffee_product', 'inventory.coffee_product_id', '=', 'coffee_product.id')
+    ->where('coffee_product.name', 'Mountain Blend')
+    ->sum('inventory.quantity_in_stock');
+    
+$processedCoffeeMorningBrewQuantity = Inventory::join('coffee_product', 'inventory.coffee_product_id', '=', 'coffee_product.id')
+    ->where('coffee_product.name', 'Morning Brew')
+    ->sum('inventory.quantity_in_stock');
 
-        return view('Inventory.inventory', compact([
-            'rawCoffeeInventory', 
-            'coffeeProductInventory', 
-            'supplyCenters', 
-            'rawCoffeeItems', 
-            'coffeeProductItems',
-            'rawCoffeeArabicaQuantity',
-            'rawCoffeeRobustaQuantity',
-            'processedCoffeeMountainBrewQuantity',
-            'processedCoffeeMorningBrewQuantity',
-            'arabicaChange',
-            'robustaChange',
-            'mountainBrewChange',
-            'morningBrewChange'
-        ]));
+// Calculate percentage changes
+$arabicaChange = $this->calculatePercentageChange('Arabica');
+$robustaChange = $this->calculatePercentageChange('Robusta');
+$mountainBrewChange = $this->calculatePercentageChange('Mountain Blend');
+$morningBrewChange = $this->calculatePercentageChange('Morning Brew');
+
+return view('Inventory.inventory', compact(
+    'rawCoffeeInventory', 
+    'coffeeProductInventory', 
+    'supplyCenters', 
+    'rawCoffeeItems', 
+    'coffeeProductItems',
+    'rawCoffeeArabicaQuantity',
+    'rawCoffeeRobustaQuantity',
+    'processedCoffeeMountainBrewQuantity',
+    'processedCoffeeMorningBrewQuantity',
+    'arabicaChange',
+    'robustaChange',
+    'mountainBrewChange',
+    'morningBrewChange'
+));
     }
 
     /**
