@@ -19,10 +19,10 @@
                     <p class="text-gray-600 text-sm mt-2">AI-powered demand forecasting with historical data analysis</p>
                 </div>
                 
-                <!-- Coffee Type Selector -->
+                <!-- Coffee Product Selector -->
                 @if($products && $products->count() > 0)
                 <div class="flex items-center space-x-3">
-                    <label class="text-sm font-medium text-gray-700 whitespace-nowrap">Coffee Type:</label>
+                    <label class="text-sm font-medium text-gray-700 whitespace-nowrap">Coffee Product:</label>
                     <div class="relative">
                         <select id="coffeeTypeSelector"
                                 data-chart-id="{{ $predictionChartID }}"
@@ -30,7 +30,7 @@
                             @foreach($products as $product)
                                 <option value="{{ $product->id }}"
                                     {{ $product->id == $currentProductId ? 'selected' : '' }}>
-                                    {{ $product->rawCoffee->coffee_type ?? $product->name }}
+                                    {{ $product->name }}
                                 </option>
                             @endforeach
                         </select>
