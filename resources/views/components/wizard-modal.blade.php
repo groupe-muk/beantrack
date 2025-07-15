@@ -37,11 +37,11 @@
 
                 <!-- Modal Footer -->
                 <div class="flex justify-between items-center pt-6 mt-6 border-t">
-                    <button type="button" id="prev-btn" class="px-4 py-2 text-sm font-medium text-mild-gray bg-light-background rounded-md hover:bg-gray-300 hidden" onclick="previousStep()">
+                    <button type="button" id="prev-btn" class="px-4 py-2 text-sm font-medium text-white bg-warm-gray rounded-md hover:bg-brown hidden" onclick="previousStep()">
                         Previous
                     </button>
                     <div class="flex space-x-2">
-                        <button type="button" class="px-4 py-2 text-sm font-medium text-mild-gray bg-light-background rounded-md hover:bg-gray-300" onclick="{{ $closeFunction }}()">
+                        <button type="button" class="px-4 py-2 text-sm font-medium text-white bg-soft-brown rounded-md hover:bg-brown" onclick="{{ $closeFunction }}()">
                             Cancel
                         </button>
                         <button type="button" id="next-btn" class="px-4 py-2 bg-light-brown text-white rounded-md hover:bg-brown" onclick="nextStep()">
