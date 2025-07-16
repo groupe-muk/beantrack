@@ -30,4 +30,11 @@ class Wholesaler extends Model
     {
         return $this->hasMany(Warehouse::class, 'wholesaler_id');
     }
+
+    public function segments()
+    {
+        return $this->belongsToMany(CustomerSegment::class, 'customer_segment_wholesaler', 'wholesaler_id', 'segment_id')
+                    ->withPivot('scores')
+                    ->withTimestamps();
+    }
 }
