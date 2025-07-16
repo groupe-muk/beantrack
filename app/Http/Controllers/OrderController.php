@@ -10,7 +10,9 @@ use App\Models\Wholesaler;
 use App\Models\RawCoffee;
 use App\Models\CoffeeProduct;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule; // Add this for unique validation if needed
+use Log;
 
 class OrderController extends Controller
 {
@@ -221,6 +223,192 @@ class OrderController extends Controller
     }
 
     /**
+     * Display the vendor order management dashboard
+     */
+    public function vendorIndex()
+    {
+        Log::info('VendorIndex method called');
+        
+        $user = Auth::user();
+        $wholesaler = $user->wholesaler;
+        
+        if (!$wholesaler) {
+            Log::error('Wholesaler not found in vendorIndex');
+            return redirect()->route('dashboard')->with('error', 'Vendor profile not found.');
+        }
+
+        // Get orders placed by this vendor/wholesaler
+        $orders = Order::with(['coffeeProduct', 'orderTrackings'])
+            ->where('wholesaler_id', $wholesaler->id)
+            ->latest()
+            ->paginate(15);
+
+        $statuses = $this->getStatuses();
+        $orderStats = $this->getVendorOrderStats($wholesaler->id);
+
+        Log::info('VendorIndex returning view', ['orders_count' => $orders->count()]);
+        
+        return view('orders.vendor.index', compact('orders', 'statuses', 'orderStats'));
+    }
+
+    /**
+     * Show the form for creating a new vendor order
+     */
+    public function vendorCreate()
+    {
+        $user = Auth::user();
+        $wholesaler = $user->wholesaler;
+        
+        if (!$wholesaler) {
+            return redirect()->route('dashboard')->with('error', 'Vendor profile not found.');
+        }
+
+        $coffeeProducts = CoffeeProduct::with('rawCoffee')->get();
+        
+        return view('orders.vendor.create', compact('coffeeProducts'));
+    }
+
+    /**
+     * Store a newly created vendor order
+     */
+    public function vendorStore(LaravelRequest $request)
+    {
+        try {
+            // Add debugging at the start
+            \Log::info('OrderController::vendorStore called', [
+                'user' => Auth::user(),
+                'request_data' => $request->all(),
+                'method' => $request->method(),
+                'url' => $request->url()
+            ]);
+            
+            // Debug logging
+            Log::info('VendorStore method called', [
+                'user' => Auth::user(),
+                'request_data' => $request->all()
+            ]);
+            
+            Log::info('VendorStore - Getting user and wholesaler');
+            $user = Auth::user();
+            $wholesaler = $user->wholesaler;
+            
+            if (!$wholesaler) {
+                Log::error('Wholesaler not found for user', ['user_id' => $user->id]);
+                return redirect()->route('dashboard')->with('error', 'Vendor profile not found.');
+            }
+            
+            Log::info('VendorStore - Wholesaler found', ['wholesaler_id' => $wholesaler->id]);
+
+            Log::info('VendorStore - Starting validation');
+            $validated = $request->validate([
+                'coffee_product_id' => 'required|exists:coffee_product,id',
+                'quantity' => 'required|numeric|min:1',
+                'notes' => 'nullable|string|max:500',
+            ]);
+            
+            Log::info('VendorStore - Validation passed', $validated);
+
+            Log::info('VendorStore - Finding coffee product');
+            $coffeeProduct = CoffeeProduct::findOrFail($validated['coffee_product_id']);
+            Log::info('VendorStore - Coffee product found', ['product_id' => $coffeeProduct->id]);
+            
+            Log::info('VendorStore - Calculating price');
+            $totalPrice = $coffeeProduct->calculatePrice($validated['quantity']);
+            Log::info('VendorStore - Price calculated', ['total_price' => $totalPrice]);
+
+            Log::info('VendorStore - Creating order');
+            $order = Order::create([
+                'wholesaler_id' => $wholesaler->id,
+                'coffee_product_id' => $validated['coffee_product_id'],
+                'quantity' => $validated['quantity'],
+                'total_price' => $totalPrice,
+                'total_amount' => $totalPrice,
+                'status' => 'pending',
+                'order_date' => now(),
+                'notes' => $validated['notes'] ?? null
+            ]);
+            
+            Log::info('VendorStore - Order created successfully');
+            // Skip refresh since it's causing issues - the DB trigger handles the ID
+            // $order->refresh();
+
+            // Get the latest order for this wholesaler to get the ID
+            $latestOrder = Order::where('wholesaler_id', $wholesaler->id)
+                ->latest('created_at')
+                ->first();
+
+            $orderId = $latestOrder ? $latestOrder->id : 'Unknown';
+            Log::info('Order created successfully', ['order_id' => $orderId]);
+
+            Log::info('VendorStore - Redirecting to vendor orders index');
+            // Redirect to vendor orders list instead of back
+            return redirect()->route('orders.vendor.index')->with('success', 'Order placed successfully! Order ID: ' . $orderId);
+            
+        } catch (\Exception $e) {
+            Log::error('VendorStore - Exception caught', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return redirect()->back()->with('error', 'Error creating order: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Display the specified vendor order
+     */
+    public function vendorShow(Order $order)
+    {
+        $user = Auth::user();
+        $wholesaler = $user->wholesaler;
+        
+        if (!$wholesaler || $order->wholesaler_id !== $wholesaler->id) {
+            return redirect()->route('orders.vendor.index')->with('error', 'Order not found.');
+        }
+
+        $order->load(['coffeeProduct', 'orderTrackings']);
+        return view('orders.vendor.show', compact('order'));
+    }
+
+    /**
+     * Cancel a vendor order (only if status is pending)
+     */
+    public function vendorCancel(Order $order)
+    {
+        $user = Auth::user();
+        $wholesaler = $user->wholesaler;
+        
+        if (!$wholesaler || $order->wholesaler_id !== $wholesaler->id) {
+            return redirect()->route('orders.vendor.index')->with('error', 'Order not found.');
+        }
+
+        if ($order->status !== 'pending') {
+            return redirect()->route('orders.vendor.index')->with('error', 'Only pending orders can be cancelled.');
+        }
+
+        $order->update(['status' => 'cancelled']);
+
+        return redirect()->route('orders.vendor.index')->with('success', 'Order cancelled successfully.');
+    }
+
+    /**
+     * Get vendor order statistics
+     */
+    private function getVendorOrderStats($wholesalerId)
+    {
+        $orders = Order::where('wholesaler_id', $wholesalerId);
+        
+        return [
+            'total_orders' => $orders->count(),
+            'pending_orders' => $orders->where('status', 'pending')->count(),
+            'confirmed_orders' => $orders->where('status', 'confirmed')->count(),
+            'shipped_orders' => $orders->where('status', 'shipped')->count(),
+            'delivered_orders' => $orders->where('status', 'delivered')->count(),
+            'cancelled_orders' => $orders->where('status', 'cancelled')->count(),
+            'total_spent' => $orders->sum('total_amount'),
+        ];
+    }
+
+    /**
      * Helper to get status keys for validation
      */
     private function getStatuses()
@@ -230,6 +418,7 @@ class OrderController extends Controller
             'confirmed' => 'bg-blue-100 text-blue-800',
             'shipped' => 'bg-purple-100 text-purple-800',
             'delivered' => 'bg-green-100 text-green-800',
+            'cancelled' => 'bg-red-100 text-red-800',
         ];
     }
 }
