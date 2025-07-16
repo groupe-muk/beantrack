@@ -40,8 +40,8 @@
     @endif
   
   <!-- Stats Section -->
-<div class="space-y-4">
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 w-full">
+<div class="space-y-3">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2 ">
         
         <x-stats-card
             title="Arabica"
@@ -49,6 +49,7 @@
             valueId="raw-coffee-arabica-quantity"
             unit="kg"
             iconClass="fa-cube"
+             class="p-3"
             
         />
         <x-stats-card
@@ -57,6 +58,7 @@
             valueId="raw-coffee-robusta-quantity"
             unit="kg"
             iconClass="fa-cube"
+            class="p-3"
            
         />
         <x-stats-card
@@ -65,6 +67,7 @@
             valueId="processed-coffee-mountain-brew-quantity"
             unit="kg"
             iconClass="fa-cube"
+             class="p-3"
             
         />
         <x-stats-card
@@ -73,23 +76,18 @@
             valueId="processed-coffee-morning-brew-quantity"
             unit="kg"
             iconClass="fa-cube"
+             class="p-3"
             
         />
     </div>
 </div>
 
-
- 
-
-
-
-
-  <!-- Inventory Table -->
+<!-- Inventory Table -->
   <!-- Raw Coffee Table -->
 <div class="mt-10">
     <div class="flex justify-between items-center mb-6">
         <h1 class="text-2xl font-semibold text-dashboard-light pb-5">Raw Coffee</h1>
-        <button class="bg-light-brown text-white px-4 py-2 rounded" data-mode="add" data-modal-open="addRawCoffeeModal">+ Add Item</button>
+        <button class="bg-light-brown text-white px-4 py-2 rounded"data-modal-open="addRawCoffeeModal">+ Add Item</button>
     </div>
     <div class="bg-white rounded shadow overflow-x-auto p-4">
         <table class="min-w-full leading-normal" id="search-table">
@@ -225,67 +223,7 @@
                 </tr>
             @endforelse
 
-           @forelse ($coffeeProductInventory as $coffeeProduct)
-                        <tr class="hover:bg-gray-50 dark:hover:bg-mild-gray transition-colors duration-150">
-                            <td class="px-5 py-5 border-b border-soft-gray dark:border-mild-gray text-sm text-gray-900 dark:text-off-white">
-                                {{ $coffeeProduct->coffeeProduct->id }}
-                            </td>
-                            <td class="px-5 py-5 border-b border-soft-gray dark:border-mild-gray text-sm text-gray-900 dark:text-off-white">
-                                {{ $coffeeProduct->coffeeProduct->name }}
-                            </td>
-                            <td class="px-5 py-5 border-b border-soft-gray dark:border-mild-gray text-sm text-gray-900 dark:text-off-white">
-                                {{ $coffeeProduct->coffeeProduct->category }}
-                            </td>
-                            <td class="px-5 py-5 border-b border-soft-gray dark:border-mild-gray text-sm text-gray-900 dark:text-off-white">
-                                {{ $coffeeProduct->quantity_in_stock }}
-                            </td>
-                            <td class="px-5 py-5 border-b border-soft-gray dark:border-mild-gray text-sm text-gray-900 dark:text-off-white">
-                                {{ $coffeeProduct->supplyCenter->name }}
-                            </td>
-                            <td class="px-5 py-5 border-b border-soft-gray dark:border-mild-gray text-sm text-gray-900 dark:text-off-white">
-                                @if ($coffeeProduct->quantity_in_stock > 30)
-                                    <span class="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs">In Stock</span>
-                                @elseif ($coffeeProduct->quantity_in_stock > 20)
-                                    <span class="px-2 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs">Low Stock</span>
-                                @else
-                                    <span class="px-2 py-1 bg-red-100 text-red-700 rounded-full text-xs">Out of Stock</span>
-                                @endif
-                            </td>    
-                            <td class="px-5 py-5 border-b border-soft-gray dark:border-mild-gray text-sm">
-                                <div class="flex items-center space-x-3">
-                                    {{-- Edit button --}}
-                                    <button 
-                                        type="button"
-                                        class="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-600 transition-colors duration-200 text-xs cursor-pointer edit-CoffeeProduct-btn"
-                                        data-coffeeProduct-id="{{ $coffeeProduct->coffeeProduct->id }}"
-                                        data-coffeeProduct-name="{{ $coffeeProduct->coffeeProduct->name }}"
-                                        data-coffeeProduct-category="{{ $coffeeProduct->coffeeProduct->category }}"
-                                        data-coffeeProduct-quantity="{{ $coffeeProduct->quantity_in_stock }}"
-                                        data-coffeeProduct-location="{{ $coffeeProduct->supplyCenter->name }}"
-                                        data-mode="edit">
-                                        Edit
-                                    </button>
-                                    
-                                    
-                                    {{-- Delete button --}}
-                                    <form action="{{ route('inventory.destroy.coffeeProduct', $coffeeProduct->coffeeProduct->id) }}" method="POST" class="inline delete-CoffeeProduct-form">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-600 transition-colors duration-200 text-xs cursor-pointer">
-                                            Delete
-                                        </button>
-                                    </form>
-                                </div>
-                            </td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="7" class="px-5 py-5 border-b border-soft-gray dark:border-mild-gray text-center text-sm text-gray-500 dark:text-gray-400">
-                                No users found.
-                            </td>
-                        </tr>
-                    @endforelse
-
+          
         </tbody>
     </table>
 </div>
@@ -343,7 +281,8 @@
             </label>
             <input type="number" 
                 id="rawCoffeeQuantity" 
-                name="quantity_in_stock" 
+                name="quantity_in_stock"
+                step="0.01" 
                 required
                 class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-coffee-brown focus:border-coffee-brown dark:bg-dark-background dark:text-off-white"
                 placeholder="Enter Quantity"
@@ -457,12 +396,12 @@
 <x-modal 
     id="viewDetailsModal" 
     title="Item Details" 
-    size="md" 
+    size="xl" 
     submit-form=""
     submit-text=""
     cancel-text="Close">
     
-    <div class="max-h-[70vh] overflow-y-auto pr-2" id="itemDetailsContent">
+    <div class=" overflow-visible pr-0" id="itemDetailsContent">
         <!-- Content will be loaded dynamically -->
     </div>
 </x-modal>

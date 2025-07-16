@@ -43,4 +43,9 @@ return [
         'url' => env('PRICE_PREDICTION_URL', 'http://localhost:8080/forecast'),
         'timeout' => env('PRICE_PREDICTION_TIMEOUT', 10),
     ],
+
+    'demand_prediction' => [
+        'url' => env('DEMAND_PREDICTION_URL', 'http://localhost:8080/forecast'),
+        'timeout' => env('DEMAND_PREDICTION_TIMEOUT', 10),
+    ],
 ];

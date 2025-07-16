@@ -1,28 +1,25 @@
 <?php
 
-use App\Http\Controllers\dashboardController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ChatController;
-use App\Http\Controllers\MessageAttachmentController;
-use App\Http\Controllers\VendorApplicationController;
 use App\Livewire\Settings\Appearance;
 use App\Livewire\Settings\Password;
 use App\Livewire\Settings\Profile;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
 use App\Http\Controllers\columnChartController;
-
-
-use App\Http\Controllers\OrderController;
-use App\Http\Controllers\userManagerController;
-use App\Http\Controllers\tableCardController;
-
-use App\Http\Controllers\SupplyCentersController;
+use App\Http\Controllers\dashboardController;
 use App\Http\Controllers\InventoryController;
+use App\Http\Controllers\MessageAttachmentController;
+use App\Http\Controllers\tableCardController;
+use App\Http\Controllers\OrderController;
 use App\Http\Controllers\supplierInventoryController;
+use App\Http\Controllers\SupplyCentersController;
+use App\Http\Controllers\userManagerController;
+use App\Http\Controllers\VendorApplicationController;
+use App\Http\Controllers\SupplierApplicationController;
 use App\Http\Controllers\vendorInventoryController;
-use App\Http\Controllers\WorkerController;
-use App\Models\SupplyCenter;
 
 Route::get('/sample', [columnChartController::class, 'showColumnChart'])->name('column.chart');
 
@@ -42,6 +39,15 @@ Route::controller(VendorApplicationController::class)->group(function () {
     Route::get('/application/status', 'status')->name('vendor.application.status');
 });
 
+// Supplier Application Routes (Public - no authentication required)
+Route::controller(SupplierApplicationController::class)->group(function () {
+    Route::get('/supplier', 'supplierOnboarding')->name('supplier.onboarding');
+    Route::get('/supplier/apply', 'create')->name('supplier.apply');
+    Route::post('/supplier/apply', 'store')->name('supplier.apply.store');
+    Route::get('/supplier/check-status', 'checkStatus')->name('supplier.check-status');
+    Route::get('/supplier/application/status', 'status')->name('supplier.application.status');
+});
+
 // Authentication routes for guests
 Route::middleware(['guest'])->controller(AuthController::class)->group(function () {
     Route::get('/create', 'showcreate')->name('show.create');
@@ -56,6 +62,18 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/logout',[AuthController::class, 'logout'])->name('logout');
     Route::get('/dashboard', [dashboardController::class, 'index'])->name('dashboard');
     Route::get('/dashboard/chart-data', [dashboardController::class, 'getChartData'])->name('dashboard.chart-data');
+    
+    // Debug route to check user role
+    Route::get('/debug/user-role', function() {
+        $user = Auth::user();
+        return response()->json([
+            'user_id' => $user->id,
+            'role' => $user->role,
+            'wholesaler' => $user->wholesaler,
+            'is_vendor' => $user->role === 'vendor'
+        ]);
+    })->name('debug.user.role');
+    
     // Chat Routes
     Route::get('/chat', [ChatController::class, 'index'])->name('chat.index');
     Route::get('/chat/unread', [ChatController::class, 'getUnreadCount'])->name('chat.unread');
@@ -170,6 +188,17 @@ Route::middleware(['auth'])->group(function () {
             Route::post('/{application}/retry-validation', 'retryValidation')->name('retry-validation');
         });
 
+        // Supplier Application Management Routes (Admin only)
+        Route::prefix('admin/supplier-applications')->name('admin.supplier-applications.')->controller(SupplierApplicationController::class)->group(function () {
+            Route::get('/', 'index')->name('index');
+            Route::get('/{application}', 'show')->name('show');
+            Route::post('/{application}/approve', 'approve')->name('approve');
+            Route::post('/{application}/reject', 'reject')->name('reject');
+            Route::post('/{application}/schedule-visit', 'scheduleVisit')->name('schedule-visit');
+            Route::get('/{application}/download/{type}', 'downloadDocument')->name('download-document');
+            Route::post('/{application}/retry-validation', 'retryValidation')->name('retry-validation');
+        });
+
 
         // Report Management Routes for Admins - Protected by admin middleware
         Route::prefix('reports')->group(function () {
@@ -224,19 +253,61 @@ Route::middleware(['auth'])->group(function () {
       
        // Supplier inventory routes
          Route::get('/supplierInventory', [supplierInventoryController::class, 'index'])->name('supplierInventory.index');
-         Route::post('/supplierInventory', [supplierInventoryController::class, 'store'])->name('supplierInventory.store');
+         Route::post('/supplierInventory', [supplierInventoryController::class, 'store'])->name('supplierInventory.store')->middleware(['auth','role:supplier']);
          Route::get('/supplierInventory/stats', [supplierInventoryController::class, 'stats'])->name('supplierInventory.stats');
          Route::get('/supplierInventory/details/{type}', [supplierInventoryController::class, 'getDetails'])->name('supplierInventory.details');
          Route::get('/supplierInventory/{id}/edit', [supplierInventoryController::class, 'edit'])->name('supplierInventory.edit');
          Route::patch('/supplierInventory/{id}', [supplierInventoryController::class, 'update'])->name('supplierInventory.update');
          Route::delete('/supplierInventory/{id}', [supplierInventoryController::class, 'destroy'])->name('supplierInventory.destroy');
+         Route::get('/supplierInventory/details/{type}',[supplierInventoryController::class, 'getDetails'])
+             ->name('supplierInventory.details')
+             ->middleware(['auth', 'role:supplier']);
+         Route::put('/supplierInventory/item/{id}', [supplierInventoryController::class, 'updateItem'])
+             ->name('supplierInventory.updateItem')
+             ->middleware(['auth', 'role:supplier']);
+         Route::get('/supplierInventory/item/{id}', [supplierInventoryController::class, 'getItem'])
+             ->name('supplierInventory.getItem')
+             ->middleware(['auth', 'role:supplier']);
 
 
-});
 
-    // Vendor routes - also require auth  
+    });
+
+    // Vendor routes - also require auth (vendors have 'vendor' role in DB)
     Route::middleware(['role:vendor'])->group(function () {
 
+        // Vendor order management routes
+        Route::get('/vendor/orders', [OrderController::class, 'vendorIndex'])->name('orders.vendor.index');
+        Route::get('/vendor/orders/create', [OrderController::class, 'vendorCreate'])->name('orders.vendor.create');
+        Route::post('/vendor/orders', [OrderController::class, 'vendorStore'])->name('orders.vendor.store');
+        Route::get('/vendor/orders/{order}', [OrderController::class, 'vendorShow'])->name('orders.vendor.show');
+        Route::patch('/vendor/orders/{order}/cancel', [OrderController::class, 'vendorCancel'])->name('orders.vendor.cancel');
+        
+        // Debug route to test vendor order store
+        Route::post('/debug/vendor/orders', function(Request $request) {
+            \Log::info('Debug: Vendor order store route accessed', [
+                'user' => Auth::user(),
+                'request_data' => $request->all(),
+                'route' => request()->route()->getName()
+            ]);
+            return response()->json(['message' => 'Debug route accessed successfully']);
+        })->name('debug.vendor.orders');
+        
+        // Temporary debug route to test POST method
+        Route::match(['GET', 'POST'], '/debug/test-post', function(Request $request) {
+            \Log::info('Debug: Test POST route accessed', [
+                'method' => $request->method(),
+                'user' => Auth::user(),
+                'request_data' => $request->all(),
+                'route' => request()->route()->getName()
+            ]);
+            return response()->json([
+                'message' => 'Debug test route accessed successfully',
+                'method' => $request->method(),
+                'data' => $request->all()
+            ]);
+        })->name('debug.test.post');
+        
         // Vendor reports routes
         Route::get('/reports/vendor', [App\Http\Controllers\ReportController::class, 'vendorIndex'])->name('reports.vendor');
         
@@ -295,7 +366,6 @@ Route::view('dashboard', 'dashboard')
 // Route::middleware(['auth'])->group(function () {
 //     Route::redirect('settings', 'settings/profile');
 
-require __DIR__.'/auth.php';
 
 
 
@@ -313,5 +383,8 @@ Route::delete('/supplycenters/{supplycenters}', [SupplyCentersController::class,
 
 Route::post('/supplycenters/{supplycenter}/worker', [SupplyCentersController::class, 'storeWorker'])->name('worker.store');
 Route::patch('/worker/{worker}', [SupplyCentersController::class, 'updateWorker'])->name('worker.update');
+
+require __DIR__.'/auth.php';
+
 
 
