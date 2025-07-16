@@ -121,6 +121,8 @@ class dashboardController extends Controller
                 'quantity' => 200,
                 'date' => '2025-05-28',
                 'productName' => 'Arabica Grade A',
+                'status' => 'pending',
+                'order_type' => 'received',
             ],
             [
                 'name' => 'Bean & Brew Inc.',
@@ -128,6 +130,8 @@ class dashboardController extends Controller
                 'quantity' => 180,
                 'date' => '2025-06-03',
                 'productName' => 'Arabica Medium Roast',
+                'status' => 'pending',
+                'order_type' => 'received',
             ],
             [
                 'name' => 'Coffee House Roasters',
@@ -135,6 +139,8 @@ class dashboardController extends Controller
                 'quantity' => 200,
                 'date' => '2025-05-28',
                 'productName' => 'Arabica Grade A',
+                'status' => 'pending',
+                'order_type' => 'received',
             ],
         ],
         'productsTableHeaders' => ['Product Name', 'Price (UGX)', 'Stock', 'Status'],
@@ -197,23 +203,14 @@ class dashboardController extends Controller
                         'quantity' => $order->quantity,
                         'date' => $order->order_date ? $order->order_date->format('Y-m-d') : now()->format('Y-m-d'),
                         'productName' => $order->coffeeProduct->name ?? 'Unknown Product',
+                        'status' => $order->status,
+                        'order_type' => 'made', // Vendor made these orders
                     ];
                 });
         }
         
-        // If no orders, provide sample data
-        if ($pendingOrders->isEmpty()) {
-            $pendingOrders = collect([
-                [
-                    'name' => 'No orders yet',
-                    'order_id' => 'N/A',
-                    'quantity' => 0,
-                    'date' => now()->format('Y-m-d'),
-                    'productName' => 'Place your first order',
-                ],
-            ]);
-        }
-
+        // Return empty collection if no orders - let the component handle the empty state
+        
         return [
             'pendingOrders' => $pendingOrders->toArray(),
             
@@ -347,48 +344,129 @@ class dashboardController extends Controller
     private function getPendingOrders($limit = 2): array
     {
         try {
-            $orders = Order::with(['supplier', 'wholesaler', 'rawCoffee', 'coffeeProduct'])
-                ->where('status', 'pending')
-                ->orderBy('order_date', 'desc')
-                ->limit($limit)
-                ->get();
-
-            return $orders->map(function ($order) {
-                // Determine customer name (supplier or wholesaler)
-                $customerName = $order->supplier ? $order->supplier->name : 
-                               ($order->wholesaler ? $order->wholesaler->name : 'Unknown Customer');
+            $user = Auth::user();
+            
+            if ($user->isAdmin()) {
+                // Admin (Factory) receives orders from vendors (wholesalers) for coffee products
+                $orders = Order::with(['wholesaler', 'coffeeProduct'])
+                    ->whereNotNull('wholesaler_id')
+                    ->where('status', 'pending')
+                    ->orderBy('order_date', 'desc')
+                    ->limit($limit)
+                    ->get();
+                    
+                return $orders->map(function ($order) {
+                    return [
+                        'name' => $order->wholesaler ? $order->wholesaler->name : 'Unknown Vendor',
+                        'order_id' => $order->id,
+                        'quantity' => number_format($order->quantity, 0),
+                        'date' => $order->order_date ? $order->order_date->format('Y-m-d') : $order->created_at->format('Y-m-d'),
+                        'productName' => $order->coffeeProduct ? $order->coffeeProduct->name : 'Unknown Product',
+                        'status' => $order->status,
+                        'order_type' => 'received', // Admin receives these orders
+                    ];
+                })->toArray();
                 
-                // Determine product name
-                $productName = $order->rawCoffee ? $order->rawCoffee->coffee_type : 
-                              ($order->coffeeProduct ? $order->coffeeProduct->name : 'Unknown Product');
-
-                return [
-                    'name' => $customerName,
-                    'order_id' => $order->id,
-                    'quantity' => number_format($order->quantity, 0),
-                    'date' => $order->order_date ? $order->order_date->format('Y-m-d') : $order->created_at->format('Y-m-d'),
-                    'productName' => $productName,
-                ];
-            })->toArray();
+            } elseif ($user->isSupplier()) {
+                // Supplier receives orders from admin (factory) for raw coffee
+                $supplierId = $user->supplier ? $user->supplier->id : null;
+                if (!$supplierId) {
+                    return [];
+                }
+                
+                $orders = Order::with(['supplier', 'rawCoffee'])
+                    ->whereNotNull('supplier_id')
+                    ->where('supplier_id', $supplierId)
+                    ->where('status', 'pending')
+                    ->orderBy('order_date', 'desc')
+                    ->limit($limit)
+                    ->get();
+                    
+                return $orders->map(function ($order) {
+                    return [
+                        'name' => 'Factory Order',
+                        'order_id' => $order->id,
+                        'quantity' => number_format($order->quantity, 0),
+                        'date' => $order->order_date ? $order->order_date->format('Y-m-d') : $order->created_at->format('Y-m-d'),
+                        'productName' => $order->rawCoffee ? $order->rawCoffee->coffee_type : 'Unknown Product',
+                        'status' => $order->status,
+                        'order_type' => 'received', // Supplier receives these orders
+                    ];
+                })->toArray();
+                
+            } elseif ($user->isVendor()) {
+                // Vendor (wholesaler) makes orders to admin (factory) for coffee products
+                $wholesalerId = $user->wholesaler ? $user->wholesaler->id : null;
+                if (!$wholesalerId) {
+                    return [];
+                }
+                
+                $orders = Order::with(['wholesaler', 'coffeeProduct'])
+                    ->whereNotNull('wholesaler_id')
+                    ->where('wholesaler_id', $wholesalerId)
+                    ->where('status', 'pending')
+                    ->orderBy('order_date', 'desc')
+                    ->limit($limit)
+                    ->get();
+                    
+                return $orders->map(function ($order) {
+                    return [
+                        'name' => $order->coffeeProduct ? $order->coffeeProduct->name : 'Unknown Product',
+                        'order_id' => $order->id,
+                        'quantity' => number_format($order->quantity, 0),
+                        'date' => $order->order_date ? $order->order_date->format('Y-m-d') : $order->created_at->format('Y-m-d'),
+                        'productName' => $order->coffeeProduct ? $order->coffeeProduct->name : 'Unknown Product',
+                        'status' => $order->status,
+                        'order_type' => 'made', // Vendor made these orders
+                    ];
+                })->toArray();
+            }
+            
+            return [];
 
         } catch (\Exception $e) {
-            // Return mock data if database query fails
-            return [
-                [
-                    'name' => 'Coffee House Roasters',
-                    'order_id' => 'CMD-1842',
-                    'quantity' => 200,
-                    'date' => '2025-05-28',
-                    'productName' => 'Arabica Grade A',
-                ],
-                [
-                    'name' => 'Bean & Brew Inc.',
-                    'order_id' => 'ES-903',
-                    'quantity' => 180,
-                    'date' => '2025-06-03',
-                    'productName' => 'Arabica Medium Roast',
-                ],
-            ];
+            // Return mock data if database query fails based on user role
+            $user = Auth::user();
+            
+            if ($user->isAdmin()) {
+                return [
+                    [
+                        'name' => 'Coffee House Roasters',
+                        'order_id' => 'CMD-1842',
+                        'quantity' => 200,
+                        'date' => '2025-05-28',
+                        'productName' => 'Arabica Grade A',
+                        'status' => 'pending',
+                        'order_type' => 'received',
+                    ],
+                ];
+            } elseif ($user->isSupplier()) {
+                return [
+                    [
+                        'name' => 'Factory Order',
+                        'order_id' => 'CMD-1843',
+                        'quantity' => 500,
+                        'date' => '2025-05-29',
+                        'productName' => 'Arabica Beans',
+                        'status' => 'pending',
+                        'order_type' => 'received',
+                    ],
+                ];
+            } elseif ($user->isVendor()) {
+                return [
+                    [
+                        'name' => 'Premium Blend',
+                        'order_id' => 'CMD-1844',
+                        'quantity' => 100,
+                        'date' => '2025-05-30',
+                        'productName' => 'Premium Blend',
+                        'status' => 'pending',
+                        'order_type' => 'made',
+                    ],
+                ];
+            }
+            
+            return [];
         }
     }
 

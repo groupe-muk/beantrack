@@ -165,7 +165,7 @@ class OrderController extends Controller
     public function updateStatus(LaravelRequest $request, Order $order)
     {
         $validated = $request->validate([
-            'status' => ['required', Rule::in(['pending', 'confirmed', 'shipped', 'delivered'])], // Match database enum
+            'status' => ['required', Rule::in(['pending', 'confirmed', 'shipped', 'delivered', 'rejected', 'cancelled'])], // Match database enum
             'notes' => 'nullable|string|max:500',
         ]);
 
@@ -189,7 +189,8 @@ class OrderController extends Controller
         // Update the order status
         $order->update(['status' => $validated['status']]);
 
-        return back()->with('success', 'Order status updated successfully');
+        // Redirect back to the referring page (dashboard or orders page)
+        return redirect()->back()->with('success', 'Order status updated successfully');
     }
 
     /**

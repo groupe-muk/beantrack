@@ -15,7 +15,7 @@ return new class extends Migration
             $table->string('wholesaler_id', 7)->nullable();
             $table->string('raw_coffee_id', 7)->nullable();
             $table->string('coffee_product_id', 6)->nullable();
-            $table->enum('status', ['pending', 'confirmed', 'shipped', 'delivered']);
+            $table->enum('status', ['pending', 'confirmed', 'shipped', 'delivered', 'rejected', 'cancelled']);
             $table->decimal('quantity', 10, 2);
             $table->decimal('total_price', 10, 2)->nullable();
             $table->timestamps();
