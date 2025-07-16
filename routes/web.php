@@ -156,7 +156,10 @@ Route::middleware(['auth'])->group(function () {
         Route::patch('/inventory/coffee-product/{coffeeProduct}', [InventoryController::class, 'updateCoffeeProduct'])->name('inventory.update.coffeeProduct');
         Route::delete('/inventory/coffee-product/{coffeeProduct}', [InventoryController::class, 'destroyCoffeeProduct'])->name('inventory.destroy.coffeeProduct');
 
-
+        // Insights routes
+        Route::get('/insights', function () {
+            return view('insights');
+        })->name('insights');
 
 
         // Vendor Application Management Routes (Admin only)
