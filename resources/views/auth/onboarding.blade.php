@@ -54,19 +54,15 @@
         </form>
 
         <!-- Supplier Card -->
-        <form action="{{ route('role.select') }}" method="POST">
-            @csrf
-            <input type="hidden" name="role" value="supplier">
-            <button type="submit" class="w-full">
-                <div class="cursor-pointer transition hover:scale-110 bg-white shadow rounded-lg overflow-hidden text-center">
-                    <img src="/images/landing-page-image-2.jpg" alt="Supplier" class="w-full h-48 object-cover">
-                    <div class="p-4">
-                        <h3 class="font-semibold text-lg">Supplier</h3>
-                        <p class="text-sm text-gray-600 mt-2">Track bean shipments, update inventory, and manage orders.</p>
-                    </div>
+        <a href="{{ route('supplier.onboarding') }}" class="w-full">
+            <div class="cursor-pointer transition hover:scale-110 bg-white shadow rounded-lg overflow-hidden text-center">
+                <img src="/images/landing-page-image-2.jpg" alt="Supplier" class="w-full h-48 object-cover">
+                <div class="p-4">
+                    <h3 class="font-semibold text-lg">Supplier</h3>
+                    <p class="text-sm text-gray-600 mt-2">Join our network of trusted coffee suppliers.</p>
                 </div>
-            </button>
-        </form>
+            </div>
+        </a>
 
         <!-- Vendor Card -->
         <a href="{{ route('vendor.onboarding') }}" class="w-full">
