@@ -136,6 +136,207 @@
             <div id="order-size-bar-chart" class="w-full h-full"></div>
         </div>
     </div>
+
+    <!-- Wholesaler Details Table -->
+    <div class="mt-6 bg-white rounded-2xl shadow-md">
+        <div class="p-6 border-b border-gray-200">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div>
+                    <h3 class="text-xl font-bold text-coffee-brown">Wholesaler Segment Details</h3>
+                    <p class="text-warm-gray text-sm mt-1">Individual wholesaler assignments and performance metrics</p>
+                </div>
+                
+                <!-- Filters -->
+                <div class="flex flex-col sm:flex-row gap-3">
+                    <!-- RFM Filter -->
+                    <select wire:model.live="rfmFilter" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-light-brown focus:border-transparent">
+                        <option value="">All RFM Segments</option>
+                        <option value="VIP">VIP</option>
+                        <option value="Steady">Steady</option>
+                        <option value="Growth">Growth</option>
+                        <option value="At-Risk">At-Risk</option>
+                        <option value="Dormant">Dormant</option>
+                    </select>
+                    
+                    <!-- Order Size Filter -->
+                    <select wire:model.live="orderSizeFilter" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-light-brown focus:border-transparent">
+                        <option value="">All Order Sizes</option>
+                        <option value="Bulk Buyers">Bulk Buyers</option>
+                        <option value="Mid-Volume">Mid-Volume</option>
+                        <option value="Micro-orders">Micro-orders</option>
+                    </select>
+                    
+                    <!-- Clear Filters -->
+                    <button wire:click="clearFilters" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
+                        <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                        Clear Filters
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Table -->
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left">
+                            <button wire:click="sortBy('name')" class="flex items-center space-x-1 text-xs font-medium text-gray-500 uppercase tracking-wider hover:text-coffee-brown">
+                                <span>Wholesaler</span>
+                                @if($sortField === 'name')
+                                    <svg class="w-4 h-4 {{ $sortDirection === 'asc' ? 'rotate-180' : '' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                    </svg>
+                                @endif
+                            </button>
+                        </th>
+                        <th class="px-6 py-3 text-left">
+                            <button wire:click="sortBy('distribution_region')" class="flex items-center space-x-1 text-xs font-medium text-gray-500 uppercase tracking-wider hover:text-coffee-brown">
+                                <span>Region</span>
+                                @if($sortField === 'distribution_region')
+                                    <svg class="w-4 h-4 {{ $sortDirection === 'asc' ? 'rotate-180' : '' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                    </svg>
+                                @endif
+                            </button>
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            RFM Segment
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Order Size
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Performance
+                        </th>
+                        <th class="px-6 py-3 text-left">
+                            <button wire:click="sortBy('created_at')" class="flex items-center space-x-1 text-xs font-medium text-gray-500 uppercase tracking-wider hover:text-coffee-brown">
+                                <span>Joined</span>
+                                @if($sortField === 'created_at')
+                                    <svg class="w-4 h-4 {{ $sortDirection === 'asc' ? 'rotate-180' : '' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                    </svg>
+                                @endif
+                            </button>
+                        </th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    @forelse($wholesalerDetails as $wholesaler)
+                        <tr class="hover:bg-gray-50 transition-colors">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="flex items-center">
+                                    <div class="flex-shrink-0 h-10 w-10">
+                                        <div class="h-10 w-10 rounded-full bg-light-brown flex items-center justify-center">
+                                            <span class="text-white font-medium text-sm">
+                                                {{ substr($wholesaler['name'], 0, 2) }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div class="ml-4">
+                                        <div class="text-sm font-medium text-gray-900">{{ $wholesaler['name'] }}</div>
+                                        <div class="text-sm text-gray-500">{{ $wholesaler['email'] }}</div>
+                                        <div class="text-xs text-gray-400">{{ $wholesaler['id'] }}</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                    {{ $wholesaler['region'] }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                @php
+                                    $rfmColors = [
+                                        'VIP' => 'bg-green-100 text-green-800',
+                                        'Steady' => 'bg-blue-100 text-blue-800',
+                                        'Growth' => 'bg-yellow-100 text-yellow-800',
+                                        'At-Risk' => 'bg-orange-100 text-orange-800',
+                                        'Dormant' => 'bg-red-100 text-red-800',
+                                        'Unassigned' => 'bg-gray-100 text-gray-800'
+                                    ];
+                                @endphp
+                                <div class="group relative">
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ $rfmColors[$wholesaler['rfm_segment']] }}">
+                                        {{ $wholesaler['rfm_segment'] }}
+                                    </span>
+                                    @if($wholesaler['rfm_scores'])
+                                        <div class="absolute bottom-full left-0 mb-2 w-48 bg-gray-800 text-white text-xs rounded-lg p-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                                            <div class="font-medium mb-1">RFM Scores:</div>
+                                            <div>Recency: {{ $wholesaler['rfm_scores']['recency'] ?? 'N/A' }} days</div>
+                                            <div>Frequency: {{ $wholesaler['rfm_scores']['frequency'] ?? 'N/A' }} orders</div>
+                                            <div>Monetary: ${{ number_format($wholesaler['rfm_scores']['monetary'] ?? 0, 2) }}</div>
+                                            <div class="mt-1 text-xs text-gray-300">
+                                                Score: {{ $wholesaler['rfm_scores']['total_score'] ?? 'N/A' }}/9
+                                            </div>
+                                        </div>
+                                    @endif
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="group relative">
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-light-brown text-white">
+                                        {{ $wholesaler['order_size_segment'] }}
+                                    </span>
+                                    @if($wholesaler['order_size_scores'])
+                                        <div class="absolute bottom-full left-0 mb-2 w-48 bg-gray-800 text-white text-xs rounded-lg p-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                                            <div class="font-medium mb-1">Order Details:</div>
+                                            <div>Avg Quantity: {{ number_format($wholesaler['order_size_scores']['avg_quantity'] ?? 0, 2) }} kg</div>
+                                            <div>Total Orders: {{ $wholesaler['order_size_scores']['total_orders'] ?? 0 }}</div>
+                                        </div>
+                                    @endif
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                @if($wholesaler['rfm_scores'])
+                                    @php
+                                        $percentage = round(($wholesaler['rfm_scores']['total_score'] / 9) * 100);
+                                    @endphp
+                                    <div class="flex items-center">
+                                        <div class="flex-1 bg-gray-200 rounded-full h-2 mr-2">
+                                            <div class="bg-light-brown h-2 rounded-full" style="width: {{ $percentage }}%"></div>
+                                        </div>
+                                        <span class="text-xs text-gray-600">{{ $percentage }}%</span>
+                                    </div>
+                                @else
+                                    <span class="text-xs text-gray-400">No data</span>
+                                @endif
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {{ $wholesaler['joined_date'] }}
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="6" class="px-6 py-12 text-center text-gray-500">
+                                <div class="flex flex-col items-center">
+                                    <svg class="w-12 h-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                    </svg>
+                                    <p class="text-lg font-medium">No wholesalers found</p>
+                                    <p class="text-sm">Try adjusting your filters or search terms</p>
+                                </div>
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Table Footer -->
+        <div class="px-6 py-4 bg-gray-50 border-t border-gray-200">
+            <div class="flex items-center justify-between">
+                <div class="text-sm text-gray-700">
+                    Showing {{ $wholesalerDetails->count() }} of {{ $totalWholesalers }} wholesalers
+                </div>
+                <div class="text-xs text-gray-500">
+                    Last segmentation update: {{ $lastUpdated }}
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 @push('scripts')
