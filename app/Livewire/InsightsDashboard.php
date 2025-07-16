@@ -7,6 +7,7 @@ use App\Services\WholesalerSegmentationService;
 use App\Models\Wholesaler;
 use App\Models\CustomerSegment;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Artisan;
 
 class InsightsDashboard extends Component
 {
@@ -78,6 +79,8 @@ class InsightsDashboard extends Component
 
     public function refreshData()
     {
+        // Run the artisan command to regenerate segments
+        Artisan::call('wholesaler:generate-segments');
         $this->loadData();
         $this->dispatch('data-refreshed');
     }
