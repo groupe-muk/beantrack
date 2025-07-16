@@ -12,7 +12,7 @@ use App\Models\RawCoffee;
 use App\Models\CoffeeProduct;
 use App\Models\Supplier;
 use Laravel\Sanctum\HasApiTokens;
-use App\Services\PricePredictionService;
+use App\Services\DemandForecastService;
 use Carbon\Carbon;
 
 
@@ -72,12 +72,12 @@ class dashboardController extends Controller
             return response()->json(['error' => 'Product not found'], 404);
         }
 
-        $forecastData = $this->getPriceForecastChartData($product);
+        $forecastData = $this->getDemandForecastChartData($product);
         
         return response()->json([
             'series' => $forecastData['series'],
             'categories' => $forecastData['categories'],
-            'productName' => $product->rawCoffee->coffee_type ?? $product->name
+            'productName' => $product->name
         ]);
     }
 
@@ -85,7 +85,7 @@ class dashboardController extends Controller
     private function getAdminDashboardData(?CoffeeProduct $selectedProduct = null): array
     {
         // Build chart for the selected product
-        $forecastData = $selectedProduct ? $this->getPriceForecastChartData($selectedProduct) : ['series' => [], 'categories' => []];
+        $forecastData = $selectedProduct ? $this->getDemandForecastChartData($selectedProduct) : ['series' => [], 'categories' => []];
 
         return [
             'mlPredictionData' => $forecastData['series'],
@@ -672,6 +672,12 @@ class dashboardController extends Controller
             
             // Handle different formats of recipients data
             if (is_string($recipients)) {
+                // First check if it already contains names (not user IDs)
+                if (!preg_match('/^[U]\d{5}/', $recipients) && !preg_match('/^\d+$/', $recipients)) {
+                    // If it doesn't look like user IDs, it's probably already names
+                    return $recipients;
+                }
+                
                 // Try parsing as JSON first
                 $decoded = json_decode($recipients, true);
                 if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
@@ -696,6 +702,13 @@ class dashboardController extends Controller
                 return 'Not specified';
             }
 
+            // Check if the first element looks like a name rather than an ID
+            $firstElement = $recipientIds[0];
+            if (!preg_match('/^[U]\d{5}$/', $firstElement) && !is_numeric($firstElement)) {
+                // These are already names, not IDs
+                return implode(', ', $recipientIds);
+            }
+
             // Get user names from database
             $users = User::whereIn('id', $recipientIds)
                          ->select('id', 'name')
@@ -707,8 +720,12 @@ class dashboardController extends Controller
                 if (isset($users[$id])) {
                     $names[] = $users[$id]->name;
                 } else {
-                    // If user not found, show the ID
-                    $names[] = "User #{$id}";
+                    // If user not found, show just the name or a generic label
+                    if (is_string($id) && !preg_match('/^[U]\d{5}$/', $id)) {
+                        $names[] = $id; // It's already a name
+                    } else {
+                        $names[] = "Unknown User";
+                    }
                 }
             }
 
@@ -720,20 +737,20 @@ class dashboardController extends Controller
         }
     }
 
-    private function getPriceForecastChartData(CoffeeProduct $product, int $historyDays = 14): array
+    private function getDemandForecastChartData(CoffeeProduct $product, int $historyDays = 14): array
     {
         if (!$product) {
             return ['series' => [], 'categories' => []];
         }
 
-        /** @var PricePredictionService $service */
-        $service = app(PricePredictionService::class);
+        /** @var DemandForecastService $service */
+        $service = app(DemandForecastService::class);
 
-        // 1. Last 14 days (2 weeks) of actual prices
-        $history = \App\Models\PriceHistory::where('coffee_product_id', $product->id)
-            ->where('market_date', '>=', now()->subDays($historyDays)->toDateString())
-            ->orderBy('market_date')
-            ->get(['market_date', 'price_per_lb']);
+        // 1. Last 14 days (2 weeks) of actual demand
+        $history = \App\Models\DemandHistory::where('coffee_product_id', $product->id)
+            ->where('demand_date', '>=', now()->subDays($historyDays)->toDateString())
+            ->orderBy('demand_date')
+            ->get(['demand_date', 'demand_qty_tonnes']);
 
         if ($history->isEmpty()) {
             return ['series' => [], 'categories' => []];
@@ -745,7 +762,7 @@ class dashboardController extends Controller
             try {
                 $forecast = $service->generateAndStoreForecast($product);
             } catch (\Throwable $e) {
-                \Log::warning('Unable to fetch/generate price forecast', [
+                \Log::warning('Unable to fetch/generate demand forecast', [
                     'product_id' => $product->id,
                     'error' => $e->getMessage(),
                 ]);
@@ -758,15 +775,15 @@ class dashboardController extends Controller
         $predictedData = [];
 
         foreach ($history as $row) {
-            $categories[]   = Carbon::parse($row->market_date)->format('M d');
-            $actualData[]   = (float) $row->price_per_lb;
+            $categories[]   = Carbon::parse($row->demand_date)->format('M d');
+            $actualData[]   = (float) $row->demand_qty_tonnes;
             $predictedData[] = null; // no prediction for past dates
         }
 
         foreach ($forecast as $row) {
             $categories[]   = Carbon::parse($row->predicted_date)->format('M d');
             $actualData[]   = null; // no actual future data
-            $predictedData[] = (float) $row->predicted_price;
+            $predictedData[] = (float) $row->predicted_demand_tonnes;
         }
 
         $series = [

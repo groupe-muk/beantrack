@@ -179,6 +179,8 @@ class DatabaseSeeder extends Seeder
         // Seed price histories for products
         $this->call([
             PriceHistorySeeder::class,
+            DemandHistorySeeder::class,
+            CustomerSegmentSeeder::class,
         ]);
         
         // For now, we're only using the FixedSeeder to ensure that 

@@ -31,28 +31,38 @@
     {{-- Top Row: Title and Icon --}}
     <div class="flex justify-between items-center mb-4">
         <h4 class="font-semibold text-soft-brown">{{ $title }}</h4>
-        <div class="p-2 rounded-full {{ $iconBgClass }}">
+        <div class="p-1 rounded-full {{ $iconBgClass }}">
             {{-- Using a placeholder for Font Awesome-like icon --}}
             <i class="fa-solid {{ $iconClass }} text-xl {{ $iconColorClass }}"></i>
         </div>
     </div>
 
     {{-- Middle Row: Value and Unit --}}
-    <div class="flex mb-4 flex-wrap">
-    <p class="text-4xl font-bold text-coffee-brown leading-tight" data-value="{{ $value }}">
-        <span
-            @if($title === 'Out Of Stock')
-                id="out-of-stock-value"
-            @elseif($title === 'Low Stock Alerts')
-                id="low-stock-value"
-            @elseif($title === 'Total Quantity')
-                id="total-quantity"
+    <div class="flex mb-1 flex-wrap">
+    <p class="text-2xl font-bold text-coffee-brown leading-tight" data-value="{{ $value }}">
+
+            <span
+                @if($title === 'Out Of Stock')
+                    id="out-of-stock-value"
+                @elseif($title === 'Low Stock Alerts')
+                    id="low-stock-value"
+                @elseif($title === 'Total Quantity')
+                    id="total-quantity"
+                @elseif($title === 'Arabica Quantity')
+                    id="raw-coffee-arabica-quantity"
+                @elseif($title === 'Robusta Quantity')
+                    id="raw-coffee-robusta-quantity"
+                @elseif($title === 'Mountain Blend')
+                    id="processed-coffee-mountain-brew-quantity"
+                @elseif($title === 'Morning Brew')
+                    id="processed-coffee-morning-brew-quantity"
+                @endif
+            >{{ $value }}</span>
+            @if ($unit)      
+            <span class="text-lg font-normal text-gray-500 ml-1">{{ $unit }}</span>
             @endif
-        >{{ $value }}</span>
-        @if ($unit)      
-            <span class="text-3xl font-bold text-coffee-brown ml-1">{{ $unit }}</span>
-        @endif
-    </p>
+        </p>
+
     </div>
 
     {{-- Bottom Row: Change Text --}}

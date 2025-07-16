@@ -10,7 +10,8 @@ return new class extends Migration {
     {
         Schema::create('workers', function (Blueprint $table) {
             $table->string('id', 6)->primary();
-            $table->foreignId('supplycenter_id')->constrained()->onDelete('cascade');
+            $table->string('supplycenter_id', 7);
+            $table->foreign('supplycenter_id')->references('id')->on('supply_centers')->onDelete('cascade');
             $table->string('name', 255);
             $table->string('role', 100)->nullable();
             $table->string('address', 255)->nullable();

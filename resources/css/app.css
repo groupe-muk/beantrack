@@ -102,6 +102,25 @@ select:focus[data-flux-control] {
     @apply text-white bg-coffee-brown hover:bg-brown focus:outline-none focus:ring-4 focus:ring-coffee-brown font-medium rounded-full text-sm px-5 py-2.5 text-center me-2 mb-2 dark:focus:ring-coffee-brown
 }
 
+
+/* Remove number input spinners */
+input[type="number"] {
+    -moz-appearance: textfield;
+}
+
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+/* Clean input style */
+.clean-input {
+    @apply w-full px-3 py-2 border border-gray-300 rounded-md;
+    @apply focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500;
+    @apply placeholder-gray-400;
+    @apply transition duration-150 ease-in-out;
+
 /* Custom scrollbar styles for modal */
 .modal-scrollbar {
     scrollbar-width: thin;
@@ -141,5 +160,6 @@ select:focus[data-flux-control] {
 .fade-top.show, .fade-bottom.show {
     opacity: 0.6;
     transition: opacity 0.2s ease-in-out;
-}
 
+}
+}
