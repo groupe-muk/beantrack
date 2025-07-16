@@ -50,7 +50,7 @@
                     <h2 class="text-3xl md:text-4xl font-bold text-coffee-brown mb-4">Already a BeanTrack Supplier?</h2>
                     <p class="text-lg text-gray-600 mb-8">Access your supplier dashboard to manage your coffee supplies and orders</p>
                     <div class="flex justify-center space-x-4">
-                        <a href="{{ route('show.login') }}" class="bg-coffee-brown hover:bg-hover-brown text-white px-8 py-3 rounded-lg font-semibold transition-colors">
+                        <a href="{{ route('show.login', ['role' => 'supplier']) }}" class="bg-coffee-brown hover:bg-hover-brown text-white px-8 py-3 rounded-lg font-semibold transition-colors">
                             Login to Dashboard
                         </a>
                         <a href="{{ route('supplier.check-status') }}" class="bg-white border-2 border-coffee-brown text-coffee-brown hover:bg-coffee-brown hover:text-white px-8 py-3 rounded-lg font-semibold transition-colors">
