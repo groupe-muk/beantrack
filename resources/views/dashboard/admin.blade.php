@@ -72,8 +72,8 @@
         <div class="space-y-6">
 
             <x-ml-prediction-graph-card
-            title="Price Forecast Analytics"
-            chart-title="Coffee Price Predictions & Historical Trends"
+            title="Demand Forecast Analytics"
+            chart-title="Coffee Demand Predictions & Historical Trends"
             prediction-chart-i-d="mlPredictionsChart"
             :chart-data="$mlPredictionData"
             :chart-categories="$mlPredictionCategories"
