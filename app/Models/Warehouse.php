@@ -42,6 +42,14 @@ class Warehouse extends Model
     }
 
     /**
+     * Get all workers in this warehouse
+     */
+    public function workers()
+    {
+        return $this->hasMany(Worker::class, 'warehouse_id');
+    }
+
+    /**
      * Get the owner of this warehouse (supplier or wholesaler)
      */
     public function owner()

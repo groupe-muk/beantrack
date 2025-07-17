@@ -47,6 +47,11 @@ class MenuHelper
                         'label' => 'Inventory Management'
                     ],
                     [
+                        'href' => '/SupplyCenters',
+                        'icon' => '<svg class="w-8 h-8 text-dashboard-text-light flex-shrink-0 transition duration-75 group-hover:text-dashboard-text-light dark:text-gray-400 dark:group-hover:text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a1 1 0 001 1h16a1 1 0 001-1V7m-9 4v4m4-4v4m-8-4v4M5 7h14l-1.447-2.894A1 1 0 0016.618 3H7.382a1 1 0 00-.895.553L5 7z" /></path></svg>',
+                        'label' => 'Workforce Distribution'
+                    ],
+                    [
                         'href' => '/reports',
                         'icon' => '<svg class="w-6 h-6 text-dashboard-text-light flex-shrink-0 transition duration-75 group-hover:text-dashboard-text-light dark:text-gray-400 dark:group-hover:text-white" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"></path></svg>',
                         'label' => 'Reports'
@@ -66,29 +71,26 @@ class MenuHelper
                         'label' => 'Orders'
                     ],
                     [
-
                         'href' => '/supplierInventory',
                         'icon' => '<svg class="w-6 h-6 text-dashboard-text-light flex-shrink-0 transition duration-75 group-hover:text-dashboard-text-light dark:text-gray-400 dark:group-hover:text-white" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M10 2a4 4 0 00-4 4v1H5a1 1 0 00-.994.89l-1 9A1 1 0 004 18h12a1 1 0 00.994-1.11l-1-9A1 1 0 0015 7h-1V6a4 4 0 00-4-4zm2 5V6a2 2 0 10-4 0v1h4zm-6 3a1 1 0 112 0 1 1 0 01-2 0zm7-1a1 1 0 100 2 1 1 0 000-2z" clip-rule="evenodd"></path></svg>',
                         'label' => 'Inventory'
+                    ],
+                    [
+                        'href' => '/warehouses/supplier',
+                        'icon' => '<svg class="w-6 h-6 text-dashboard-text-light flex-shrink-0 transition duration-75 group-hover:text-dashboard-text-light dark:text-gray-400 dark:group-hover:text-white" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M3 7v10a1 1 0 001 1h16a1 1 0 001-1V7m-9 4v4m4-4v4m-8-4v4M5 7h14l-1.447-2.894A1 1 0 0016.618 3H7.382a1 1 0 00-.895.553L5 7z"></path></svg>',
+                        'label' => 'Warehouses'
                     ],
                     [
                         'href' => '/reports/supplier',
                         'icon' => '<svg class="w-6 h-6 text-dashboard-text-light flex-shrink-0 transition duration-75 group-hover:text-dashboard-text-light dark:text-gray-400 dark:group-hover:text-white" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"></path></svg>',
                         'label' => 'Reports'
                     ],  
-                    [
-                        'href' => '/supplycenters',
-                        'icon' => '<svg class="w-6 h-6 text-dashboard-text-light flex-shrink-0 transition duration-75 group-hover:text-dashboard-text-light dark:text-gray-400 dark:group-hover:text-white" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M10 2a8 8 0 100 16 8 8 0 000-16zm1 11h-2v2h2v-2zm0-4h-2v3h2V9z"></path></svg>',
-                        'label' => 'Workforce Distribution'
-                    ],
+                    
                 ]);
 
             case 'vendor':
                 return array_merge($defaultItems, [
-                   
-
                     [
-
                         'href' => '/vendor/orders',
                         'icon' => '<svg class="w-6 h-6 text-dashboard-text-light flex-shrink-0 transition duration-75 group-hover:text-dashboard-text-light dark:text-gray-400 dark:group-hover:text-white" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M3 1a1 1 0 000 2h1.22l.305 1.222a.997.997 0 00.01.042l1.358 5.43-.893.892C3.74 11.846 4.632 14 6.414 14H15a1 1 0 000-2H6.414l1-1H14a1 1 0 00.894-.553l3-6A1 1 0 0017 3H6.28l-.31-1.243A1 1 0 005 1H3zM16 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM6.5 18a1.5 1.5 0 100-3 1.5 1.5 0 000 3z"></path></svg>',
                         'label' => 'Orders'
@@ -97,6 +99,11 @@ class MenuHelper
                         'href' => '/vendorInventory',
                         'icon' => '<svg class="w-6 h-6 text-dashboard-text-light flex-shrink-0 transition duration-75 group-hover:text-dashboard-text-light dark:text-gray-400 dark:group-hover:text-white" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M10 2a4 4 0 00-4 4v1H5a1 1 0 00-.994.89l-1 9A1 1 0 004 18h12a1 1 0 00.994-1.11l-1-9A1 1 0 0015 7h-1V6a4 4 0 00-4-4zm2 5V6a2 2 0 10-4 0v1h4zm-6 3a1 1 0 112 0 1 1 0 01-2 0zm7-1a1 1 0 100 2 1 1 0 000-2z" clip-rule="evenodd"></path></svg>',
                         'label' => 'Inventory'
+                    ],
+                    [
+                        'href' => '/warehouses/vendor',
+                        'icon' => '<svg class="w-6 h-6 text-dashboard-text-light flex-shrink-0 transition duration-75 group-hover:text-dashboard-text-light dark:text-gray-400 dark:group-hover:text-white" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M3 7v10a1 1 0 001 1h16a1 1 0 001-1V7m-9 4v4m4-4v4m-8-4v4M5 7h14l-1.447-2.894A1 1 0 0016.618 3H7.382a1 1 0 00-.895.553L5 7z"></path></svg>',
+                        'label' => 'Warehouses'
                     ],
                     [
                         'href' => '/reports/vendor',
