@@ -285,12 +285,15 @@ Route::middleware(['auth'])->group(function () {
 
         // Supplier warehouse routes
         Route::get('/supplier/warehouses', [App\Http\Controllers\WarehouseController::class, 'supplierIndex'])->name('supplier.warehouses.index');
+        Route::get('/supplier/warehouses/{warehouse}', [App\Http\Controllers\WarehouseController::class, 'show'])->name('supplier.warehouses.show');
         Route::post('/supplier/warehouses', [App\Http\Controllers\WarehouseController::class, 'store'])->name('supplier.warehouses.store');
         Route::patch('/supplier/warehouses/{warehouse}', [App\Http\Controllers\WarehouseController::class, 'update'])->name('supplier.warehouses.update');
         Route::delete('/supplier/warehouses/{warehouse}', [App\Http\Controllers\WarehouseController::class, 'destroy'])->name('supplier.warehouses.destroy');
         Route::post('/supplier/warehouses/{warehouse}/workers', [App\Http\Controllers\WarehouseController::class, 'storeWorker'])->name('supplier.warehouses.workers.store');
         Route::patch('/supplier/warehouse-workers/{worker}', [App\Http\Controllers\WarehouseController::class, 'updateWorker'])->name('supplier.warehouses.workers.update');
         Route::post('/supplier/warehouses/upload-workers', [App\Http\Controllers\WarehouseController::class, 'uploadWorkers'])->name('supplier.warehouses.upload.workers');
+        Route::delete('/supplier/warehouse-workers/bulk-delete', [App\Http\Controllers\WarehouseController::class, 'bulkDeleteWorkers'])->name('supplier.warehouses.workers.bulk.delete');
+        Route::post('/supplier/warehouses/{warehouse}/move-workers', [App\Http\Controllers\WarehouseController::class, 'moveWorkers'])->name('supplier.warehouses.move.workers');
 
     });
 
@@ -362,12 +365,15 @@ Route::middleware(['auth'])->group(function () {
 
         // Vendor warehouse routes
         Route::get('/vendor/warehouses', [App\Http\Controllers\WarehouseController::class, 'vendorIndex'])->name('vendor.warehouses.index');
+        Route::get('/vendor/warehouses/{warehouse}', [App\Http\Controllers\WarehouseController::class, 'show'])->name('vendor.warehouses.show');
         Route::post('/vendor/warehouses', [App\Http\Controllers\WarehouseController::class, 'store'])->name('vendor.warehouses.store');
         Route::patch('/vendor/warehouses/{warehouse}', [App\Http\Controllers\WarehouseController::class, 'update'])->name('vendor.warehouses.update');
         Route::delete('/vendor/warehouses/{warehouse}', [App\Http\Controllers\WarehouseController::class, 'destroy'])->name('vendor.warehouses.destroy');
         Route::post('/vendor/warehouses/{warehouse}/workers', [App\Http\Controllers\WarehouseController::class, 'storeWorker'])->name('vendor.warehouses.workers.store');
         Route::patch('/vendor/warehouse-workers/{worker}', [App\Http\Controllers\WarehouseController::class, 'updateWorker'])->name('vendor.warehouses.workers.update');
         Route::post('/vendor/warehouses/upload-workers', [App\Http\Controllers\WarehouseController::class, 'uploadWorkers'])->name('vendor.warehouses.upload.workers');
+        Route::delete('/vendor/warehouse-workers/bulk-delete', [App\Http\Controllers\WarehouseController::class, 'bulkDeleteWorkers'])->name('vendor.warehouses.workers.bulk.delete');
+        Route::post('/vendor/warehouses/{warehouse}/move-workers', [App\Http\Controllers\WarehouseController::class, 'moveWorkers'])->name('vendor.warehouses.move.workers');
 
 
 

@@ -76,8 +76,8 @@ class MenuHelper
                         'label' => 'Inventory'
                     ],
                     [
-                        'href' => '/warehouses/supplier',
-                        'icon' => '<svg class="w-6 h-6 text-dashboard-text-light flex-shrink-0 transition duration-75 group-hover:text-dashboard-text-light dark:text-gray-400 dark:group-hover:text-white" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M3 7v10a1 1 0 001 1h16a1 1 0 001-1V7m-9 4v4m4-4v4m-8-4v4M5 7h14l-1.447-2.894A1 1 0 0016.618 3H7.382a1 1 0 00-.895.553L5 7z"></path></svg>',
+                        'href' => '/supplier/warehouses',
+                        'icon' => '<svg class="w-6 h-6 text-dashboard-text-light flex-shrink-0 transition duration-75 group-hover:text-dashboard-text-light dark:text-gray-400 dark:group-hover:text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a1 1 0 001 1h16a1 1 0 001-1V7m-9 4v4m4-4v4m-8-4v4M5 7h14l-1.447-2.894A1 1 0 0016.618 3H7.382a1 1 0 00-.895.553L5 7z" /></path></svg>',
                         'label' => 'Warehouses'
                     ],
                     [
@@ -101,8 +101,8 @@ class MenuHelper
                         'label' => 'Inventory'
                     ],
                     [
-                        'href' => '/warehouses/vendor',
-                        'icon' => '<svg class="w-6 h-6 text-dashboard-text-light flex-shrink-0 transition duration-75 group-hover:text-dashboard-text-light dark:text-gray-400 dark:group-hover:text-white" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M3 7v10a1 1 0 001 1h16a1 1 0 001-1V7m-9 4v4m4-4v4m-8-4v4M5 7h14l-1.447-2.894A1 1 0 0016.618 3H7.382a1 1 0 00-.895.553L5 7z"></path></svg>',
+                        'href' => '/vendor/warehouses',
+                        'icon' => '<svg class="w-6 h-6 text-dashboard-text-light flex-shrink-0 transition duration-75 group-hover:text-dashboard-text-light dark:text-gray-400 dark:group-hover:text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a1 1 0 001 1h16a1 1 0 001-1V7m-9 4v4m4-4v4m-8-4v4M5 7h14l-1.447-2.894A1 1 0 0016.618 3H7.382a1 1 0 00-.895.553L5 7z" /></path></svg>',
                         'label' => 'Warehouses'
                     ],
                     [

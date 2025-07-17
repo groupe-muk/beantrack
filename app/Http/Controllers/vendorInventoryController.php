@@ -5,16 +5,29 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\CoffeeProduct;
 use App\Models\Inventory;
-use App\Models\SupplyCenter;
+use App\Models\Warehouse;
+use App\Models\Wholesaler;
+use Illuminate\Support\Facades\Auth;
 
 class vendorInventoryController extends Controller
 {
     //
     public function index()
     {
-        // Get all inventory items with their relationships
-        $inventoryItems = Inventory::with(['coffeeProduct', 'supplyCenter'])
+        $user = Auth::user();
+        $wholesaler = Wholesaler::where('user_id', $user->id)->first();
+        
+        if (!$wholesaler) {
+            return redirect()->route('dashboard')->with('error', 'Vendor profile not found.');
+        }
+
+        // Get vendor's warehouses
+        $warehouses = Warehouse::where('wholesaler_id', $wholesaler->id)->get();
+        
+        // Get all inventory items from vendor's warehouses
+        $inventoryItems = Inventory::with(['coffeeProduct', 'warehouse'])
             ->whereNotNull('coffee_product_id')
+            ->whereIn('warehouse_id', $warehouses->pluck('id'))
             ->get();
 
         // Group by coffee product and calculate totals
@@ -29,7 +42,6 @@ class vendorInventoryController extends Controller
                 ];
             })->values();
 
-        $supplyCenters = SupplyCenter::all();
         $coffeeProductItems = CoffeeProduct::all();
 
         // Calculate quantities for specific products
@@ -54,7 +66,7 @@ class vendorInventoryController extends Controller
 
         return view('Inventory.vendorInventory', compact(
             'uniqueProducts',
-            'supplyCenters',
+            'warehouses',
             'coffeeProductItems',
             'mountainBlendQuantity',
             'morningBrewQuantity',
@@ -68,14 +80,25 @@ class vendorInventoryController extends Controller
 
     private function calculatePercentageChange($productName)
     {
-        // Get current quantity
+        $user = Auth::user();
+        $wholesaler = Wholesaler::where('user_id', $user->id)->first();
+        
+        if (!$wholesaler) {
+            return 0;
+        }
+
+        $warehouseIds = Warehouse::where('wholesaler_id', $wholesaler->id)->pluck('id');
+
+        // Get current quantity from vendor's warehouses
         $currentQuantity = Inventory::join('coffee_product', 'inventory.coffee_product_id', '=', 'coffee_product.id')
             ->where('coffee_product.name', $productName)
+            ->whereIn('inventory.warehouse_id', $warehouseIds)
             ->sum('inventory.quantity_in_stock');
 
-        // Get quantity from a week ago
+        // Get quantity from a week ago from vendor's warehouses
         $lastWeekQuantity = Inventory::join('coffee_product', 'inventory.coffee_product_id', '=', 'coffee_product.id')
             ->where('coffee_product.name', $productName)
+            ->whereIn('inventory.warehouse_id', $warehouseIds)
             ->where('inventory.updated_at', '<=', now()->subWeek())
             ->sum('inventory.quantity_in_stock');
 
@@ -87,17 +110,35 @@ class vendorInventoryController extends Controller
     public function store(Request $request)
     {
         try {
+            $user = Auth::user();
+            $wholesaler = Wholesaler::where('user_id', $user->id)->first();
+            
+            if (!$wholesaler) {
+                return redirect()->route('vendorInventory.index')
+                    ->with('error', 'Vendor profile not found.');
+            }
+
             $validatedData = $request->validate([
                 'coffee_product_id' => 'required|exists:coffee_product,id',
-                'supply_center_id' => 'required|exists:supply_centers,id',
+                'supply_center_id' => 'required|exists:warehouses,id',
                 'quantity_in_stock' => 'required|numeric|min:0',
                 'category' => 'required|string|in:premium,standard'
             ]);
 
+            // Verify the warehouse belongs to this wholesaler
+            $warehouse = Warehouse::where('id', $validatedData['supply_center_id'])
+                ->where('wholesaler_id', $wholesaler->id)
+                ->first();
+                
+            if (!$warehouse) {
+                return redirect()->route('vendorInventory.index')
+                    ->with('error', 'Invalid warehouse selected.');
+            }
+
             // Create inventory record with the validated data
             $inventory = new Inventory();
             $inventory->coffee_product_id = $validatedData['coffee_product_id'];
-            $inventory->supply_center_id = $validatedData['supply_center_id'];
+            $inventory->warehouse_id = $validatedData['supply_center_id'];
             $inventory->quantity_in_stock = $validatedData['quantity_in_stock'];
             $inventory->category = $validatedData['category'];
             $inventory->save();
@@ -162,13 +203,24 @@ class vendorInventoryController extends Controller
 
     public function stats()
     {
-        // Calculate quantities for specific products
+        $user = Auth::user();
+        $wholesaler = Wholesaler::where('user_id', $user->id)->first();
+        
+        if (!$wholesaler) {
+            return response()->json(['error' => 'Vendor profile not found'], 400);
+        }
+
+        $warehouseIds = Warehouse::where('wholesaler_id', $wholesaler->id)->pluck('id');
+
+        // Calculate quantities for specific products from vendor's warehouses
         $mountainBlendQuantity = Inventory::join('coffee_product', 'inventory.coffee_product_id', '=', 'coffee_product.id')
             ->where('coffee_product.name', 'Mountain Blend')
+            ->whereIn('inventory.warehouse_id', $warehouseIds)
             ->sum('inventory.quantity_in_stock');
             
         $morningBrewQuantity = Inventory::join('coffee_product', 'inventory.coffee_product_id', '=', 'coffee_product.id')
             ->where('coffee_product.name', 'Morning Brew')
+            ->whereIn('inventory.warehouse_id', $warehouseIds)
             ->sum('inventory.quantity_in_stock');
 
         $totalQuantity = $mountainBlendQuantity + $morningBrewQuantity;
@@ -191,12 +243,22 @@ class vendorInventoryController extends Controller
     public function details($id)
     {
         try {
+            $user = Auth::user();
+            $wholesaler = Wholesaler::where('user_id', $user->id)->first();
+            
+            if (!$wholesaler) {
+                return response()->json(['error' => 'Vendor profile not found'], 400);
+            }
+
+            $warehouseIds = Warehouse::where('wholesaler_id', $wholesaler->id)->pluck('id');
+
             // Find the coffee product with its relationships
             $product = CoffeeProduct::findOrFail($id);
             
-            // Get all inventory entries for this product with relationships
-            $inventories = Inventory::with(['coffeeProduct', 'supplyCenter'])
+            // Get all inventory entries for this product from vendor's warehouses
+            $inventories = Inventory::with(['coffeeProduct', 'warehouse'])
                 ->where('coffee_product_id', $id)
+                ->whereIn('warehouse_id', $warehouseIds)
                 ->orderBy('created_at', 'desc')  // Order by newest first
                 ->get();
 
@@ -215,7 +277,7 @@ class vendorInventoryController extends Controller
                     'id' => $inventory->id,
                     'category' => $inventory->category,  // Use the inventory category
                     'quantity' => $inventory->quantity_in_stock,
-                    'warehouse' => $inventory->supplyCenter->name,
+                    'warehouse' => $inventory->warehouse->name,
                     'last_updated' => $inventory->updated_at->format('Y-m-d H:i:s'),
                     'created_at' => $inventory->created_at->format('Y-m-d H:i:s')  // Add creation date
                 ];
@@ -250,13 +312,13 @@ class vendorInventoryController extends Controller
     public function edit($id)
     {
         try {
-            $inventory = Inventory::with(['coffeeProduct', 'supplyCenter'])
+            $inventory = Inventory::with(['coffeeProduct', 'warehouse'])
                 ->findOrFail($id);
             
             return response()->json([
                 'category' => $inventory->coffeeProduct->category,
                 'quantity_in_stock' => $inventory->quantity_in_stock,
-                'supply_center_id' => $inventory->supply_center_id
+                'supply_center_id' => $inventory->warehouse_id
             ]);
         } catch (\Exception $e) {
             return response()->json(['error' => 'Failed to load inventory details'], 500);

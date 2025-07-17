@@ -190,8 +190,7 @@
         />
         <x-stats-card
             title="Total Capacity"
-            :value="number_format($supplycenters->sum('capacity'))"
-            unit="kg"
+            :value="number_format($supplycenters->sum('capacity')) . ' kg'"
             iconClass="fa-weight-hanging"
             iconColorClass="text-light-brown"
             id="total-capacity-card"
