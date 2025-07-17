@@ -203,7 +203,7 @@
  submit-form=""
   cancel-text="Close"
   >
-  <div class=" overflow-visible pr-0" id="itemDetailsContent">
+  <div id="itemDetailsContent">
     <!-- Content will be loaded dynamically -->
     </div>
 

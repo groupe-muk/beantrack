@@ -365,7 +365,7 @@ public class VendorValidationService {
 
             // Update application with validation results
             if (bankValid && licenseValid) {
-                application.setStatus(VendorApplications.ApplicationStatus.pending);
+                application.setStatus(VendorApplications.ApplicationStatus.under_review);
                 application.setValidationMessage("Document validation successful. Awaiting final approval after scheduled visit.");
             } else {
                 // Build detailed failure message
@@ -385,8 +385,28 @@ public class VendorValidationService {
             vendorApplicationsRepository.save(application);
             
             // Send email notification based on status
-            if (application.getStatus() == VendorApplications.ApplicationStatus.pending) {
+            if (application.getStatus() == VendorApplications.ApplicationStatus.under_review) {
                 emailService.sendApprovalEmailWithVisit(application);
+                
+                // Save the application after the email service sets the visit date
+                vendorApplicationsRepository.save(application);
+                
+                // Notify administrators about the scheduled visit
+                // The visit date should now be set by the email service
+                System.out.println("Checking if visit date is set for admin notification: " + application.getVisitScheduled());
+                if (application.getVisitScheduled() != null) {
+                    try {
+                        System.out.println("Sending admin notification for vendor visit...");
+                        LocalDateTime visitDateTime = application.getVisitScheduled().atStartOfDay();
+                        emailService.sendVendorVisitNotificationToAdmins(application, visitDateTime);
+                        System.out.println("Admin notification sent successfully");
+                    } catch (Exception adminEmailError) {
+                        System.err.println("Failed to send admin notification for vendor visit: " + adminEmailError.getMessage());
+                        adminEmailError.printStackTrace();
+                    }
+                } else {
+                    System.err.println("Visit date is null, skipping admin notification");
+                }
             } else if (application.getStatus() == VendorApplications.ApplicationStatus.rejected) {
                 emailService.sendRejectionEmail(application);
             }

@@ -13,7 +13,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -25,9 +24,6 @@ public class SupplierValidationService {
 
     @Autowired
     private EmailService emailService;
-
-    @Autowired
-    private VisitSchedulingService visitSchedulingService;
 
     /**
      * Submit a supplier application for validation
@@ -250,6 +246,18 @@ public class SupplierValidationService {
                     application.getBusinessName(),
                     visitDateStr
                 );
+                
+                // Notify administrators about the scheduled visit
+                try {
+                    emailService.sendSupplierVisitNotificationToAdmins(
+                        application.getApplicantName(),
+                        application.getBusinessName(),
+                        application.getEmail(),
+                        visitDateStr
+                    );
+                } catch (Exception adminEmailError) {
+                    System.err.println("Failed to send admin notification for supplier visit: " + adminEmailError.getMessage());
+                }
             } catch (Exception emailError) {
                 System.err.println("Failed to send visit notification email: " + emailError.getMessage());
             }
