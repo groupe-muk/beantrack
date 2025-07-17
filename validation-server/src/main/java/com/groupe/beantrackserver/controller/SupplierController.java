@@ -159,6 +159,32 @@ public class SupplierController {
         }
     }
 
+    @PostMapping("/send-email")
+    public ResponseEntity<Map<String, String>> sendEmail(
+            @RequestParam("type") String type,
+            @RequestParam("email") String email,
+            @RequestParam("applicantName") String applicantName,
+            @RequestParam("businessName") String businessName,
+            @RequestParam("userId") String userId,
+            @RequestParam("password") String password,
+            @RequestParam("loginUrl") String loginUrl,
+            @RequestParam(value = "supplyCenterName", required = false) String supplyCenterName,
+            @RequestParam(value = "supplyCenterLocation", required = false) String supplyCenterLocation) {
+        try {
+            if ("welcome".equals(type)) {
+                emailService.sendSupplierWelcomeEmailDirect(email, applicantName, businessName, userId, password, loginUrl, supplyCenterName, supplyCenterLocation);
+                return ResponseEntity.ok(Map.of("message", "Supplier welcome email sent successfully"));
+            } else {
+                return ResponseEntity.badRequest().body(Map.of("error", "Unknown email type: " + type));
+            }
+        } catch (Exception e) {
+            System.err.println("Error sending supplier email: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Failed to send email: " + e.getMessage()));
+        }
+    }
+
     @GetMapping("/health")
     public ResponseEntity<Map<String, String>> health() {
         return ResponseEntity.ok(Map.of("status", "healthy", "service", "supplier-validation"));
