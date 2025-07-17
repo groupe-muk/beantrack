@@ -113,37 +113,13 @@ class dashboardController extends Controller
  
     private function getSupplierDashboardData(): array
     {
+        // Get real pending orders for this supplier
+        $pendingOrders = $this->getPendingOrders(4); // Get up to 4 pending orders
+        
         return [
-        'pendingOrders' => [
-            [
-                'name' => 'Coffee House Roasters',
-                'order_id' => 'CMD-1842',
-                'quantity' => 200,
-                'date' => '2025-05-28',
-                'productName' => 'Arabica Grade A',
-            ],
-            [
-                'name' => 'Bean & Brew Inc.',
-                'order_id' => 'ES-903',
-                'quantity' => 180,
-                'date' => '2025-06-03',
-                'productName' => 'Arabica Medium Roast',
-            ],
-            [
-                'name' => 'Coffee House Roasters',
-                'order_id' => 'CMD-1842',
-                'quantity' => 200,
-                'date' => '2025-05-28',
-                'productName' => 'Arabica Grade A',
-            ],
-        ],
-        'productsTableHeaders' => ['Product Name', 'Price (UGX)', 'Stock', 'Status'],
-            'productsTableData' => [
-            ['Product Name' => 'Ugandan Coffee Beans', 'Price (UGX)' => '25,000', 'Stock' => 150, 'Status' => 'In Stock'],
-            ['Product Name' => 'Organic Tea Leaves', 'Price (UGX)' => '12,500', 'Stock' => 0, 'Status' => 'Out of Stock'],
-            ['Product Name' => 'Local Honey', 'Price (UGX)' => '18,000', 'Stock' => 75, 'Status' => 'Limited Stock'],
-            ['Product Name' => 'Dried Fruits Mix', 'Price (UGX)' => '30,000', 'Stock' => 200, 'Status' => 'In Stock'],
-        ],
+            'pendingOrders' => $pendingOrders,
+            'productsTableHeaders' => ['Order ID', 'Customer', 'Product', 'Quantity (kg)', 'Status', 'Date'],
+            'productsTableData' => $this->getSupplierRecentOrders(),
         
         'inventoryItems' => [
             [
@@ -195,24 +171,17 @@ class dashboardController extends Controller
                         'name' => $order->coffeeProduct->name ?? 'Unknown Product',
                         'order_id' => $order->id,
                         'quantity' => $order->quantity,
-                        'date' => $order->order_date ? $order->order_date->format('Y-m-d') : now()->format('Y-m-d'),
+
+                        'date' => $order->created_at->format('Y-m-d'),
                         'productName' => $order->coffeeProduct->name ?? 'Unknown Product',
+                        'status' => $order->status,
+                        'order_type' => 'made', // Vendor made these orders
                     ];
                 });
         }
         
-        // If no orders, provide sample data
-        if ($pendingOrders->isEmpty()) {
-            $pendingOrders = collect([
-                [
-                    'name' => 'No orders yet',
-                    'order_id' => 'N/A',
-                    'quantity' => 0,
-                    'date' => now()->format('Y-m-d'),
-                    'productName' => 'Place your first order',
-                ],
-            ]);
-        }
+        // Return empty collection if no orders - let the component handle the empty state
+        
 
         return [
             'pendingOrders' => $pendingOrders->toArray(),
@@ -347,48 +316,129 @@ class dashboardController extends Controller
     private function getPendingOrders($limit = 2): array
     {
         try {
-            $orders = Order::with(['supplier', 'wholesaler', 'rawCoffee', 'coffeeProduct'])
-                ->where('status', 'pending')
-                ->orderBy('order_date', 'desc')
-                ->limit($limit)
-                ->get();
-
-            return $orders->map(function ($order) {
-                // Determine customer name (supplier or wholesaler)
-                $customerName = $order->supplier ? $order->supplier->name : 
-                               ($order->wholesaler ? $order->wholesaler->name : 'Unknown Customer');
+            $user = Auth::user();
+            
+            if ($user->isAdmin()) {
+                // Admin (Factory) receives orders from vendors (wholesalers) for coffee products
+                $orders = Order::with(['wholesaler', 'coffeeProduct'])
+                    ->whereNotNull('wholesaler_id')
+                    ->where('status', 'pending')
+                    ->orderBy('order_date', 'desc')
+                    ->limit($limit)
+                    ->get();
+                    
+                return $orders->map(function ($order) {
+                    return [
+                        'name' => $order->wholesaler ? $order->wholesaler->name : 'Unknown Vendor',
+                        'order_id' => $order->id,
+                        'quantity' => number_format((float)$order->quantity, 0),
+                        'date' => $order->created_at->format('Y-m-d'),
+                        'productName' => $order->coffeeProduct ? $order->coffeeProduct->name : 'Unknown Product',
+                        'status' => $order->status,
+                        'order_type' => 'received', // Admin receives these orders
+                    ];
+                })->toArray();
                 
-                // Determine product name
-                $productName = $order->rawCoffee ? $order->rawCoffee->coffee_type : 
-                              ($order->coffeeProduct ? $order->coffeeProduct->name : 'Unknown Product');
-
-                return [
-                    'name' => $customerName,
-                    'order_id' => $order->id,
-                    'quantity' => number_format($order->quantity, 0),
-                    'date' => $order->order_date ? $order->order_date->format('Y-m-d') : $order->created_at->format('Y-m-d'),
-                    'productName' => $productName,
-                ];
-            })->toArray();
+            } elseif ($user->isSupplier()) {
+                // Supplier receives orders from admin (factory) for raw coffee
+                $supplierId = $user->supplier ? $user->supplier->id : null;
+                if (!$supplierId) {
+                    return [];
+                }
+                
+                $orders = Order::with(['supplier', 'rawCoffee'])
+                    ->whereNotNull('supplier_id')
+                    ->where('supplier_id', $supplierId)
+                    ->where('status', 'pending')
+                    ->orderBy('order_date', 'desc')
+                    ->limit($limit)
+                    ->get();
+                    
+                return $orders->map(function ($order) {
+                    return [
+                        'name' => 'Factory Order',
+                        'order_id' => $order->id,
+                        'quantity' => number_format((float)$order->quantity, 0),
+                        'date' => $order->created_at->format('Y-m-d'),
+                        'productName' => $order->rawCoffee ? $order->rawCoffee->coffee_type : 'Unknown Product',
+                        'status' => $order->status,
+                        'order_type' => 'received', // Supplier receives these orders
+                    ];
+                })->toArray();
+                
+            } elseif ($user->isVendor()) {
+                // Vendor (wholesaler) makes orders to admin (factory) for coffee products
+                $wholesalerId = $user->wholesaler ? $user->wholesaler->id : null;
+                if (!$wholesalerId) {
+                    return [];
+                }
+                
+                $orders = Order::with(['wholesaler', 'coffeeProduct'])
+                    ->whereNotNull('wholesaler_id')
+                    ->where('wholesaler_id', $wholesalerId)
+                    ->where('status', 'pending')
+                    ->orderBy('order_date', 'desc')
+                    ->limit($limit)
+                    ->get();
+                    
+                return $orders->map(function ($order) {
+                    return [
+                        'name' => $order->coffeeProduct ? $order->coffeeProduct->name : 'Unknown Product',
+                        'order_id' => $order->id,
+                        'quantity' => number_format((float)$order->quantity, 0),
+                        'date' => $order->created_at->format('Y-m-d'),
+                        'productName' => $order->coffeeProduct ? $order->coffeeProduct->name : 'Unknown Product',
+                        'status' => $order->status,
+                        'order_type' => 'made', // Vendor made these orders
+                    ];
+                })->toArray();
+            }
+            
+            return [];
 
         } catch (\Exception $e) {
-            // Return mock data if database query fails
-            return [
-                [
-                    'name' => 'Coffee House Roasters',
-                    'order_id' => 'CMD-1842',
-                    'quantity' => 200,
-                    'date' => '2025-05-28',
-                    'productName' => 'Arabica Grade A',
-                ],
-                [
-                    'name' => 'Bean & Brew Inc.',
-                    'order_id' => 'ES-903',
-                    'quantity' => 180,
-                    'date' => '2025-06-03',
-                    'productName' => 'Arabica Medium Roast',
-                ],
-            ];
+            // Return mock data if database query fails based on user role
+            $user = Auth::user();
+            
+            if ($user->isAdmin()) {
+                return [
+                    [
+                        'name' => 'Coffee House Roasters',
+                        'order_id' => 'CMD-1842',
+                        'quantity' => 200,
+                        'date' => '2025-05-28',
+                        'productName' => 'Arabica Grade A',
+                        'status' => 'pending',
+                        'order_type' => 'received',
+                    ],
+                ];
+            } elseif ($user->isSupplier()) {
+                return [
+                    [
+                        'name' => 'Factory Order',
+                        'order_id' => 'CMD-1843',
+                        'quantity' => 500,
+                        'date' => '2025-05-29',
+                        'productName' => 'Arabica Beans',
+                        'status' => 'pending',
+                        'order_type' => 'received',
+                    ],
+                ];
+            } elseif ($user->isVendor()) {
+                return [
+                    [
+                        'name' => 'Premium Blend',
+                        'order_id' => 'CMD-1844',
+                        'quantity' => 100,
+                        'date' => '2025-05-30',
+                        'productName' => 'Premium Blend',
+                        'status' => 'pending',
+                        'order_type' => 'made',
+                    ],
+                ];
+            }
+            
+            return [];
         }
     }
 
@@ -416,7 +466,7 @@ class dashboardController extends Controller
                 $status = ucfirst($order->status);
                 
                 // Format quantity with unit
-                $quantity = number_format($order->quantity, 0) . ' kg';
+                $quantity = number_format((float)$order->quantity, 0) . ' kg';
 
                 return [
                     'Order ID' => $order->id,
@@ -424,7 +474,7 @@ class dashboardController extends Controller
                     'Product' => $productName,
                     'Quantity (kg)' => $quantity,
                     'Status' => $status,
-                    'Date' => $order->order_date ? $order->order_date->format('M d, Y') : $order->created_at->format('M d, Y'),
+                    'Date' => $order->created_at->format('M d, Y'),
                 ];
             })->toArray();
 
@@ -775,7 +825,11 @@ class dashboardController extends Controller
         $predictedData = [];
 
         foreach ($history as $row) {
-            $categories[]   = Carbon::parse($row->demand_date)->format('M d');
+            try {
+                $categories[] = \Carbon\Carbon::parse((string)$row->demand_date)->format('M d');
+            } catch (\Exception $e) {
+                $categories[] = \Carbon\Carbon::now()->format('M d');
+            }
             $actualData[]   = (float) $row->demand_qty_tonnes;
             $predictedData[] = null; // no prediction for past dates
         }
@@ -792,5 +846,91 @@ class dashboardController extends Controller
         ];
 
         return ['series' => $series, 'categories' => $categories];
+    }
+
+    /**
+     * Get supplier recent fulfilled orders from database
+     */
+    private function getSupplierRecentOrders(): array
+    {
+        try {
+            $user = Auth::user();
+            $supplierId = $user->supplier ? $user->supplier->id : null;
+            
+            if (!$supplierId) {
+                return $this->getSupplierRecentOrdersFallback();
+            }
+
+            // Get recent orders for this supplier that have been fulfilled (delivered, shipped, confirmed)
+            $orders = Order::with(['supplier', 'rawCoffee'])
+                ->where('supplier_id', $supplierId)
+                ->whereIn('status', ['delivered', 'shipped', 'confirmed'])
+                ->orderBy('created_at', 'desc')
+                ->limit(4)
+                ->get();
+
+            $ordersData = [];
+            
+            foreach ($orders as $order) {
+                // Format quantity with unit
+                $quantity = number_format((float)$order->quantity, 0) . ' kg';
+                
+                // Format status for display
+                $status = ucfirst($order->status);
+                
+                $ordersData[] = [
+                    'Order ID' => $order->id,
+                    'Customer' => 'Factory Order',
+                    'Product' => $order->rawCoffee ? $order->rawCoffee->coffee_type : 'Unknown Product',
+                    'Quantity (kg)' => $quantity,
+                    'Status' => $status,
+                    'Date' => $order->created_at->format('M d, Y'),
+                ];
+            }
+
+            // If no orders found, return fallback data
+            if (empty($ordersData)) {
+                return $this->getSupplierRecentOrdersFallback();
+            }
+
+            return $ordersData;
+
+        } catch (\Exception $e) {
+            // Return fallback data if database query fails
+            return $this->getSupplierRecentOrdersFallback();
+        }
+    }
+
+    /**
+     * Get fallback supplier recent orders data
+     */
+    private function getSupplierRecentOrdersFallback(): array
+    {
+        return [
+            [
+                'Order ID' => 'O00001',
+                'Customer' => 'Factory Order',
+                'Product' => 'Arabica Beans',
+                'Quantity (kg)' => '500 kg',
+                'Status' => 'Delivered',
+                'Date' => 'Jul 10, 2025',
+            ],
+            [
+                'Order ID' => 'O00002',
+                'Customer' => 'Factory Order',
+                'Product' => 'Robusta Beans',
+                'Quantity (kg)' => '300 kg',
+                'Status' => 'Delivered',
+                'Date' => 'Jul 08, 2025',
+            ],
+            [
+                'Order ID' => 'O00003',
+                'Customer' => 'Factory Order',
+                'Product' => 'Excella Beans',
+                'Quantity (kg)' => '200 kg',
+                'Status' => 'Shipped',
+                'Date' => 'Jul 05, 2025',
+            ],
+        ];
     }
 }
