@@ -87,7 +87,7 @@
 <div class="mt-10">
     <div class="flex justify-between items-center mb-6">
         <h1 class="text-2xl font-semibold text-dashboard-light pb-5">Raw Coffee</h1>
-        <button class="bg-light-brown text-white px-4 py-2 rounded" data-mode="add" data-modal-open="addRawCoffeeModal">+ Add Item</button>
+        <button class="bg-light-brown text-white px-4 py-2 rounded"data-modal-open="addRawCoffeeModal">+ Add Item</button>
     </div>
     <div class="bg-white rounded shadow overflow-x-auto p-4">
         <table class="min-w-full leading-normal" id="search-table">
@@ -281,7 +281,8 @@
             </label>
             <input type="number" 
                 id="rawCoffeeQuantity" 
-                name="quantity_in_stock" 
+                name="quantity_in_stock"
+                step="0.01" 
                 required
                 class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-coffee-brown focus:border-coffee-brown dark:bg-dark-background dark:text-off-white"
                 placeholder="Enter Quantity"
@@ -400,7 +401,7 @@
     submit-text=""
     cancel-text="Close">
     
-    <div class=" overflow-visible pr-0" id="itemDetailsContent">
+    <div id="itemDetailsContent">
         <!-- Content will be loaded dynamically -->
     </div>
 </x-modal>

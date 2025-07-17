@@ -22,7 +22,7 @@
 @endphp
 
 <div id="{{ $id }}" {{ $attributes->merge(['class' => 'fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 p-4']) }}>
-    <div class="bg-white dark:bg-warm-gray rounded-2xl shadow-xl w-full {{ $modalSize }} mx-4 max-h-[90vh] overflow-hidden flex flex-col">
+    <div class="bg-white dark:bg-warm-gray rounded-2xl shadow-xl w-full {{ $modalSize }} mx-4 my-4 max-h-[90vh] flex flex-col">
         {{-- Modal Header --}}
         <div class="flex justify-between items-center p-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
             <h3 class="text-xl font-bold text-dashboard-light dark:text-off-white">{{ $title }}</h3>
@@ -36,7 +36,7 @@
         </div>
 
         {{-- Modal Body --}}
-        <div class="flex-1 overflow-y-auto p-6 modal-scrollbar">
+        <div class="flex-1 overflow-y-auto p-6 modal-scrollbar" style="min-height: 0; max-height: calc(90vh - 140px);">
             {{ $slot }}
         </div>
 

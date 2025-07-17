@@ -5,6 +5,7 @@
 <?php
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\InventoryController;
+use App\Http\Controllers\UserManagerController;
              
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
@@ -24,4 +25,7 @@ Route::put('/inventory/{id}', [InventoryController::class, 'update']);
 
 // (Optional) Delete an inventory item
 Route::delete('/inventory/{id}', [InventoryController::class, 'destroy']);
+
+// Get admin emails for notifications
+Route::get('/admin/emails', [UserManagerController::class, 'getAdminEmails']);
 

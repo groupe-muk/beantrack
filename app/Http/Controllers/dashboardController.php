@@ -171,6 +171,7 @@ class dashboardController extends Controller
                         'name' => $order->coffeeProduct->name ?? 'Unknown Product',
                         'order_id' => $order->id,
                         'quantity' => $order->quantity,
+
                         'date' => $order->created_at->format('Y-m-d'),
                         'productName' => $order->coffeeProduct->name ?? 'Unknown Product',
                         'status' => $order->status,
@@ -181,6 +182,7 @@ class dashboardController extends Controller
         
         // Return empty collection if no orders - let the component handle the empty state
         
+
         return [
             'pendingOrders' => $pendingOrders->toArray(),
             

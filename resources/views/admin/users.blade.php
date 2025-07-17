@@ -49,6 +49,11 @@
                     data-tab="applications-tab">
                     Vendor Applications
                 </button>
+                <button 
+                    class="tab-button py-4 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300 whitespace-nowrap"
+                    data-tab="supplier-applications-tab">
+                    Supplier Applications
+                </button>
             </nav>
         </div>
 
@@ -189,6 +194,60 @@
                                             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                         </svg>
                                         <span class="ml-2">Loading applications...</span>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Supplier Applications Tab -->
+            <div id="supplier-applications-tab" class="tab-content hidden">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-bold text-dashboard-light dark:text-off-white">Supplier Applications</h2>
+                    <div class="flex space-x-2">
+                        <select id="supplier-application-status-filter" class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm">
+                            <option value="all">All Status</option>
+                            <option value="pending">Pending</option>
+                            <option value="under_review">Under Review</option>
+                            <option value="approved">Approved</option>
+                            <option value="rejected">Rejected</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto border-2 rounded-2xl p-4">
+                    <table id="supplier-applications-table" class="min-w-full leading-normal">
+                        <thead>
+                            <tr>
+                                <th class="px-5 py-5 border-b-2 border-soft-gray dark:border-mild-gray bg-transparent dark:bg-dark-background text-left text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider rounded-tl-lg">
+                                    Application ID
+                                </th>
+                                <th class="px-5 py-5 border-b-2 border-soft-gray dark:border-mild-gray bg-transparent dark:bg-dark-background text-left text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
+                                    Applicant
+                                </th>
+                                <th class="px-5 py-5 border-b-2 border-soft-gray dark:border-mild-gray bg-transparent dark:bg-dark-background text-left text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
+                                    Business Name
+                                </th>
+                                <th class="px-5 py-5 border-b-2 border-soft-gray dark:border-mild-gray bg-transparent dark:bg-dark-background text-left text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
+                                    Status
+                                </th>
+                                <th class="px-5 py-5 border-b-2 border-soft-gray dark:border-mild-gray bg-transparent dark:bg-dark-background text-left text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider rounded-tr-lg">
+                                    Actions
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody id="supplier-applications-tbody">
+                            <!-- Supplier Applications will be loaded here via AJAX -->
+                            <tr>
+                                <td colspan="5" class="px-5 py-5 text-center text-gray-500 dark:text-gray-400">
+                                    <div class="flex justify-center">
+                                        <svg class="animate-spin h-5 w-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                        </svg>
+                                        <span class="ml-2">Loading supplier applications...</span>
                                     </div>
                                 </td>
                             </tr>
@@ -427,6 +486,9 @@
         // Initialize vendor application functionality
         initializeVendorApplications();
         
+        // Initialize supplier application functionality
+        initializeSupplierApplications();
+        
         // Load initial data
         loadVendorApplications();
     });
@@ -458,6 +520,8 @@
                 // Load data for specific tabs
                 if (targetTab === 'applications-tab') {
                     loadVendorApplications();
+                } else if (targetTab === 'supplier-applications-tab') {
+                    loadSupplierApplications();
                 }
             });
         });
@@ -608,6 +672,16 @@
         });
     }
 
+    function initializeSupplierApplications() {
+        // Status filter for supplier applications
+        const statusFilter = document.getElementById('supplier-application-status-filter');
+        if (statusFilter) {
+            statusFilter.addEventListener('change', function() {
+                loadSupplierApplications();
+            });
+        }
+    }
+
     async function loadVendorApplications() {
         const tbody = document.getElementById('applications-tbody');
         const statusFilter = document.getElementById('application-status-filter').value;
@@ -713,9 +787,122 @@
         `).join('');
     }
 
-    function openUpdateStatusModal(applicationId, currentStatus) {
+    async function loadSupplierApplications() {
+        const tbody = document.getElementById('supplier-applications-tbody');
+        const statusFilter = document.getElementById('supplier-application-status-filter').value;
+        
+        try {
+            // Show loading
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="5" class="px-5 py-5 text-center text-gray-500">
+                        <div class="flex justify-center items-center">
+                            <svg class="animate-spin h-5 w-5 text-gray-500 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            Loading supplier applications...
+                        </div>
+                    </td>
+                </tr>
+            `;
+
+            const url = new URL('/api/supplier-applications', window.location.origin);
+            if (statusFilter !== 'all') {
+                url.searchParams.append('status', statusFilter);
+            }
+
+            const response = await fetch(url, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Content-Type': 'application/json',
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to load supplier applications');
+            }
+
+            const data = await response.json();
+            displaySupplierApplications(data.applications || []);
+
+        } catch (error) {
+            console.error('Error loading supplier applications:', error);
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="5" class="px-5 py-5 text-center text-red-500">
+                        Error loading supplier applications. Please refresh the page.
+                    </td>
+                </tr>
+            `;
+        }
+    }
+
+    function displaySupplierApplications(applications) {
+        const tbody = document.getElementById('supplier-applications-tbody');
+        
+        if (applications.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="5" class="px-5 py-5 text-center text-gray-500">
+                        No supplier applications found.
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        tbody.innerHTML = applications.map(app => `
+            <tr class="hover:bg-gray-50 dark:hover:bg-mild-gray transition-colors">
+                <td class="px-5 py-5 border-b border-soft-gray text-sm font-mono">${app.id}</td>
+                <td class="px-5 py-5 border-b border-soft-gray text-sm">${app.applicant_name}</td>
+                <td class="px-5 py-5 border-b border-soft-gray text-sm">${app.business_name}</td>
+                <td class="px-5 py-5 border-b border-soft-gray text-sm">
+                    <div class="flex flex-col space-y-1">
+                        <span class="px-2 py-1 text-xs rounded-full text-center ${getStatusBadgeClass(app.status)}">
+                            ${getStatusLabel(app.status)}
+                        </span>
+                        ${app.status === 'approved' && app.created_user_id ? `
+                            <span class="px-2 py-1 text-xs rounded-full text-center bg-green-100 text-green-800">
+                                Added to System
+                            </span>
+                        ` : ''}
+                        ${app.status === 'pending' && app.validated_at && app.validation_message ? `
+                            <span class="px-2 py-1 text-xs rounded-full text-center ${getValidationStatusBadgeClass(app.status, app.validation_message)}">
+                                ${getValidationStatusLabel(app.status, app.validation_message)}
+                            </span>
+                        ` : ''}
+                    </div>
+                </td>
+                <td class="px-5 py-5 border-b border-soft-gray text-sm">
+                    <button onclick="openUpdateStatusModal('${app.id}', '${app.status}', 'supplier')" 
+                            class="text-blue-600 hover:text-blue-900 text-xs mr-3">
+                        Update Status
+                    </button>
+                    <button onclick="viewSupplierApplicationDetails('${app.id}')" 
+                            class="text-green-600 hover:text-green-900 text-xs">
+                        View Details
+                    </button>
+                    ${app.status === 'pending' && app.validated_at && app.validation_message && 
+                      (app.validation_message.includes('Failed to communicate') || 
+                       app.validation_message.includes('validation_failed') ||
+                       app.validation_message.includes('error')) ? `
+                        <button onclick="retrySupplierValidation('${app.id}')" 
+                                class="text-purple-600 hover:text-purple-900 text-xs ml-3">
+                            Retry Validation
+                        </button>
+                    ` : ''}
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    function openUpdateStatusModal(applicationId, currentStatus, applicationType = 'vendor') {
         document.getElementById('application-id').value = applicationId;
         document.getElementById('status').value = currentStatus;
+        
+        // Store application type for later use
+        document.getElementById('updateStatusForm').setAttribute('data-application-type', applicationType);
         
         // Always clear the rejection reason when opening modal
         document.getElementById('rejection_reason').value = '';
@@ -741,11 +928,19 @@
         const formData = new FormData(form);
         const applicationId = document.getElementById('application-id').value;
         const status = document.getElementById('status').value;
+        const applicationType = form.getAttribute('data-application-type') || 'vendor';
         
         try {
-            const url = status === 'rejected' 
-                ? `/admin/vendor-applications/${applicationId}/reject`
-                : `/admin/vendor-applications/${applicationId}/update-status`;
+            let url;
+            if (applicationType === 'supplier') {
+                url = status === 'rejected' 
+                    ? `/admin/supplier-applications/${applicationId}/reject`
+                    : `/admin/supplier-applications/${applicationId}/update-status`;
+            } else {
+                url = status === 'rejected' 
+                    ? `/admin/vendor-applications/${applicationId}/reject`
+                    : `/admin/vendor-applications/${applicationId}/update-status`;
+            }
                 
             const response = await fetch(url, {
                 method: 'POST',
@@ -771,8 +966,12 @@
                     showNotification(data.message || 'Status updated successfully', 'success');
                 }
                 
-                // Reload applications
-                loadVendorApplications();
+                // Reload appropriate applications
+                if (applicationType === 'supplier') {
+                    loadSupplierApplications();
+                } else {
+                    loadVendorApplications();
+                }
             } else {
                 showNotification(data.message || 'Failed to update status', 'error');
             }
@@ -1111,6 +1310,98 @@
         } catch (error) {
             console.error('Error retrying validation:', error);
             showNotification('An error occurred while retrying validation', 'error');
+        }
+    }
+
+    // Supplier-specific functions
+    async function viewSupplierApplicationDetails(applicationId) {
+        try {
+            const response = await fetch(`/api/supplier-applications/${applicationId}`, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Content-Type': 'application/json',
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to load supplier application details');
+            }
+
+            const data = await response.json();
+            displaySupplierApplicationDetails(data.application);
+            
+            // Show the modal
+            document.getElementById('vendorDetailsModal').classList.remove('hidden');
+            document.getElementById('vendorDetailsModal').classList.add('flex');
+
+        } catch (error) {
+            console.error('Error loading supplier application details:', error);
+            showNotification('Failed to load supplier application details', 'error');
+        }
+    }
+
+    function displaySupplierApplicationDetails(app) {
+        // Reuse the same modal as vendor applications since the structure is similar
+        document.querySelector('#vendorDetailsModal h3').textContent = 'Supplier Application Details';
+        
+        // Populate application information
+        document.getElementById('detail-application-id').textContent = app.id;
+        document.getElementById('detail-submitted-date').textContent = formatDate(app.created_at);
+        document.getElementById('detail-status').innerHTML = `
+            <span class="px-2 py-1 text-xs rounded-full ${getStatusBadgeClass(app.status)}">
+                ${getStatusLabel(app.status)}
+            </span>
+        `;
+        
+        // Populate applicant information
+        document.getElementById('detail-applicant-name').textContent = app.applicant_name;
+        document.getElementById('detail-business-name').textContent = app.business_name;
+        document.getElementById('detail-email').textContent = app.email;
+        document.getElementById('detail-phone').textContent = app.phone_number;
+        
+        // Handle validation details
+        const validationSection = document.getElementById('validation-details-section');
+        if (app.validated_at && app.validation_message) {
+            validationSection.style.display = 'block';
+            document.getElementById('detail-validation-message').innerHTML = `
+                <div class="p-3 rounded ${app.validation_message.includes('success') ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+                    <strong>Validation Result:</strong><br>
+                    ${app.validation_message}
+                </div>
+            `;
+        } else {
+            validationSection.style.display = 'none';
+        }
+        
+        // Set up action buttons for supplier
+        const updateStatusBtn = document.getElementById('update-status-btn');
+        updateStatusBtn.setAttribute('onclick', `openUpdateStatusModalFromDetails('${app.id}', '${app.status}')`);
+    }
+
+    async function retrySupplierValidation(applicationId) {
+        try {
+            const response = await fetch(`/admin/supplier-applications/${applicationId}/retry-validation`, {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                }
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                showNotification(data.message || 'Supplier validation retry initiated successfully', 'success');
+                // Reload supplier applications to show updated status
+                loadSupplierApplications();
+            } else {
+                showNotification(data.message || 'Failed to retry supplier validation', 'error');
+            }
+
+        } catch (error) {
+            console.error('Error retrying supplier validation:', error);
+            showNotification('An error occurred while retrying supplier validation', 'error');
         }
     }
 </script>
