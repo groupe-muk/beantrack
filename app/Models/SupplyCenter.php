@@ -16,10 +16,11 @@ class SupplyCenter extends Model
         'id', 'name', 'location', 'manager','capacity'
     ];
     
-    // Corrected relationship: plural and correct class name
+    // Direct relationship with workers
     public function workers() {
-        return $this->hasMany(Worker::class, 'supply_center_id');
-     }
+        return $this->hasMany(Worker::class, 'supplycenter_id');
+    }
+    
     public function suppliers()
     {
         return $this->hasMany(Supplier::class, 'supply_center_id');

@@ -1,8 +1,7 @@
 package com.groupe.beantrackserver.models;
 
-import java.util.Date;
-import javax.persistence.*;
 import jakarta.persistence.*;
+import java.util.Date;
 
 
 @Entity
