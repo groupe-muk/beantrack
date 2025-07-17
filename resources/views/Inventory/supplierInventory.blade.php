@@ -3,7 +3,7 @@
 @section('content')
 <div class="p-5 bg-light-background">
   <!-- Header Section -->
-  <h1 class="text-3xl font-bold text-dashboard-light">Supplier Coffee Inventory Management</h1>
+  <h1 class="text-3xl font-bold text-dashboard-light">Inventory Management</h1>
   <p class="text-soft-brown mb-4">Manage your coffee stock and track availability</p>
 
   @if (session('success'))
@@ -185,8 +185,8 @@
             </label>
             <select name="supply_center_id" id="coffeeProductWarehouse" required>
               <option value="">Select Warehouse</option>
-              @foreach($supplyCenters as $center)
-              <option value="{{ $center->id }}">{{ $center->name }}</option>
+              @foreach($warehouses as $warehouse)
+              <option value="{{ $warehouse->id }}">{{ $warehouse->name }}</option>
               @endforeach
             </select>
             @error('supply_center_id')

@@ -22,7 +22,7 @@ class SupplyCentersController extends Controller
             return response()->json([
                 'totalSupplyCenters' => $supplycenters->count(),
                 'totalStaff' => $supplycenters->sum(fn($sc) => $sc->workers->count()),
-                'totalCapacity' => number_format($supplycenters->sum('capacity'))
+                'totalCapacity' => number_format($supplycenters->sum('capacity')) . ' kgs'
             ]);
         }
         

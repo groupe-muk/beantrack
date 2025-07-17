@@ -6,7 +6,9 @@ use Illuminate\Http\Request;
 use App\Models\Inventory;
 use App\Models\RawCoffee;
 use App\Models\CoffeeProduct;
-use App\Models\SupplyCenter;
+use App\Models\Warehouse;
+use App\Models\Supplier;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -15,13 +17,27 @@ class supplierInventoryController extends Controller
     //your logic here
     public function index()
     {
-        $rawCoffeeInventory = Inventory::with(['rawCoffee', 'supplyCenter'])->whereNotNull('raw_coffee_id')->get();
-        $supplyCenters = SupplyCenter::all();
+        $user = Auth::user();
+        $supplier = Supplier::where('user_id', $user->id)->first();
+        
+        if (!$supplier) {
+            return redirect()->route('dashboard')->with('error', 'Supplier profile not found.');
+        }
+
+        // Get supplier's warehouses
+        $warehouses = Warehouse::where('supplier_id', $supplier->id)->get();
+        
+        // Get inventory items from supplier's warehouses
+        $rawCoffeeInventory = Inventory::with(['rawCoffee', 'warehouse'])
+            ->whereNotNull('raw_coffee_id')
+            ->whereIn('warehouse_id', $warehouses->pluck('id'))
+            ->get();
+        
         $rawCoffeeItems = RawCoffee::all();
 
         
 
-        // Calculate quantities for each coffee type and grade
+        // Calculate quantities for each coffee type and grade from supplier's warehouses
         $coffeeTypes = ['Arabica', 'Robusta'];
         $grades = ['A', 'B'];
         
@@ -31,12 +47,13 @@ class supplierInventoryController extends Controller
         foreach ($coffeeTypes as $type) {
             foreach ($grades as $grade) {
                 $quantity = Inventory::join('raw_coffee', 'inventory.raw_coffee_id', '=', 'raw_coffee.id')
+                    ->whereIn('inventory.warehouse_id', $warehouses->pluck('id'))
                     ->where('raw_coffee.coffee_type', $type)
                     ->where('raw_coffee.grade', $grade)
                     ->sum('inventory.quantity_in_stock');
                 
                 $typeGradeQuantities["{$type}_{$grade}"] = $quantity;
-                $typeGradeTrends["{$type}_{$grade}"] = $this->calculateTrend($type, $grade);
+                $typeGradeTrends["{$type}_{$grade}"] = $this->calculateTrend($type, $grade, $warehouses->pluck('id'));
             }
         }
 
@@ -46,8 +63,8 @@ class supplierInventoryController extends Controller
         $totalQuantity = $arabicaQuantity + $robustaQuantity;
 
         // Calculate trends for cards
-        $arabicaTrend = $this->calculateTrend('Arabica');
-        $robustaTrend = $this->calculateTrend('Robusta');
+        $arabicaTrend = $this->calculateTrend('Arabica', null, $warehouses->pluck('id'));
+        $robustaTrend = $this->calculateTrend('Robusta', null, $warehouses->pluck('id'));
         
          // Create inventory items for the table
     $inventoryItems = collect();
@@ -79,7 +96,7 @@ class supplierInventoryController extends Controller
         return view('Inventory.supplierInventory', compact(
             'rawCoffeeInventory',
             'rawCoffeeItems',
-            'supplyCenters',
+            'warehouses',
             'arabicaQuantity',
             'arabicaTrend',
             'robustaQuantity',
@@ -96,7 +113,7 @@ class supplierInventoryController extends Controller
         ));
     }
 
-    private function calculateTrend($type, $grade = null)
+    private function calculateTrend($type, $grade = null, $warehouseIds = null)
     {
         $currentWeek = now()->startOfWeek();
         $previousWeek = now()->subWeek()->startOfWeek();
@@ -106,6 +123,10 @@ class supplierInventoryController extends Controller
             
         if ($grade) {
             $query->where('raw_coffee.grade', $grade);
+        }
+        
+        if ($warehouseIds) {
+            $query->whereIn('inventory.warehouse_id', $warehouseIds);
         }
         
         $currentQuantity = (clone $query)
@@ -126,35 +147,53 @@ class supplierInventoryController extends Controller
     // Store a new inventory item
     public function store(Request $request)
     {
+        $user = Auth::user();
+        $supplier = Supplier::where('user_id', $user->id)->first();
+        
+        if (!$supplier) {
+            return redirect()->route('supplierInventory.index')
+                ->with('error', 'Supplier profile not found.');
+        }
+
         $validated = $request->validate([
-        'raw_coffee_id' => 'required',
-        'quantity_in_stock' => 'required|numeric|min:0',
-        'supply_center_id' => 'required'
-    ]);
-    
-    // Create the inventory item
-    $inventory = new Inventory();
-    $inventory->raw_coffee_id = $validated['raw_coffee_id'];
-    $inventory->quantity_in_stock = $validated['quantity_in_stock'];
-    $inventory->supply_center_id = $validated['supply_center_id'];
-    $inventory->save();
-    
-    return redirect()
-        ->route('supplierInventory.index')
-        ->with('success', 'Inventory item added successfully');
+            'raw_coffee_id' => 'required',
+            'quantity_in_stock' => 'required|numeric|min:0',
+            'supply_center_id' => 'required|exists:warehouses,id'
+        ]);
+
+        // Verify the warehouse belongs to this supplier
+        $warehouse = Warehouse::where('id', $validated['supply_center_id'])
+            ->where('supplier_id', $supplier->id)
+            ->first();
+            
+        if (!$warehouse) {
+            return redirect()->route('supplierInventory.index')
+                ->with('error', 'Invalid warehouse selected.');
+        }
+        
+        // Create the inventory item
+        $inventory = new Inventory();
+        $inventory->raw_coffee_id = $validated['raw_coffee_id'];
+        $inventory->quantity_in_stock = $validated['quantity_in_stock'];
+        $inventory->warehouse_id = $validated['supply_center_id'];
+        $inventory->save();
+        
+        return redirect()
+            ->route('supplierInventory.index')
+            ->with('success', 'Inventory item added successfully');
 }
 
         
     
     public function edit($id)
     {
-        $inventory = Inventory::with(['supplyCenter', 'rawCoffee'])
+        $inventory = Inventory::with(['warehouse', 'rawCoffee'])
             ->findOrFail($id);
 
         return response()->json([
             'id' => $inventory->id,
             'quantity_in_stock' => $inventory->quantity_in_stock,
-            'supply_center_name' => $inventory->supplyCenter->name,
+            'warehouse_name' => $inventory->warehouse->name,
             'coffee_type' => $inventory->rawCoffee->coffee_type,
             'grade' => $inventory->rawCoffee->grade
         ]);
@@ -167,14 +206,18 @@ class supplierInventoryController extends Controller
             
             $validated = $request->validate([
                 'quantity_in_stock' => 'required|numeric|min:0|regex:/^\d*\.?\d{0,2}$/',
-                'supply_center_name' => 'required|string'
+                'warehouse_name' => 'required|string'
             ]);
 
-            // Get supply center by name
-            $supplyCenter = SupplyCenter::where('name', $validated['supply_center_name'])->firstOrFail();
+            // Get user's warehouse by name
+            $user = Auth::user();
+            $supplier = Supplier::where('user_id', $user->id)->first();
+            $warehouse = Warehouse::where('supplier_id', $supplier->id)
+                ->where('name', $validated['warehouse_name'])
+                ->firstOrFail();
 
             $inventory->quantity_in_stock = $validated['quantity_in_stock'];
-            $inventory->supply_center_id = $supplyCenter->id;
+            $inventory->warehouse_id = $warehouse->id;
             $inventory->save();
 
             return response()->json([
@@ -249,17 +292,15 @@ class supplierInventoryController extends Controller
                 ->sum('inventory.quantity_in_stock')
         ];
 
-        // Get all inventory items for this coffee type
+                // Get all inventory items for this coffee type
         $inventoryItems = Inventory::join('raw_coffee', 'inventory.raw_coffee_id', '=', 'raw_coffee.id')
-            ->join('supply_centers', 'inventory.supply_center_id', '=', 'supply_centers.id')
+            ->join('warehouses', 'inventory.warehouse_id', '=', 'warehouses.id')
             ->where('raw_coffee.coffee_type', $type)
             ->select(
                 'inventory.id',
-                'inventory.quantity_in_stock as quantity',
-                'inventory.created_at',
-                'inventory.updated_at',
+                'inventory.quantity_in_stock',
                 'raw_coffee.grade',
-                'supply_centers.name as warehouse'
+                'warehouses.name as warehouse'
             )
             ->orderBy('inventory.updated_at', 'desc')
             ->get();
@@ -285,15 +326,36 @@ class supplierInventoryController extends Controller
      */
     public function updateItem(Request $request, $id)
     {
+        $user = Auth::user();
+        $supplier = Supplier::where('user_id', $user->id)->first();
+        
+        if (!$supplier) {
+            return redirect()->route('supplierInventory.index')
+                ->with('error', 'Supplier profile not found.');
+        }
+
         $validated = $request->validate([
             'raw_coffee_id' => 'required',
             'quantity_in_stock' => 'required|numeric|min:0',
-            'supply_center_id' => 'required',
+            'supply_center_id' => 'required|exists:warehouses,id',
             'grade' => 'required|string|max:10',
         ]);
+
+        // Verify the warehouse belongs to this supplier
+        $warehouse = Warehouse::where('id', $validated['supply_center_id'])
+            ->where('supplier_id', $supplier->id)
+            ->first();
+            
+        if (!$warehouse) {
+            return redirect()->route('supplierInventory.index')
+                ->with('error', 'Invalid warehouse selected.');
+        }
         
         $inventoryItem = Inventory::findOrFail($id);
-        $inventoryItem->update($validated);
+        $inventoryItem->raw_coffee_id = $validated['raw_coffee_id'];
+        $inventoryItem->quantity_in_stock = $validated['quantity_in_stock'];
+        $inventoryItem->warehouse_id = $validated['supply_center_id'];
+        $inventoryItem->save();
         
         return redirect()
             ->route('supplierInventory.index')

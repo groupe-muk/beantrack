@@ -282,6 +282,114 @@ public class EmailService {
         }
     }
 
+    /**
+     * Send supplier welcome email with login credentials and supply center information
+     */
+    public void sendSupplierWelcomeEmailDirect(String email, String applicantName, String businessName, String userId, String password, String loginUrl, String supplyCenterName, String supplyCenterLocation) {
+        System.out.println("=== SENDING SUPPLIER WELCOME EMAIL ===");
+        System.out.println("To: " + email);
+        System.out.println("Applicant Name: " + applicantName);
+        System.out.println("Business Name: " + businessName);
+        System.out.println("User ID: " + userId);
+        System.out.println("Supply Center: " + supplyCenterName + " at " + supplyCenterLocation);
+        System.out.println("Login URL: " + loginUrl);
+        
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            // Set email details
+            helper.setFrom(fromEmail, fromName);
+            helper.setTo(email);
+            helper.setSubject("Welcome to BeanTrack - Your Supplier Account is Ready!");
+
+            System.out.println("Email configured with from: " + fromEmail + ", to: " + email);
+
+            // Create HTML content with supply center information
+            String supplyCenterSection = "";
+            if (supplyCenterName != null && !supplyCenterName.isEmpty()) {
+                supplyCenterSection = String.format("""
+                    <div style="background-color: #e7f3ff; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #007bff;">
+                        <h4 style="margin: 0 0 15px 0; color: #004085;">📍 Your Assigned Supply Center:</h4>
+                        <p style="margin: 5px 0;"><strong>Supply Center Name:</strong> %s</p>
+                        <p style="margin: 5px 0;"><strong>Location:</strong> %s</p>
+                        <p style="margin: 10px 0 0 0; font-style: italic; color: #6c757d;">This is where you will be delivering your coffee supplies. Please save this information for your records.</p>
+                    </div>
+                    """, supplyCenterName, supplyCenterLocation != null ? supplyCenterLocation : "Location information will be provided separately");
+            }
+
+            String htmlContent = String.format("""
+                <html>
+                <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+                    <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+                        <h2 style="color: #8B4513;">Welcome to BeanTrack Supplier Portal!</h2>
+                        
+                        <p>Dear %s,</p>
+                        
+                        <p>Congratulations! Your supplier application for <strong>%s</strong> has been approved and you have been successfully added to the BeanTrack system as an authorized supplier.</p>
+                        
+                        <div style="background-color: #d4edda; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #28a745;">
+                            <h4 style="margin: 0 0 15px 0; color: #155724;">🔐 Your Login Credentials:</h4>
+                            <p style="margin: 5px 0;"><strong>User ID:</strong> %s</p>
+                            <p style="margin: 5px 0;"><strong>Email:</strong> %s</p>
+                            <p style="margin: 5px 0;"><strong>Password:</strong> %s</p>
+                            <p style="margin: 15px 0 5px 0;"><strong>Login URL:</strong> <a href="%s" style="color: #8B4513;">%s</a></p>
+                        </div>
+                        
+                        %s
+                        
+                        <div style="background-color: #fff3cd; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #ffc107;">
+                            <h4 style="margin: 0 0 10px 0; color: #856404;">🔒 Security Notice:</h4>
+                            <p style="margin: 0; color: #856404;"><strong>Please change your password after your first login for security purposes.</strong></p>
+                        </div>
+                        
+                        <h3 style="color: #8B4513;">🚀 What You Can Do Now:</h3>
+                        <p>You can now access the BeanTrack supplier portal to:</p>
+                        <ul style="color: #555;">
+                            <li><strong>Manage your supplier profile</strong> and business information</li>
+                            <li><strong>View and manage orders</strong> from our coffee processing facility</li>
+                            <li><strong>Track your deliveries</strong> and supply schedule</li>
+                            <li><strong>Monitor your inventory</strong> and stock levels</li>
+                            <li><strong>Access reports</strong> on your supply performance</li>
+                            <li><strong>Communicate with our procurement team</strong></li>
+                        </ul>
+                        
+                        <h3 style="color: #8B4513;">📞 Need Help?</h3>
+                        <p>If you have any questions or need assistance getting started, please contact our supplier support team:</p>
+                        <ul style="color: #555;">
+                            <li><strong>Email:</strong> <a href="mailto:%s" style="color: #8B4513;">%s</a></li>
+                            <li><strong>Phone:</strong> +256 700 123456</li>
+                        </ul>
+                        
+                        <p style="margin-top: 30px;">We're excited to partner with you and look forward to a successful business relationship!</p>
+                        
+                        <p>Best regards,<br>
+                        <strong>The BeanTrack Supplier Relations Team</strong></p>
+                    </div>
+                    
+                    <div style="background-color: #f8f9fa; padding: 15px; margin-top: 30px; border-top: 1px solid #dee2e6; text-align: center;">
+                        <p style="margin: 0; font-size: 12px; color: #6c757d;">
+                            This is an automated message from BeanTrack. Please do not reply directly to this email.
+                        </p>
+                    </div>
+                </body>
+                </html>
+                """, 
+                applicantName, businessName, userId, email, password, loginUrl, loginUrl, supplyCenterSection, fromEmail, fromEmail);
+
+            helper.setText(htmlContent, true);
+
+            System.out.println("Attempting to send supplier welcome email...");
+            // Send email
+            mailSender.send(message);
+            System.out.println("Supplier welcome email sent successfully to: " + email);
+
+        } catch (Exception e) {
+            System.err.println("Failed to send supplier welcome email to: " + email + " - " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
     @Async
     public void sendSupplierVisitScheduledEmail(String email, String applicantName, String businessName, String visitDate) {
         try {

@@ -476,10 +476,10 @@ class userManagerController extends Controller
     /**
      * Send supplier welcome email with login credentials
      */
-    private function sendSupplierWelcomeEmail(SupplierApplication $application, User $user, $password)
+    private function sendSupplierWelcomeEmail(SupplierApplication $application, User $user, $password, $roleData = null)
     {
         try {
-            // Send email to Java validation server for processing
+            // Prepare basic email data
             $emailData = [
                 'type' => 'welcome',
                 'email' => $user->email,
@@ -489,6 +489,13 @@ class userManagerController extends Controller
                 'password' => $password,
                 'loginUrl' => route('login')
             ];
+
+            // Add supply center information if available
+            if ($roleData && isset($roleData['supplyCenter'])) {
+                $supplyCenter = $roleData['supplyCenter'];
+                $emailData['supplyCenterName'] = $supplyCenter->name;
+                $emailData['supplyCenterLocation'] = $supplyCenter->location;
+            }
 
             Log::info('Sending supplier welcome email data to Java server', $emailData);
 
@@ -536,7 +543,7 @@ class userManagerController extends Controller
                 'user_email' => $user->email,
                 'role' => $user->role
             ]);
-            return;
+            return null;
         }
 
         try {
@@ -547,7 +554,7 @@ class userManagerController extends Controller
             ]);
             
             if ($user->role === 'supplier') {
-                // Get first available supply center
+                // Get first available supply center for supplier assignment
                 $supplyCenter = SupplyCenter::first();
                 if ($supplyCenter) {
                     \Log::info('Creating supplier record', [
@@ -569,8 +576,11 @@ class userManagerController extends Controller
                     
                     \Log::info('Supplier record created successfully', [
                         'user_id' => $user->id,
-                        'supplier_id' => $supplier->id
+                        'supplier_id' => $supplier->id,
+                        'supply_center_id' => $supplyCenter->id
                     ]);
+                    
+                    return ['supplyCenter' => $supplyCenter];
                 } else {
                     \Log::error('No supply center found for supplier creation', [
                         'user_id' => $user->id
@@ -597,6 +607,8 @@ class userManagerController extends Controller
                     'user_id' => $user->id,
                     'wholesaler_id' => $wholesaler->id
                 ]);
+                
+                return null; // No specific data to return for vendors
             }
         } catch (\Exception $e) {
             // Log detailed error information
@@ -612,6 +624,8 @@ class userManagerController extends Controller
             // Don't fail the user creation, but we could optionally flash an error message
             // session()->flash('warning', 'User created but there was an issue creating the associated record. Please contact support.');
         }
+        
+        return null;
     }
 
     /**
@@ -905,10 +919,10 @@ class userManagerController extends Controller
             ]);
 
             // Create supplier record for user
-            $this->createRoleSpecificRecord($user);
+            $roleData = $this->createRoleSpecificRecord($user);
 
             // Send welcome email with login credentials
-            $this->sendSupplierWelcomeEmail($application, $user, $validatedData['default_password']);
+            $this->sendSupplierWelcomeEmail($application, $user, $validatedData['default_password'], $roleData);
 
             return response()->json([
                 'success' => true,
@@ -968,10 +982,10 @@ class userManagerController extends Controller
             ]);
 
             // Create supplier record for user
-            $this->createRoleSpecificRecord($user);
+            $roleData = $this->createRoleSpecificRecord($user);
 
             // Send welcome email with login credentials
-            $this->sendSupplierWelcomeEmail($application, $user, $password);
+            $this->sendSupplierWelcomeEmail($application, $user, $password, $roleData);
 
             Log::info('Supplier automatically added to system on approval', [
                 'application_id' => $application->id,

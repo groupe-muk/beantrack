@@ -14,7 +14,7 @@ use PhpOffice\PhpSpreadsheet\IOFactory;
 
 class WarehouseController extends Controller
 {
-    public function supplierIndex()
+    public function supplierIndex(Request $request)
     {
         $user = Auth::user();
         $supplier = Supplier::where('user_id', $user->id)->first();
@@ -25,10 +25,19 @@ class WarehouseController extends Controller
 
         $warehouses = Warehouse::where('supplier_id', $supplier->id)->with('workers')->get();
         
+        // If this is an AJAX request for stats update
+        if ($request->ajax()) {
+            return response()->json([
+                'totalWarehouses' => $warehouses->count(),
+                'totalStaff' => $warehouses->sum(fn($w) => $w->workers->count()),
+                'totalCapacity' => number_format($warehouses->sum('capacity'))
+            ]);
+        }
+        
         return view('warehouses.supplier', compact('warehouses', 'supplier'));
     }
 
-    public function vendorIndex()
+    public function vendorIndex(Request $request)
     {
         $user = Auth::user();
         $wholesaler = Wholesaler::where('user_id', $user->id)->first();
@@ -38,6 +47,15 @@ class WarehouseController extends Controller
         }
 
         $warehouses = Warehouse::where('wholesaler_id', $wholesaler->id)->with('workers')->get();
+        
+        // If this is an AJAX request for stats update
+        if ($request->ajax()) {
+            return response()->json([
+                'totalWarehouses' => $warehouses->count(),
+                'totalStaff' => $warehouses->sum(fn($w) => $w->workers->count()),
+                'totalCapacity' => number_format($warehouses->sum('capacity'))
+            ]);
+        }
         
         return view('warehouses.vendor', compact('warehouses', 'wholesaler'));
     }
@@ -254,6 +272,126 @@ class WarehouseController extends Controller
             }
         } else {
             abort(403, 'Unauthorized access to warehouse.');
+        }
+    }
+
+    public function show(Warehouse $warehouse)
+    {
+        $this->authorizeWarehouse($warehouse);
+        $warehouse->load('workers');
+        
+        // Get other warehouses for the same owner for move functionality
+        $user = Auth::user();
+        if ($user->role === 'supplier') {
+            $supplier = Supplier::where('user_id', $user->id)->first();
+            $otherWarehouses = Warehouse::where('supplier_id', $supplier->id)
+                                       ->where('id', '!=', $warehouse->id)
+                                       ->get();
+        } else {
+            $wholesaler = Wholesaler::where('user_id', $user->id)->first();
+            $otherWarehouses = Warehouse::where('wholesaler_id', $wholesaler->id)
+                                       ->where('id', '!=', $warehouse->id)
+                                       ->get();
+        }
+        
+        return view('warehouses.show', compact('warehouse', 'otherWarehouses', 'user'));
+    }
+
+    public function bulkDeleteWorkers(Request $request)
+    {
+        $request->validate([
+            'worker_ids' => 'required|array|min:1',
+            'worker_ids.*' => 'exists:workers,id'
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            $workerIds = $request->worker_ids;
+            $deletedCount = 0;
+
+            // Get worker names for logging before deletion and verify ownership
+            $workersToDelete = Worker::whereIn('id', $workerIds)->with('warehouse')->get();
+            
+            // Verify user can delete these workers
+            $user = Auth::user();
+            foreach ($workersToDelete as $worker) {
+                $this->authorizeWarehouse($worker->warehouse);
+            }
+            
+            $workerNames = $workersToDelete->pluck('name')->toArray();
+
+            // Delete the workers
+            $deletedCount = Worker::whereIn('id', $workerIds)->delete();
+
+            DB::commit();
+
+            Log::info("Bulk deleted warehouse workers", [
+                'count' => $deletedCount,
+                'worker_names' => $workerNames,
+                'deleted_by' => $user->email ?? 'Unknown'
+            ]);
+
+            return redirect()->back()->with('success', "Successfully deleted {$deletedCount} worker(s).");
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error("Error bulk deleting warehouse workers", [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'worker_ids' => $request->worker_ids ?? []
+            ]);
+            return redirect()->back()->with('error', 'Failed to delete workers: ' . $e->getMessage());
+        }
+    }
+
+    public function moveWorkers(Request $request, Warehouse $warehouse)
+    {
+        $this->authorizeWarehouse($warehouse);
+
+        $request->validate([
+            'worker_ids' => 'required|array|min:1',
+            'worker_ids.*' => 'exists:workers,id',
+            'destination_warehouse_id' => 'required|exists:warehouses,id'
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            $destinationWarehouse = Warehouse::findOrFail($request->destination_warehouse_id);
+            $this->authorizeWarehouse($destinationWarehouse);
+
+            $workerIds = $request->worker_ids;
+            
+            // Verify workers belong to source warehouse
+            $workers = Worker::whereIn('id', $workerIds)->where('warehouse_id', $warehouse->id)->get();
+            
+            if ($workers->count() !== count($workerIds)) {
+                throw new \Exception('Some workers do not belong to the source warehouse.');
+            }
+
+            // Move workers to destination warehouse
+            $movedCount = Worker::whereIn('id', $workerIds)
+                ->update(['warehouse_id' => $destinationWarehouse->id]);
+
+            DB::commit();
+
+            Log::info("Moved workers between warehouses", [
+                'source_warehouse' => $warehouse->name,
+                'destination_warehouse' => $destinationWarehouse->name,
+                'worker_count' => $movedCount,
+                'moved_by' => Auth::user()->email ?? 'Unknown'
+            ]);
+
+            return redirect()->back()->with('success', "Successfully moved {$movedCount} worker(s) to {$destinationWarehouse->name}.");
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error("Error moving workers between warehouses", [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return redirect()->back()->with('error', 'Failed to move workers: ' . $e->getMessage());
         }
     }
 }
