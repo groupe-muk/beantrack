@@ -50,10 +50,12 @@
                     <h2 class="text-3xl md:text-4xl font-bold text-coffee-brown mb-4">Already a BeanTrack Supplier?</h2>
                     <p class="text-lg text-gray-600 mb-8">Access your supplier dashboard to manage your coffee supplies and orders</p>
                     <div class="flex justify-center space-x-4">
-                        <a href="{{ route('show.login') }}" class="bg-light-brown hover:bg-hover-brown text-white px-8 py-3 rounded-lg font-semibold transition-colors">
+
+                        <a href="{{ route('show.login', ['role' => 'supplier']) }}" class="bg-coffee-brown hover:bg-hover-brown text-white px-8 py-3 rounded-lg font-semibold transition-colors">
                             Login to Dashboard
                         </a>
-                        <a href="{{ route('supplier.check-status') }}" class="bg-white border-2 border-light-brown text-light-brown hover:bg-coffee-brown hover:text-white hover:border-coffee-brown px-8 py-3 rounded-lg font-semibold transition-colors">
+                        <a href="{{ route('supplier.check-status') }}" class="bg-white border-2 border-coffee-brown text-coffee-brown hover:bg-coffee-brown hover:text-white px-8 py-3 rounded-lg font-semibold transition-colors">
+
                             Check Application Status
                         </a>
                     </div>
@@ -67,6 +69,7 @@
                     <!-- Benefits Grid -->
                     <div class="grid md:grid-cols-3 gap-8 mb-12">
                         <div class="bg-white p-6 rounded-lg shadow-md">
+
                             <div class="w-16 h-16 bg-light-brown rounded-full flex items-center justify-center mx-auto mb-4">
                                 <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
@@ -96,7 +99,6 @@
                             <p class="text-gray-600">Join our expanding network of coffee suppliers and grow your business</p>
                         </div>
                     </div>
-                    
                     <a href="{{ route('supplier.apply') }}" class="bg-light-brown hover:bg-hover-brown text-white px-10 py-4 rounded-lg font-semibold text-lg transition-colors">
                         Apply as Supplier
                     </a>

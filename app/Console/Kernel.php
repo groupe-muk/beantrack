@@ -15,6 +15,7 @@ class Kernel extends ConsoleKernel
     protected $commands = [
         \App\Console\Commands\UpdateDailyDemand::class,
         \App\Console\Commands\GenerateDailyDemandForecasts::class,
+        \App\Console\Commands\GenerateWholesalerSegments::class,
     ];
 
     /**
@@ -31,6 +32,11 @@ class Kernel extends ConsoleKernel
         $schedule->command('generate:daily-demand-forecasts')
                  ->timezone('Africa/Kampala')
                  ->dailyAt('00:30');
+
+        // 3. Generate wholesaler segments based on RFM and order size analysis
+        $schedule->command('wholesaler:generate-segments')
+                 ->timezone('Africa/Kampala')
+                 ->dailyAt('01:00');
     }
 
     /**

@@ -1,7 +1,9 @@
 package com.groupe.beantrackserver.models;
 
-import jakarta.persistence.*;
 import java.util.Date;
+import javax.persistence.*;
+import jakarta.persistence.*;
+
 
 @Entity
 @Table(name = "supplier_applications")
@@ -38,6 +40,7 @@ public class SupplierApplications {
     @Column(name = "financial_data", columnDefinition = "TEXT")
     private String financialData;
     
+
     @Column(name = "`references`", columnDefinition = "TEXT")
     private String references;
     
