@@ -46,7 +46,7 @@
                 <div class="cursor-pointer transition hover:scale-110 bg-white shadow rounded-lg overflow-hidden text-center">
                     <img src="/images/landing-page-image-1.jpg" alt="Admin" class="w-full h-48 object-cover">
                     <div class="p-4">
-                        <h3 class="font-semibold text-lg">Admin</h3>
+                        <h3 class="font-semibold text-lg">Factory (Admin)</h3>
                         <p class="text-sm text-gray-600 mt-2">Manage users, roles, and system settings.</p>
                     </div>
                 </div>

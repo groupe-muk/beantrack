@@ -147,6 +147,14 @@ Route::middleware(['auth'])->group(function () {
         Route::post('admin/vendor-applications/{application}/add-to-system', [userManagerController::class, 'addVendorToSystem'])->name('admin.vendor-applications.add-to-system');
         Route::post('admin/vendor-applications/{application}/retry-validation', [VendorApplicationController::class, 'retryValidation'])->name('admin.vendor-applications.retry-validation');
       
+        // Supplier Application Management API Routes
+        Route::get('api/supplier-applications', [userManagerController::class, 'getSupplierApplications'])->name('api.supplier-applications');
+        Route::get('api/supplier-applications/{application}', [userManagerController::class, 'getSupplierApplicationDetails'])->name('api.supplier-applications.details');
+        Route::post('admin/supplier-applications/{application}/update-status', [userManagerController::class, 'updateSupplierApplicationStatus'])->name('admin.supplier-applications.update-status');
+        Route::post('admin/supplier-applications/{application}/reject', [userManagerController::class, 'rejectSupplierApplication'])->name('admin.supplier-applications.reject-status');
+        Route::post('admin/supplier-applications/{application}/add-to-system', [userManagerController::class, 'addSupplierToSystem'])->name('admin.supplier-applications.add-to-system');
+        Route::post('admin/supplier-applications/{application}/retry-validation', [SupplierApplicationController::class, 'retryValidation'])->name('admin.supplier-applications.retry-validation');
+      
        // Order routes
         Route::prefix('orders')->name('orders.')->group(function () {
             Route::get('/', [OrderController::class, 'index'])->name('index');

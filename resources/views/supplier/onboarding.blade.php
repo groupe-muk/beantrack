@@ -50,10 +50,10 @@
                     <h2 class="text-3xl md:text-4xl font-bold text-coffee-brown mb-4">Already a BeanTrack Supplier?</h2>
                     <p class="text-lg text-gray-600 mb-8">Access your supplier dashboard to manage your coffee supplies and orders</p>
                     <div class="flex justify-center space-x-4">
-                        <a href="{{ route('show.login') }}" class="bg-coffee-brown hover:bg-hover-brown text-white px-8 py-3 rounded-lg font-semibold transition-colors">
+                        <a href="{{ route('show.login') }}" class="bg-light-brown hover:bg-hover-brown text-white px-8 py-3 rounded-lg font-semibold transition-colors">
                             Login to Dashboard
                         </a>
-                        <a href="{{ route('supplier.check-status') }}" class="bg-white border-2 border-coffee-brown text-coffee-brown hover:bg-coffee-brown hover:text-white px-8 py-3 rounded-lg font-semibold transition-colors">
+                        <a href="{{ route('supplier.check-status') }}" class="bg-white border-2 border-light-brown text-light-brown hover:bg-coffee-brown hover:text-white hover:border-coffee-brown px-8 py-3 rounded-lg font-semibold transition-colors">
                             Check Application Status
                         </a>
                     </div>
@@ -67,7 +67,7 @@
                     <!-- Benefits Grid -->
                     <div class="grid md:grid-cols-3 gap-8 mb-12">
                         <div class="bg-white p-6 rounded-lg shadow-md">
-                            <div class="w-16 h-16 bg-coffee-brown rounded-full flex items-center justify-center mx-auto mb-4">
+                            <div class="w-16 h-16 bg-light-brown rounded-full flex items-center justify-center mx-auto mb-4">
                                 <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                 </svg>
@@ -77,7 +77,7 @@
                         </div>
                         
                         <div class="bg-white p-6 rounded-lg shadow-md">
-                            <div class="w-16 h-16 bg-coffee-brown rounded-full flex items-center justify-center mx-auto mb-4">
+                            <div class="w-16 h-16 bg-light-brown rounded-full flex items-center justify-center mx-auto mb-4">
                                 <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
                                 </svg>
@@ -87,7 +87,7 @@
                         </div>
                         
                         <div class="bg-white p-6 rounded-lg shadow-md">
-                            <div class="w-16 h-16 bg-coffee-brown rounded-full flex items-center justify-center mx-auto mb-4">
+                            <div class="w-16 h-16 bg-light-brown rounded-full flex items-center justify-center mx-auto mb-4">
                                 <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
                                 </svg>
@@ -97,7 +97,7 @@
                         </div>
                     </div>
                     
-                    <a href="{{ route('supplier.apply') }}" class="bg-coffee-brown hover:bg-hover-brown text-white px-10 py-4 rounded-lg font-semibold text-lg transition-colors">
+                    <a href="{{ route('supplier.apply') }}" class="bg-light-brown hover:bg-hover-brown text-white px-10 py-4 rounded-lg font-semibold text-lg transition-colors">
                         Apply as Supplier
                     </a>
                 </div>
@@ -127,19 +127,19 @@
                             <h3 class="text-lg font-semibold text-coffee-brown mb-4">Application Process</h3>
                             <ul class="space-y-2 text-gray-600">
                                 <li class="flex items-center">
-                                    <span class="w-6 h-6 bg-coffee-brown text-white rounded-full flex items-center justify-center text-sm mr-3">1</span>
+                                    <span class="w-6 h-6 bg-light-brown text-white rounded-full flex items-center justify-center text-sm mr-3">1</span>
                                     Submit application with required documents
                                 </li>
                                 <li class="flex items-center">
-                                    <span class="w-6 h-6 bg-coffee-brown text-white rounded-full flex items-center justify-center text-sm mr-3">2</span>
+                                    <span class="w-6 h-6 bg-light-brown text-white rounded-full flex items-center justify-center text-sm mr-3">2</span>
                                     Document verification & financial review
                                 </li>
                                 <li class="flex items-center">
-                                    <span class="w-6 h-6 bg-coffee-brown text-white rounded-full flex items-center justify-center text-sm mr-3">3</span>
+                                    <span class="w-6 h-6 bg-light-brown text-white rounded-full flex items-center justify-center text-sm mr-3">3</span>
                                     Site visit & quality assessment
                                 </li>
                                 <li class="flex items-center">
-                                    <span class="w-6 h-6 bg-coffee-brown text-white rounded-full flex items-center justify-center text-sm mr-3">4</span>
+                                    <span class="w-6 h-6 bg-light-brown text-white rounded-full flex items-center justify-center text-sm mr-3">4</span>
                                     Approval & onboarding
                                 </li>
                             </ul>

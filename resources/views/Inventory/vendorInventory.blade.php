@@ -224,15 +224,15 @@
 </x-modal>
 
 <!-- Product Details Modal -->
-<div id="productDetailsModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" style="backdrop-filter: blur(4px);">
-    <div class="bg-white rounded-lg w-full max-w-3xl mx-4 overflow-y-auto max-h-[90vh]">
-        <div class="flex justify-between items-center p-4 border-b">
+<div id="productDetailsModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 p-4" style="backdrop-filter: blur(4px);">
+    <div class="bg-white rounded-lg w-full max-w-3xl mx-4 my-4 max-h-[90vh] flex flex-col">
+        <div class="flex justify-between items-center p-4 border-b flex-shrink-0">
             <h3 class="text-lg font-semibold">Product Details</h3>
             <button type="button" onclick="closeProductDetails()" class="text-gray-500 hover:text-gray-700">
                 <i class="fas fa-times"></i>
             </button>
         </div>
-        <div id="productDetailsContent" class="p-4 space-y-4">
+        <div id="productDetailsContent" class="p-4 space-y-4 flex-1 overflow-y-auto modal-scrollbar" style="min-height: 0; max-height: calc(90vh - 80px);">
             <!-- Content will be loaded dynamically -->
         </div>
     </div>
