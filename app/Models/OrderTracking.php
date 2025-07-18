@@ -15,8 +15,22 @@ class OrderTracking extends Model
     public $timestamps = false; // Disable timestamps completely
     const CREATED_AT = null; // No created_at column
     const UPDATED_AT = 'updated_at'; // Only updated_at column exists
+    
     protected $fillable = [
         'order_id', 'status', 'location', 'notes', 'updated_at'
+    ];
+
+    /**
+     * Valid status values for order tracking
+     */
+    public const STATUSES = [
+        'pending',
+        'confirmed', 
+        'shipped',
+        'in-transit',
+        'delivered',
+        'cancelled',
+        'rejected'
     ];
 
     public function order()

@@ -32,7 +32,7 @@ class OrderController extends Controller
             ->paginate(10);
 
         // Get orders received from wholesalers (with wholesaler_id set)
-        $ordersReceived = Order::with(['wholesaler', 'rawCoffee', 'orderTrackings'])
+        $ordersReceived = Order::with(['wholesaler', 'coffeeProduct', 'orderTrackings'])
             ->whereNotNull('wholesaler_id')
             ->latest()
             ->paginate(10);
@@ -109,7 +109,7 @@ class OrderController extends Controller
      */
     public function show(Order $order)
     {
-        $order->load(['supplier', 'wholesaler', 'rawCoffee', 'coffeeProduct', 'orderTrackings']);
+        $order->load(['supplier', 'wholesaler', 'rawCoffee', 'coffeeProduct.rawCoffee', 'orderTrackings']);
         return view('orders.show', compact('order'));
     }
 
@@ -173,28 +173,97 @@ class OrderController extends Controller
             'notes' => 'nullable|string|max:500',
         ]);
 
-        // Only create tracking records for trackable statuses
-        $trackableStatuses = ['shipped', 'in-transit', 'delivered'];
-        if (in_array($validated['status'], $trackableStatuses)) {
-            // Map order status to tracking status
-            $trackingStatus = $validated['status']; // 'shipped' and 'delivered' are the same
-            if ($validated['status'] === 'confirmed') {
-                $trackingStatus = 'shipped'; // Map confirmed to shipped for tracking
+        $user = Auth::user();
+        $newStatus = $validated['status'];
+        $oldStatus = $order->status;
+
+        try {
+            DB::beginTransaction();
+
+            // Handle inventory logic for status changes
+            if ($newStatus === 'confirmed' && $oldStatus === 'pending') {
+                // Check if order has required fields for inventory checking
+                if ($order->raw_coffee_id && $order->quantity) {
+                    // Check inventory availability for raw coffee orders
+                    $availableStock = Inventory::getAvailableStock($order->raw_coffee_id);
+                    if ($availableStock < $order->quantity) {
+                        $shortfall = $order->quantity - $availableStock;
+                        return redirect()->back()->with('error', 
+                            "Insufficient inventory to fulfill this order. Available stock: {$availableStock} kg, Required: {$order->quantity} kg. Shortfall: {$shortfall} kg.");
+                    }
+
+                    // Reduce inventory stock
+                    $reductions = Inventory::reduceStock(
+                        $order->raw_coffee_id, 
+                        $order->quantity,
+                        $order->id,
+                        $user->id
+                    );
+
+                    Log::info('Inventory reduced for order confirmation', [
+                        'order_id' => $order->id,
+                        'raw_coffee_id' => $order->raw_coffee_id,
+                        'quantity_reduced' => $order->quantity,
+                        'reductions' => $reductions
+                    ]);
+                }
             }
-            
-            // Create a new tracking record
-            $order->orderTrackings()->create([
-                'status' => $trackingStatus,
-                'location' => Auth::check() ? ('Updated by ' . Auth::user()->name) : 'System Update',
-                'notes' => $validated['notes'] ?? null
+
+            // Handle vendor inventory increase when order is delivered/received
+            if ($newStatus === 'delivered' && in_array($oldStatus, ['shipped', 'confirmed'])) {
+                if ($order->coffee_product_id && $order->quantity && $order->wholesaler) {
+                    $this->updateVendorInventory($order, $order->wholesaler);
+                    Log::info('Vendor inventory updated for delivered order', [
+                        'order_id' => $order->id,
+                        'coffee_product_id' => $order->coffee_product_id,
+                        'quantity_added' => $order->quantity
+                    ]);
+                }
+            }
+
+            // Only create tracking records for trackable statuses
+            $trackableStatuses = ['shipped', 'in-transit', 'delivered'];
+            if (in_array($newStatus, $trackableStatuses)) {
+                // Map order status to tracking status
+                $trackingStatus = $newStatus; // 'shipped' and 'delivered' are the same
+                if ($newStatus === 'confirmed') {
+                    $trackingStatus = 'shipped'; // Map confirmed to shipped for tracking
+                }
+                
+                // Create a new tracking record
+                $order->orderTrackings()->create([
+                    'status' => $trackingStatus,
+                    'location' => $user ? ('Updated by ' . $user->name) : 'System Update',
+                    'notes' => $validated['notes'] ?? ($newStatus === 'confirmed' ? 'Order confirmed - Inventory updated' : null)
+                ]);
+            }
+
+            // Update the order status
+            $order->update(['status' => $newStatus]);
+
+            DB::commit();
+
+            // Determine success message based on status change
+            $message = 'Order status updated successfully';
+            if ($newStatus === 'confirmed' && $oldStatus === 'pending') {
+                $message = 'Order confirmed successfully. Inventory has been updated.';
+            } elseif ($newStatus === 'delivered') {
+                $message = 'Order marked as delivered successfully. Vendor inventory has been updated.';
+            }
+
+            return redirect()->back()->with('success', $message);
+
+        } catch (\Exception $e) {
+            DB::rollback();
+            Log::error('Error updating order status', [
+                'order_id' => $order->id,
+                'old_status' => $oldStatus,
+                'new_status' => $newStatus,
+                'error' => $e->getMessage()
             ]);
+            
+            return redirect()->back()->with('error', 'Failed to update order status. Please try again.');
         }
-
-        // Update the order status
-        $order->update(['status' => $validated['status']]);
-
-        // Redirect back to the referring page (dashboard or orders page)
-        return redirect()->back()->with('success', 'Order status updated successfully');
     }
 
     /**
@@ -370,7 +439,7 @@ class OrderController extends Controller
             return redirect()->route('orders.vendor.index')->with('error', 'Order not found.');
         }
 
-        $order->load(['coffeeProduct', 'orderTrackings']);
+        $order->load(['coffeeProduct.rawCoffee', 'orderTrackings']);
         $statuses = $this->getStatuses();
         return view('vendor.orders.show', compact('order', 'statuses'));
     }
@@ -634,5 +703,380 @@ class OrderController extends Controller
             'delivered' => 'bg-green-100 text-green-800',
             'cancelled' => 'bg-red-100 text-red-800',
         ];
+    }
+
+    // =======================
+    // SUPPLIER ORDER METHODS
+    // =======================
+
+    /**
+     * Display supplier orders (orders received from admin)
+     */
+    public function supplierIndex()
+    {
+        $user = Auth::user();
+        $supplier = $user->supplier;
+        
+        if (!$supplier) {
+            return redirect()->route('dashboard')->with('error', 'Supplier profile not found.');
+        }
+
+        Log::info('SupplierIndex method called');
+
+        // Get orders where this supplier is the supplier
+        $orders = Order::where('supplier_id', $supplier->id)
+            ->with(['rawCoffee', 'orderTrackings'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        $statuses = $this->getStatuses();
+        $orderStats = $this->getSupplierOrderStats($supplier->id);
+
+        Log::info('SupplierIndex returning view', ['orders_count' => $orders->count()]);
+        
+        return view('supplier.orders.index', compact('orders', 'statuses', 'orderStats'));
+    }
+
+    /**
+     * Show individual supplier order details
+     */
+    public function supplierShow(Order $order)
+    {
+        $user = Auth::user();
+        $supplier = $user->supplier;
+        
+        if (!$supplier || $order->supplier_id !== $supplier->id) {
+            return redirect()->route('orders.supplier.index')->with('error', 'Order not found.');
+        }
+
+        $order->load(['rawCoffee', 'orderTrackings']);
+        $statuses = $this->getStatuses();
+
+        return view('supplier.orders.show', compact('order', 'statuses'));
+    }
+
+    /**
+     * Accept a pending order (supplier accepts admin's order)
+     */
+    public function supplierAccept(Order $order)
+    {
+        $user = Auth::user();
+        $supplier = $user->supplier;
+        
+        if (!$supplier || $order->supplier_id !== $supplier->id) {
+            return redirect()->route('orders.supplier.index')->with('error', 'Order not found.');
+        }
+
+        if ($order->status !== 'pending') {
+            return redirect()->route('orders.supplier.show', $order)->with('error', 'Only pending orders can be accepted.');
+        }
+
+        // Check if order has raw coffee and quantity
+        if (!$order->raw_coffee_id || !$order->quantity) {
+            return redirect()->route('orders.supplier.show', $order)->with('error', 'Order is missing coffee details or quantity.');
+        }
+
+        // Check inventory availability
+        $availableStock = \App\Models\Inventory::getAvailableStock($order->raw_coffee_id);
+        if (!$availableStock || $availableStock < $order->quantity) {
+            $shortfall = $order->quantity - $availableStock;
+            return redirect()->route('orders.supplier.show', $order)->with('error', 
+                "Insufficient inventory to fulfill this order. Available stock: {$availableStock} kg, Required: {$order->quantity} kg. Shortfall: {$shortfall} kg.");
+        }
+
+        try {
+            DB::beginTransaction();
+
+            // Update order status
+            $order->update(['status' => 'confirmed']);
+
+            // Reduce inventory stock
+            $reductions = \App\Models\Inventory::reduceStock(
+                $order->raw_coffee_id, 
+                $order->quantity,
+                $order->id,
+                $user->id
+            );
+
+            // Add tracking record
+            $order->orderTrackings()->create([
+                'status' => 'confirmed',
+                'notes' => 'Order accepted by supplier. Inventory reduced by ' . $order->quantity . ' kg.',
+                'location' => 'Supplier Location',
+                'updated_at' => now()
+            ]);
+
+            DB::commit();
+
+            // Log the successful inventory reduction
+            Log::info('Order accepted and inventory reduced', [
+                'order_id' => $order->id,
+                'raw_coffee_id' => $order->raw_coffee_id,
+                'quantity_reduced' => $order->quantity,
+                'reductions' => $reductions
+            ]);
+
+            return redirect()->route('orders.supplier.show', $order)->with('success', 
+                'Order accepted successfully. Inventory has been updated to reflect the committed stock.');
+            
+        } catch (\Exception $e) {
+            DB::rollback();
+            Log::error('Error accepting order', [
+                'order_id' => $order->id,
+                'error' => $e->getMessage()
+            ]);
+            
+            return redirect()->route('orders.supplier.show', $order)->with('error', 'Failed to accept order. Please try again.');
+        }
+    }
+
+    /**
+     * Reject a pending order
+     */
+    public function supplierReject(Order $order)
+    {
+        $user = Auth::user();
+        $supplier = $user->supplier;
+        
+        if (!$supplier || $order->supplier_id !== $supplier->id) {
+            return redirect()->route('orders.supplier.index')->with('error', 'Order not found.');
+        }
+
+        if ($order->status !== 'pending') {
+            return redirect()->route('orders.supplier.show', $order)->with('error', 'Only pending orders can be rejected.');
+        }
+
+        try {
+            DB::beginTransaction();
+
+            // Update order status
+            $order->update(['status' => 'cancelled']);
+
+            // Add tracking record
+            $order->orderTrackings()->create([
+                'status' => 'cancelled',
+                'notes' => 'Order rejected by supplier',
+                'location' => 'Supplier Location',
+                'updated_at' => now()
+            ]);
+
+            DB::commit();
+
+            return redirect()->route('orders.supplier.show', $order)->with('success', 'Order rejected successfully.');
+            
+        } catch (\Exception $e) {
+            DB::rollback();
+            Log::error('Error rejecting order', [
+                'order_id' => $order->id,
+                'error' => $e->getMessage()
+            ]);
+            
+            return redirect()->route('orders.supplier.show', $order)->with('error', 'Failed to reject order. Please try again.');
+        }
+    }
+
+    /**
+     * Mark a confirmed order as shipped
+     */
+    public function supplierMarkShipped(Order $order)
+    {
+        $user = Auth::user();
+        $supplier = $user->supplier;
+        
+        if (!$supplier || $order->supplier_id !== $supplier->id) {
+            return redirect()->route('orders.supplier.index')->with('error', 'Order not found.');
+        }
+
+        if ($order->status !== 'confirmed') {
+            return redirect()->route('orders.supplier.show', $order)->with('error', 'Only confirmed orders can be shipped.');
+        }
+
+        try {
+            DB::beginTransaction();
+
+            // Update order status
+            $order->update(['status' => 'shipped']);
+
+            // Add tracking record
+            $order->orderTrackings()->create([
+                'status' => 'shipped',
+                'notes' => 'Order shipped by supplier',
+                'location' => 'Supplier Location',
+                'updated_at' => now()
+            ]);
+
+            DB::commit();
+
+            return redirect()->route('orders.supplier.show', $order)->with('success', 'Order marked as shipped successfully.');
+            
+        } catch (\Exception $e) {
+            DB::rollback();
+            Log::error('Error marking order as shipped', [
+                'order_id' => $order->id,
+                'error' => $e->getMessage()
+            ]);
+            
+            return redirect()->route('orders.supplier.show', $order)->with('error', 'Failed to mark order as shipped. Please try again.');
+        }
+    }
+
+    /**
+     * Get supplier order statistics
+     */
+    private function getSupplierOrderStats($supplierId)
+    {
+        $ordersQuery = Order::where('supplier_id', $supplierId);
+        
+        return [
+            'total_orders' => (clone $ordersQuery)->count(),
+            'pending_orders' => (clone $ordersQuery)->where('status', 'pending')->count(),
+            'confirmed_orders' => (clone $ordersQuery)->where('status', 'confirmed')->count(),
+            'shipped_orders' => (clone $ordersQuery)->where('status', 'shipped')->count(),
+            'total_revenue' => (clone $ordersQuery)->sum('total_price'),
+        ];
+    }
+
+    /**
+     * Admin accept a vendor order
+     */
+    public function acceptVendorOrder(Order $order)
+    {
+        // Ensure this is a vendor order (has wholesaler_id)
+        if (!$order->wholesaler_id) {
+            return redirect()->route('orders.show', $order)->with('error', 'This is not a vendor order.');
+        }
+
+        if ($order->status !== 'pending') {
+            return redirect()->route('orders.show', $order)->with('error', 'Only pending orders can be accepted.');
+        }
+
+        try {
+            DB::beginTransaction();
+
+            // Update order status
+            $order->update(['status' => 'confirmed']);
+
+            // Add tracking record
+            $order->orderTrackings()->create([
+                'status' => 'confirmed',
+                'notes' => 'Order accepted by admin',
+                'location' => 'Admin Office',
+                'updated_at' => now()
+            ]);
+
+            DB::commit();
+
+            return redirect()->route('orders.show', $order)->with('success', 'Vendor order accepted successfully.');
+            
+        } catch (\Exception $e) {
+            DB::rollback();
+            Log::error('Error accepting vendor order', [
+                'order_id' => $order->id,
+                'error' => $e->getMessage()
+            ]);
+            
+            return redirect()->route('orders.show', $order)->with('error', 'Failed to accept order. Please try again.');
+        }
+    }
+
+    /**
+     * Admin reject a vendor order
+     */
+    public function rejectVendorOrder(Order $order)
+    {
+        // Ensure this is a vendor order (has wholesaler_id)
+        if (!$order->wholesaler_id) {
+            return redirect()->route('orders.show', $order)->with('error', 'This is not a vendor order.');
+        }
+
+        if ($order->status !== 'pending') {
+            return redirect()->route('orders.show', $order)->with('error', 'Only pending orders can be rejected.');
+        }
+
+        try {
+            DB::beginTransaction();
+
+            // Update order status
+            $order->update(['status' => 'cancelled']);
+
+            // Add tracking record
+            $order->orderTrackings()->create([
+                'status' => 'cancelled',
+                'notes' => 'Order rejected by admin',
+                'location' => 'Admin Office',
+                'updated_at' => now()
+            ]);
+
+            DB::commit();
+
+            return redirect()->route('orders.show', $order)->with('success', 'Vendor order rejected successfully.');
+            
+        } catch (\Exception $e) {
+            DB::rollback();
+            Log::error('Error rejecting vendor order', [
+                'order_id' => $order->id,
+                'error' => $e->getMessage()
+            ]);
+            
+            return redirect()->route('orders.show', $order)->with('error', 'Failed to reject order. Please try again.');
+        }
+    }
+
+    /**
+     * Check inventory availability for an order
+     */
+    public function checkInventory(Order $order)
+    {
+        if (!$order->raw_coffee_id || !$order->quantity) {
+            return response()->json([
+                'available' => false,
+                'message' => 'Order is missing coffee details or quantity.',
+                'available_stock' => 0,
+                'required_quantity' => $order->quantity ?? 0
+            ]);
+        }
+
+        $availableStock = Inventory::getAvailableStock($order->raw_coffee_id);
+        $sufficient = $availableStock >= $order->quantity;
+
+        return response()->json([
+            'available' => $sufficient,
+            'message' => $sufficient 
+                ? 'Sufficient inventory available for this order.' 
+                : "Insufficient inventory. Available: {$availableStock} kg, Required: {$order->quantity} kg, Shortfall: " . ($order->quantity - $availableStock) . " kg.",
+            'available_stock' => $availableStock,
+            'required_quantity' => $order->quantity,
+            'shortfall' => $sufficient ? 0 : ($order->quantity - $availableStock)
+        ]);
+    }
+
+    /**
+     * Get orders with inventory status for dashboard
+     */
+    public function getOrdersWithInventoryStatus()
+    {
+        $pendingOrders = Order::where('status', 'pending')
+            ->whereNotNull('raw_coffee_id')
+            ->whereNotNull('quantity')
+            ->with(['rawCoffee', 'supplier', 'wholesaler'])
+            ->get();
+
+        $ordersWithStatus = $pendingOrders->map(function($order) {
+            $availableStock = Inventory::getAvailableStock($order->raw_coffee_id);
+            $sufficient = $availableStock >= $order->quantity;
+            
+            return [
+                'id' => $order->id,
+                'supplier' => $order->supplier ? $order->supplier->name : 'N/A',
+                'wholesaler' => $order->wholesaler ? $order->wholesaler->name : 'N/A',
+                'raw_coffee' => $order->rawCoffee ? $order->rawCoffee->coffee_type : 'N/A',
+                'quantity' => $order->quantity,
+                'available_stock' => $availableStock,
+                'can_fulfill' => $sufficient,
+                'shortfall' => $sufficient ? 0 : ($order->quantity - $availableStock)
+            ];
+        });
+
+        return response()->json($ordersWithStatus);
     }
 }

@@ -6,7 +6,7 @@
 
         <!-- Navigation -->
         <div class="mb-6">
-            <a href="{{ route('orders.vendor.index') }}" 
+            <a href="{{ route('orders.supplier.index') }}" 
                class="inline-flex items-center px-4 py-2 bg-light-brown hover:bg-brown text-white text-sm font-medium rounded-lg transition-colors duration-200">
                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
@@ -43,26 +43,12 @@
                     
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
-                            <h3 class="text-sm font-medium text-soft-brown mb-2">Coffee Product</h3>
-                            @if($order->coffeeProduct)
-                                <p class="text-lg font-semibold text-dashboard-light">{{ $order->coffeeProduct->name }}</p>
-                                <p class="text-sm text-soft-brown">Category: {{ $order->coffeeProduct->category }}</p>
-                                <p class="text-sm text-soft-brown">Form: {{ $order->coffeeProduct->product_form }}</p>
-                                @if($order->coffeeProduct->roast_level)
-                                    <p class="text-sm text-soft-brown">Roast: {{ $order->coffeeProduct->roast_level }}</p>
-                                @endif
-                            @else
-                                <p class="text-lg font-semibold text-dashboard-light">N/A</p>
-                            @endif
-                        </div>
-                        
-                        <div>
-                            <h3 class="text-sm font-medium text-soft-brown mb-2">Raw Coffee Source</h3>
-                            @if($order->coffeeProduct && $order->coffeeProduct->rawCoffee)
-                                <p class="text-lg font-semibold text-dashboard-light">{{ $order->coffeeProduct->rawCoffee->coffee_type }}</p>
-                                <p class="text-sm text-soft-brown">Grade: {{ $order->coffeeProduct->rawCoffee->grade }}</p>
-                                @if($order->coffeeProduct->rawCoffee->screen_size)
-                                    <p class="text-sm text-soft-brown">Screen Size: {{ $order->coffeeProduct->rawCoffee->screen_size }}</p>
+                            <h3 class="text-sm font-medium text-soft-brown mb-2">Raw Coffee</h3>
+                            @if($order->rawCoffee)
+                                <p class="text-lg font-semibold text-dashboard-light">{{ $order->rawCoffee->coffee_type }}</p>
+                                <p class="text-sm text-soft-brown">Grade: {{ $order->rawCoffee->grade }}</p>
+                                @if($order->rawCoffee->screen_size)
+                                    <p class="text-sm text-soft-brown">Screen Size: {{ $order->rawCoffee->screen_size }}</p>
                                 @endif
                             @else
                                 <p class="text-lg font-semibold text-dashboard-light">N/A</p>
@@ -87,6 +73,26 @@
                         <div>
                             <h3 class="text-sm font-medium text-soft-brown mb-2">Order Date</h3>
                             <p class="text-lg font-semibold text-dashboard-light">{{ $order->created_at ? $order->created_at->format('M d, Y \a\t g:i A') : 'N/A' }}</p>
+                        </div>
+                        
+                        <div>
+                            <h3 class="text-sm font-medium text-soft-brown mb-2">Available Inventory</h3>
+                            @if($order->rawCoffee)
+                                @php
+                                    $availableStock = \App\Models\Inventory::getAvailableStock($order->raw_coffee_id);
+                                    $isStockSufficient = $availableStock >= $order->quantity;
+                                @endphp
+                                <p class="text-lg font-semibold {{ $isStockSufficient ? 'text-green-600' : 'text-red-600' }}">
+                                    {{ number_format($availableStock) }} kgs
+                                </p>
+                                @if(!$isStockSufficient)
+                                    <p class="text-xs text-red-500">Insufficient stock ({{ number_format($order->quantity - $availableStock) }} kg short)</p>
+                                @elseif($order->status === 'pending')
+                                    <p class="text-xs text-green-500">✓ Sufficient stock available</p>
+                                @endif
+                            @else
+                                <p class="text-lg font-semibold text-gray-500">N/A</p>
+                            @endif
                         </div>
                         
                     </div>
@@ -147,30 +153,40 @@
                     
                     <div class="space-y-3">
                         @if($order->status === 'pending')
-                            <form action="{{ route('orders.vendor.cancel', $order) }}" method="POST" class="w-full">
-                                @csrf
-                                @method('PATCH')
-                                <button type="submit" 
-                                        class="w-full bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200"
-                                        onclick="return confirm('Are you sure you want to cancel this order?')">
-                                    Cancel Order
-                                </button>
-                            </form>
-                        @endif
-                        
-                        @if($order->status === 'shipped')
-                            <form action="{{ route('orders.vendor.received', $order) }}" method="POST" class="w-full">
+                            <form action="{{ route('orders.supplier.accept', $order) }}" method="POST" class="w-full">
                                 @csrf
                                 @method('PATCH')
                                 <button type="submit" 
                                         class="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200"
-                                        onclick="return confirm('Confirm that you have received this order?')">
-                                    Mark as Received
+                                        onclick="return confirm('Are you sure you want to accept this order?')">
+                                    Accept Order
+                                </button>
+                            </form>
+                            
+                            <form action="{{ route('orders.supplier.reject', $order) }}" method="POST" class="w-full">
+                                @csrf
+                                @method('PATCH')
+                                <button type="submit" 
+                                        class="w-full bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200"
+                                        onclick="return confirm('Are you sure you want to reject this order?')">
+                                    Reject Order
                                 </button>
                             </form>
                         @endif
                         
-                        @if(in_array($order->status, ['confirmed', 'delivered', 'cancelled']))
+                        @if($order->status === 'confirmed')
+                            <form action="{{ route('orders.supplier.ship', $order) }}" method="POST" class="w-full">
+                                @csrf
+                                @method('PATCH')
+                                <button type="submit" 
+                                        class="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200"
+                                        onclick="return confirm('Are you sure you want to mark this order as shipped?')">
+                                    Mark as Shipped
+                                </button>
+                            </form>
+                        @endif
+                        
+                        @if(in_array($order->status, ['shipped', 'delivered', 'cancelled']))
                             <div class="bg-gray-100 text-gray-600 text-center py-2 px-4 rounded-lg">
                                 No actions available
                             </div>
