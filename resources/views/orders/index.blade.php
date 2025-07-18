@@ -74,7 +74,7 @@
                                         {{ $ordersReceived->total() }}
                                     </div>
                                     <div class="ml-2 text-sm text-green-600">
-                                        from wholesalers
+                                        from vendors
                                     </div>
                                 </dd>
                             </dl>
@@ -99,7 +99,7 @@
                                 </dt>
                                 <dd class="flex items-baseline">
                                     <div class="text-2xl font-bold text-blue-900">
-                                        ${{ number_format($ordersPlaced->sum('total_amount') + $ordersReceived->sum('total_amount'), 2) }}
+                                        ${{ number_format($ordersPlaced->sum('total_price') + $ordersReceived->sum('total_price'), 0) }}
                                     </div>
                                 </dd>
                             </dl>
@@ -215,7 +215,7 @@
                                                 <div class="text-sm text-gray-900">{{ number_format($order->quantity) }} kg</div>
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap">
-                                                <div class="text-sm font-medium text-gray-900">${{ number_format($order->total_amount, 2) }}</div>
+                                                <div class="text-sm font-medium text-gray-900">${{ number_format($order->total_price, 0) }}</div>
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap">
                                                 @php
@@ -281,8 +281,8 @@
                 <!-- Orders Received Tab -->
                 <div id="content-received" class="tab-content hidden">
                     <div class="mb-4">
-                        <h3 class="text-lg font-semibold text-gray-900 mb-2">Orders Received from Wholesalers</h3>
-                        <p class="text-sm text-gray-600">Track and manage orders received from your wholesaler customers</p>
+                        <h3 class="text-lg font-semibold text-gray-900 mb-2">Orders Received from Vendors</h3>
+                        <p class="text-sm text-gray-600">Track and manage orders received from your vendor customers</p>
                     </div>
                     
                     @if($ordersReceived->count() > 0)
@@ -291,7 +291,7 @@
                                 <thead class="bg-gradient-to-r from-gray-50 to-gray-100">
                                     <tr>
                                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order ID</th>
-                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Wholesaler</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vendor</th>
                                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Coffee Details</th>
                                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
                                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
@@ -309,7 +309,7 @@
                                 @if($order->wholesaler)
                                     <div class="text-sm font-medium text-gray-900">{{ $order->wholesaler->name }}</div>
                                 @else
-                                    <div class="text-sm font-medium text-gray-900">No wholesaler specified</div>
+                                    <div class="text-sm font-medium text-gray-900">No vendor specified</div>
                                 @endif
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
@@ -325,7 +325,7 @@
                                                 <div class="text-sm text-gray-900">{{ number_format($order->quantity) }} kg</div>
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap">
-                                                <div class="text-sm font-medium text-gray-900">${{ number_format($order->total_amount, 2) }}</div>
+                                                <div class="text-sm font-medium text-gray-900">${{ number_format($order->total_price, 0) }}</div>
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap">
                                                 @php

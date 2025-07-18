@@ -1,7 +1,7 @@
 @extends('layouts.main-view')
 
 @section('content')
-<div class="p-5 bg-light-background">
+<div class="p-5 bg-light-background dark:bg-dark-background">
 
   <!-- Header Section -->
   

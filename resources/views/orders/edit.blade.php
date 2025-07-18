@@ -80,8 +80,8 @@
 
                             <!-- Total Amount -->
                             <div class="mb-4">
-                                <label for="total_amount" class="block text-sm font-medium text-yellow-900">Total Amount</label>
-                                <input type="number" step="0.01" min="0" id="total_amount" name="total_amount" value="{{ old('total_amount', $order->total_amount) }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-yellow-500 focus:ring-yellow-500 @error('total_amount') border-red-300 @enderror" required>
+                                <label for="total_amount" class="block text-sm font-medium text-yellow-900">Total Amount (whole numbers only)</label>
+                                <input type="number" step="1" min="0" id="total_amount" name="total_amount" value="{{ old('total_amount', $order->total_amount) }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-yellow-500 focus:ring-yellow-500 @error('total_amount') border-red-300 @enderror" required>
                                 @error('total_amount')
                                     <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                                 @enderror

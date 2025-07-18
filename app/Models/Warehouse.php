@@ -14,7 +14,7 @@ class Warehouse extends Model
     public $incrementing = false;
     
     protected $fillable = [
-        'id', 'name', 'location', 'capacity', 'supplier_id', 'wholesaler_id', 'manager_name'
+        'name', 'location', 'capacity', 'supplier_id', 'wholesaler_id', 'manager_name'
     ];
 
     /**

@@ -1,7 +1,7 @@
 @extends('layouts.main-view')
 
 @section('content')
-<div class="p-4 bg-light-background">
+<div class="p-4 bg-light-background dark:bg-dark-background">
     <h1 class="text-2xl font-semibold text-coffee-brown mb-6">{{ ucfirst(Auth::user()->role) }} Dashboard</h1>
 
     {{-- Success/Error Messages --}}

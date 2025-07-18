@@ -1,22 +1,39 @@
 @extends('layouts.main-view')
 
-@section('sidebar')
-
 @section('content')
 <div class="py-6">
     <div class="max-w-4xl mx-auto sm:px-6 lg:px-8">
+        <!-- Success/Error Messages -->
+        @if(session('success'))
+            <div class="mb-6 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg flex items-center">
+                <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                </svg>
+                {{ session('success') }}
+            </div>
+        @endif
+
+        @if(session('error'))
+            <div class="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-center">
+                <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
+                </svg>
+                {{ session('error') }}
+            </div>
+        @endif
+        
         <!-- Header -->
         <div class="mb-8">
             <div class="flex items-center justify-between">
                 <div>
-                    <h2 class="text-2xl font-bold leading-7 text-yellow-900 sm:text-3xl">
+                    <h2 class="text-2xl font-bold leading-7 text-dashboard-light sm:text-3xl">
                         Order Details
                     </h2>
-                    <p class="mt-1 text-sm text-yellow-600">
+                    <p class="mt-1 text-sm text-soft-brown">
                         View and track your order #{{ $order->id }}
                     </p>
                 </div>
-                <a href="{{ route('orders.vendor.index') }}" class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 transition-all duration-200">
+                <a href="{{ route('orders.vendor.index') }}" class="inline-flex items-center px-4 py-2 border rounded-md shadow-sm text-sm font-medium text-white bg-light-brown hover:bg-brown focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-light-brown transition-all duration-200">
                     <svg class="-ml-1 mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                     </svg>
@@ -30,37 +47,52 @@
             <div class="lg:col-span-2">
                 <div class="bg-white shadow-xl rounded-2xl overflow-hidden border border-gray-100">
                     <div class="px-6 py-4 bg-gradient-to-r from-gray-50 to-white border-b border-gray-200">
-                        <h3 class="text-lg font-semibold text-gray-900">Order Information</h3>
+                        <h3 class="text-lg font-semibold text-dashboard-light">Order Information</h3>
                     </div>
 
                     <div class="p-6 space-y-6">
                         <!-- Order Status -->
                         <div class="flex items-center justify-between">
                             <div>
-                                <dt class="text-sm font-medium text-gray-500">Order Status</dt>
+                                <dt class="text-sm font-medium text-soft-brown">Order Status</dt>
                                 <dd class="mt-1">
                                     <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium {{ $statuses[$order->status] ?? 'bg-gray-100 text-gray-800' }}">
                                         {{ ucfirst($order->status) }}
                                     </span>
                                 </dd>
                             </div>
-                            @if($order->status === 'pending')
-                                <form action="{{ route('orders.vendor.cancel', $order) }}" method="POST" class="inline">
-                                    @csrf
-                                    @method('PATCH')
-                                    <button type="submit" class="inline-flex items-center px-4 py-2 border border-red-300 rounded-md shadow-sm text-sm font-medium text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all duration-200" onclick="return confirm('Are you sure you want to cancel this order?')">
-                                        <svg class="-ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                                        </svg>
-                                        Cancel Order
-                                    </button>
-                                </form>
-                            @endif
+                            
+                            <!-- Action Buttons based on status -->
+                            <div class="flex space-x-3">
+                                @if($order->status === 'pending')
+                                    <form action="{{ route('orders.vendor.cancel', $order) }}" method="POST" class="inline">
+                                        @csrf
+                                        @method('PATCH')
+                                        <button type="submit" class="inline-flex items-center px-4 py-2 border border-red-300 rounded-md shadow-sm text-sm font-medium text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all duration-200" onclick="return confirm('Are you sure you want to cancel this order?')">
+                                            <svg class="-ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                            </svg>
+                                            Cancel Order
+                                        </button>
+                                    </form>
+                                @elseif($order->status === 'shipped')
+                                    <form action="{{ route('orders.vendor.received', $order) }}" method="POST" class="inline">
+                                        @csrf
+                                        @method('PATCH')
+                                        <button type="submit" class="inline-flex items-center px-4 py-2 border border-green-300 rounded-md shadow-sm text-sm font-medium text-green-700 bg-white hover:bg-green-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-all duration-200" onclick="return confirm('Confirm that you have received this order?')">
+                                            <svg class="-ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                            </svg>
+                                            Mark as Received
+                                        </button>
+                                    </form>
+                                @endif
+                            </div>
                         </div>
 
                         <!-- Product Details -->
                         <div>
-                            <dt class="text-sm font-medium text-gray-500">Product</dt>
+                            <dt class="text-sm font-medium text-soft-brown">Product</dt>
                             <dd class="mt-1">
                                 @if($order->coffeeProduct)
                                     <div class="bg-gradient-to-r from-yellow-50 to-amber-50 rounded-lg p-4 border border-yellow-200">
@@ -99,19 +131,19 @@
                         <!-- Order Details -->
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
                             <div>
-                                <dt class="text-sm font-medium text-gray-500">Quantity</dt>
+                                <dt class="text-sm font-medium text-soft-brown">Quantity</dt>
                                 <dd class="mt-1 text-sm text-gray-900">{{ number_format($order->quantity, 2) }} kg</dd>
                             </div>
                             <div>
-                                <dt class="text-sm font-medium text-gray-500">Total Price</dt>
-                                <dd class="mt-1 text-sm font-medium text-gray-900">${{ number_format($order->total_price, 2) }}</dd>
+                                <dt class="text-sm font-medium text-soft-brown">Total Price</dt>
+                                <dd class="mt-1 text-sm font-medium text-gray-900">${{ number_format($order->total_price, 0) }}</dd>
                             </div>
                             <div>
-                                <dt class="text-sm font-medium text-gray-500">Order Date</dt>
+                                <dt class="text-sm font-medium text-soft-brown">Order Date</dt>
                                 <dd class="mt-1 text-sm text-gray-900">{{ $order->order_date ? $order->order_date->format('F j, Y') : 'N/A' }}</dd>
                             </div>
                             <div>
-                                <dt class="text-sm font-medium text-gray-500">Order ID</dt>
+                                <dt class="text-sm font-medium text-soft-brown">Order ID</dt>
                                 <dd class="mt-1 text-sm text-gray-900">#{{ $order->id }}</dd>
                             </div>
                         </div>
@@ -119,7 +151,7 @@
                         <!-- Notes -->
                         @if($order->notes)
                             <div>
-                                <dt class="text-sm font-medium text-gray-500">Notes</dt>
+                                <dt class="text-sm font-medium text-soft-brown">Notes</dt>
                                 <dd class="mt-1 text-sm text-gray-900 bg-gray-50 rounded-lg p-3">{{ $order->notes }}</dd>
                             </div>
                         @endif
@@ -131,7 +163,7 @@
             <div class="lg:col-span-1">
                 <div class="bg-white shadow-xl rounded-2xl overflow-hidden border border-gray-100">
                     <div class="px-6 py-4 bg-gradient-to-r from-gray-50 to-white border-b border-gray-200">
-                        <h3 class="text-lg font-semibold text-gray-900">Order Tracking</h3>
+                        <h3 class="text-lg font-semibold text-dashboard-light">Order Tracking</h3>
                     </div>
 
                     <div class="p-6">
@@ -168,7 +200,7 @@
                                                                 <span class="font-medium text-gray-900">{{ ucfirst($tracking->status) }}</span>
                                                             </div>
                                                             <p class="mt-0.5 text-sm text-gray-500">
-                                                                {{ $tracking->created_at->format('M j, Y \a\t g:i A') }}
+                                                                {{ $tracking->created_at ? $tracking->created_at->format('M j, Y \a\t g:i A') : 'N/A' }}
                                                             </p>
                                                         </div>
                                                         <div class="mt-2 text-sm text-gray-700">

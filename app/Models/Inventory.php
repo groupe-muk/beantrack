@@ -13,7 +13,6 @@ class Inventory extends Model
     protected $keyType = 'string';
     public $incrementing = false;
     protected $fillable = [
-        'id',
         'raw_coffee_id',
         'coffee_product_id',
         'category',

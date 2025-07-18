@@ -9,10 +9,14 @@ use App\Models\Supplier;
 use App\Models\Wholesaler;
 use App\Models\RawCoffee;
 use App\Models\CoffeeProduct;
+use App\Models\Inventory;
+use App\Models\InventoryUpdate;
+use App\Models\Warehouse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\Rule; // Add this for unique validation if needed
-use Log;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 class OrderController extends Controller
 {
@@ -63,7 +67,7 @@ class OrderController extends Controller
             'grade' => 'required|string',
             'coffee_type' => 'required|string',
             'order_date' => 'required|date',
-            'total_amount' => 'required|numeric|min:0',
+            'total_amount' => 'required|integer|min:0',
             'quantity' => 'required|numeric|min:1', // Add quantity validation
             'notes' => 'nullable|string|max:500',
         ]);
@@ -124,7 +128,7 @@ class OrderController extends Controller
     {
         $validated = $request->validate([
             'order_date' => 'required|date',
-            'total_amount' => 'required|numeric|min:0',
+            'total_amount' => 'required|integer|min:0',
             'quantity' => 'required|numeric|min:1',
             'status' => ['required', Rule::in(['pending', 'confirmed', 'shipped', 'delivered'])],
             'notes' => 'nullable|string|max:500',
@@ -249,7 +253,7 @@ class OrderController extends Controller
 
         Log::info('VendorIndex returning view', ['orders_count' => $orders->count()]);
         
-        return view('orders.vendor.index', compact('orders', 'statuses', 'orderStats'));
+        return view('vendor.orders.index', compact('orders', 'statuses', 'orderStats'));
     }
 
     /**
@@ -266,7 +270,7 @@ class OrderController extends Controller
 
         $coffeeProducts = CoffeeProduct::with('rawCoffee')->get();
         
-        return view('orders.vendor.create', compact('coffeeProducts'));
+        return view('vendor.orders.create', compact('coffeeProducts'));
     }
 
     /**
@@ -367,7 +371,8 @@ class OrderController extends Controller
         }
 
         $order->load(['coffeeProduct', 'orderTrackings']);
-        return view('orders.vendor.show', compact('order'));
+        $statuses = $this->getStatuses();
+        return view('vendor.orders.show', compact('order', 'statuses'));
     }
 
     /**
@@ -392,21 +397,229 @@ class OrderController extends Controller
     }
 
     /**
+     * Mark a vendor order as received (only if status is shipped)
+     */
+    public function vendorMarkReceived(Order $order)
+    {
+        $user = Auth::user();
+        $wholesaler = $user->wholesaler;
+        
+        if (!$wholesaler || $order->wholesaler_id !== $wholesaler->id) {
+            return redirect()->route('orders.vendor.index')->with('error', 'Order not found.');
+        }
+
+        if ($order->status !== 'shipped') {
+            return redirect()->route('orders.vendor.show', $order)->with('error', 'Only shipped orders can be marked as received.');
+        }
+
+        try {
+            DB::beginTransaction();
+
+            // Update order status
+            $order->update(['status' => 'delivered']);
+
+            // Add tracking record
+            $order->orderTrackings()->create([
+                'status' => 'delivered',
+                'notes' => 'Order marked as received by vendor',
+                'location' => 'Vendor Location',
+                'updated_at' => now()
+            ]);
+
+            // Update vendor inventory
+            $this->updateVendorInventory($order, $wholesaler);
+
+            DB::commit();
+
+            return redirect()->route('orders.vendor.show', $order)->with('success', 'Order marked as delivered successfully and inventory updated.');
+            
+        } catch (\Exception $e) {
+            DB::rollback();
+            Log::error('Error marking order as received', [
+                'order_id' => $order->id,
+                'error' => $e->getMessage()
+            ]);
+            
+            return redirect()->route('orders.vendor.show', $order)->with('error', 'Failed to mark order as received. Please try again.');
+        }
+    }
+
+    /**
+     * Update vendor inventory when order is received
+     */
+    private function updateVendorInventory(Order $order, Wholesaler $wholesaler)
+    {
+        try {
+            Log::info('Starting inventory update', [
+                'order_id' => $order->id,
+                'wholesaler_id' => $wholesaler->id,
+                'coffee_product_id' => $order->coffee_product_id,
+                'quantity' => $order->quantity
+            ]);
+
+            // Get or create the first warehouse for this wholesaler
+            $warehouse = $wholesaler->warehouses()->first();
+            
+            if (!$warehouse) {
+                Log::info('Creating new warehouse for wholesaler', ['wholesaler_id' => $wholesaler->id]);
+                
+                // Create a default warehouse if none exists
+                $warehouse = $wholesaler->warehouses()->create([
+                    'name' => $wholesaler->name . ' - Main Warehouse',
+                    'location' => $wholesaler->address ?? 'Main Location',
+                    'capacity' => 10000, // Default capacity
+                    'wholesaler_id' => $wholesaler->id,
+                    'manager_name' => $wholesaler->contact_person ?? 'Warehouse Manager'
+                ]);
+                
+                Log::info('Warehouse created successfully', ['warehouse_id' => $warehouse->id]);
+            }
+
+            // Find existing inventory or create new one
+            $inventory = Inventory::where('coffee_product_id', $order->coffee_product_id)
+                                 ->where('warehouse_id', $warehouse->id)
+                                 ->first();
+
+            if ($inventory) {
+                Log::info('Updating existing inventory', ['inventory_id' => $inventory->id]);
+                
+                // Update existing inventory
+                $oldQuantity = $inventory->quantity_in_stock;
+                $newQuantity = $oldQuantity + $order->quantity;
+                
+                $inventory->update([
+                    'quantity_in_stock' => $newQuantity,
+                    'last_updated' => now()
+                ]);
+                
+                $updateType = 'stock_increase';
+                $notes = "Received order #{$order->id} - Added {$order->quantity} kg";
+                
+                Log::info('Inventory updated successfully', [
+                    'inventory_id' => $inventory->id,
+                    'old_quantity' => $oldQuantity,
+                    'new_quantity' => $newQuantity
+                ]);
+            } else {
+                Log::info('Creating new inventory record');
+                
+                // Get the coffee product to use its category
+                $coffeeProduct = \App\Models\CoffeeProduct::find($order->coffee_product_id);
+                if (!$coffeeProduct) {
+                    throw new \Exception("Coffee product not found: {$order->coffee_product_id}");
+                }
+                
+                $category = strtolower($coffeeProduct->category);
+                // Ensure category is valid for the ENUM
+                if (!in_array($category, ['premium', 'standard', 'specialty'])) {
+                    $category = 'standard'; // Default fallback
+                }
+                
+                // Create new inventory record
+                $inventory = Inventory::create([
+                    'coffee_product_id' => $order->coffee_product_id,
+                    'category' => $category,
+                    'quantity_in_stock' => $order->quantity,
+                    'warehouse_id' => $warehouse->id,
+                    'last_updated' => now()
+                ]);
+                
+                $oldQuantity = 0;
+                $newQuantity = $order->quantity;
+                $updateType = 'new_stock';
+                $notes = "Initial stock from order #{$order->id} - Added {$order->quantity} kg";
+                
+                Log::info('New inventory created successfully', ['inventory_id' => $inventory->id]);
+            }
+
+            // Create inventory update record for tracking
+            Log::info('Creating inventory update record');
+            
+            $inventoryUpdate = InventoryUpdate::create([
+                'inventory_id' => $inventory->id,
+                'quantity_change' => $order->quantity,
+                'reason' => $notes,
+                'updated_by' => Auth::user()->id
+            ]);
+            
+            Log::info('Inventory update completed successfully', [
+                'inventory_update_id' => $inventoryUpdate->id ?? 'unknown'
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error in updateVendorInventory', [
+                'order_id' => $order->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            throw $e; // Re-throw to be caught by the main transaction
+        }
+    }
+
+    /**
      * Get vendor order statistics
      */
     private function getVendorOrderStats($wholesalerId)
     {
-        $orders = Order::where('wholesaler_id', $wholesalerId);
+        $baseQuery = Order::where('wholesaler_id', $wholesalerId);
         
         return [
-            'total_orders' => $orders->count(),
-            'pending_orders' => $orders->where('status', 'pending')->count(),
-            'confirmed_orders' => $orders->where('status', 'confirmed')->count(),
-            'shipped_orders' => $orders->where('status', 'shipped')->count(),
-            'delivered_orders' => $orders->where('status', 'delivered')->count(),
-            'cancelled_orders' => $orders->where('status', 'cancelled')->count(),
-            'total_spent' => $orders->sum('total_amount'),
+            'total_orders' => (clone $baseQuery)->count(),
+            'pending_orders' => (clone $baseQuery)->where('status', 'pending')->count(),
+            'confirmed_orders' => (clone $baseQuery)->where('status', 'confirmed')->count(),
+            'shipped_orders' => (clone $baseQuery)->where('status', 'shipped')->count(),
+            'delivered_orders' => (clone $baseQuery)->where('status', 'delivered')->count(),
+            'cancelled_orders' => (clone $baseQuery)->where('status', 'cancelled')->count(),
+            'total_spent' => (clone $baseQuery)->whereIn('status', ['confirmed', 'shipped', 'delivered'])->sum('total_price'),
         ];
+    }
+
+    /**
+     * API: Get vendor order status updates
+     */
+    public function getVendorOrderStatusUpdates(LaravelRequest $request)
+    {
+        try {
+            $vendorId = Auth::id();
+            $wholesaler = Auth::user()->wholesaler;
+            
+            if (!$wholesaler) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Wholesaler not found'
+                ], 404);
+            }
+            
+            // Get orders with their current statuses
+            $orders = Order::where('wholesaler_id', $wholesaler->id)
+                ->orderBy('created_at', 'desc')
+                ->get(['id', 'status', 'total_price', 'created_at']);
+
+            // Get updated statistics
+            $ordersQuery = Order::where('wholesaler_id', $wholesaler->id);
+            
+            $stats = [
+                'total_orders' => (clone $ordersQuery)->count(),
+                'pending_orders' => (clone $ordersQuery)->where('status', 'pending')->count(),
+                'total_spent' => (clone $ordersQuery)->sum('total_price'),
+                'completed_orders' => (clone $ordersQuery)->whereIn('status', ['delivered'])->count()
+            ];
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'orders' => $orders,
+                    'stats' => $stats,
+                    'statuses' => $this->getStatuses()
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch status updates: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     /**

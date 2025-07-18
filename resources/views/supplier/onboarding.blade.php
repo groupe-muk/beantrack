@@ -51,10 +51,10 @@
                     <p class="text-lg text-gray-600 mb-8">Access your supplier dashboard to manage your coffee supplies and orders</p>
                     <div class="flex justify-center space-x-4">
 
-                        <a href="{{ route('show.login', ['role' => 'supplier']) }}" class="bg-coffee-brown hover:bg-hover-brown text-white px-8 py-3 rounded-lg font-semibold transition-colors">
+                        <a href="{{ route('show.login', ['role' => 'supplier']) }}" class="bg-light-brown hover:bg-hover-brown text-white px-8 py-3 rounded-lg font-semibold transition-colors">
                             Login to Dashboard
                         </a>
-                        <a href="{{ route('supplier.check-status') }}" class="bg-white border-2 border-coffee-brown text-coffee-brown hover:bg-coffee-brown hover:text-white px-8 py-3 rounded-lg font-semibold transition-colors">
+                        <a href="{{ route('supplier.check-status') }}" class="bg-white border-2 border-light-brown text-light-brown hover:bg-brown hover:border-brown hover:text-white px-8 py-3 rounded-lg font-semibold transition-colors">
 
                             Check Application Status
                         </a>

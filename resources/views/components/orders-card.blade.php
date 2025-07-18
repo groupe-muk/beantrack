@@ -4,7 +4,7 @@
     {{-- Card Header --}}
     <div class="flex justify-between items-center pb-4">
         @isset($title)
-            <p class="text-xl pl-2 pb-4 font-bold leading-none text-coffee-brown dark:text-white">{{ $title }}</p>
+            <h1 class="text-xl pl-2 pb-4 font-bold leading-none text-coffee-brown dark:text-white">{{ $title }}</h1>
         @endisset
         
     </div>
@@ -15,7 +15,7 @@
             <div class="border rounded-2xl border-pale-brown p-4"> {{-- Container for each order item --}}
                 <div class="flex justify-between items-start">
                     {{-- Order Details (Left Side) --}}
-                    <div>
+                    <div class="pb-10">
                         <p class="text-base  font-semibold text-dashboard-light dark:text-white">{{ $order['name'] ?? 'N/A' }}</p>
                         <p class="text-xs text-soft-brown dark:text-gray-400 mt-2">Order ID: {{ $order['order_id'] ?? 'N/A' }}</p>
                         <p class="text-xs text-dashboard-light dark:text-gray-400 mt-2">{{ $order['productName'] ?? 'N/A' }}</p>
@@ -24,7 +24,7 @@
                     {{-- Quantity and Action Buttons (Right Side) --}}
                     <div class="text-right">
                         <p class="text-base mb-5 font-semibold text-gray-900 dark:text-white">{{ $order['quantity'] ?? 'N/A' }} kg</p>
-                        <p class="text-xs mb-4 font-medium text-dashboard-light dark:text-white">{{ $order['date'] ?? 'N/A' }}</p>
+                        <p class="text-xs pb-2 pt-9 font-medium text-dashboard-light dark:text-white">{{ $order['date'] ?? 'N/A' }}</p>
                         <div class="flex space-x-2 mt-2">
                             @if(($order['status'] ?? 'pending') === 'pending' && isset($order['order_id']) && $order['order_id'] !== 'N/A')
                                 @if(($order['order_type'] ?? 'received') === 'received')

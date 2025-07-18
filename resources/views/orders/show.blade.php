@@ -95,7 +95,7 @@
                                     Total Price
                                 </dt>
                                 <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                                    ${{ number_format($order->total_price, 2) }}
+                                    ${{ number_format($order->total_price, 0) }}
                                 </dd>
                             </div>
                         </dl>
@@ -208,7 +208,7 @@
                                     Order Total
                                 </dt>
                                 <dd class="mt-1 text-sm font-medium text-gray-900 sm:mt-0 sm:col-span-2">
-                                    ${{ number_format($order->total_price, 2) }}
+                                    ${{ number_format($order->total_price, 0) }}
                                 </dd>
                             </div>
                         </dl>

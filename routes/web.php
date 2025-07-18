@@ -306,6 +306,7 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/vendor/orders', [OrderController::class, 'vendorStore'])->name('orders.vendor.store');
         Route::get('/vendor/orders/{order}', [OrderController::class, 'vendorShow'])->name('orders.vendor.show');
         Route::patch('/vendor/orders/{order}/cancel', [OrderController::class, 'vendorCancel'])->name('orders.vendor.cancel');
+        Route::patch('/vendor/orders/{order}/received', [OrderController::class, 'vendorMarkReceived'])->name('orders.vendor.received');
         
         // Debug route to test vendor order store
         Route::post('/debug/vendor/orders', function(Request $request) {

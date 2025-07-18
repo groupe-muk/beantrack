@@ -12,8 +12,11 @@ class InventoryUpdate extends Model
     protected $table = 'inventory_updates';
     protected $keyType = 'string';
     public $incrementing = false;
+    public $timestamps = false; // Disable automatic timestamps
+    const CREATED_AT = 'created_at'; // Only created_at exists
+    const UPDATED_AT = null; // No updated_at column
     protected $fillable = [
-        'id', 'inventory_id', 'quantity_change', 'reason', 'updated_by', 'created_at'
+        'inventory_id', 'quantity_change', 'reason', 'updated_by', 'created_at'
     ];
 
     public function inventory()
