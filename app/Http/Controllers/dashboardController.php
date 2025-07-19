@@ -99,6 +99,7 @@ class dashboardController extends Controller
             'lineChartCategories' => $this->getDefectCountData()['categories'],
 
             'pendingOrders' => $this->getPendingOrders(2),
+
             'inventoryData' => $this->getInventoryData()['rawCoffeeData'],
             'inventoryData2' => $this->getInventoryData()['coffeeProductData'],
             'inventoryCategories' => $this->getInventoryData()['categories'],
@@ -858,15 +859,15 @@ class dashboardController extends Controller
             $supplierId = $user->supplier ? $user->supplier->id : null;
             
             if (!$supplierId) {
-                return $this->getSupplierRecentOrdersFallback();
+                // If no supplier found, return empty array instead of fallback
+                return [];
             }
 
-            // Get recent orders for this supplier that have been fulfilled (delivered, shipped, confirmed)
+            // Get recent orders for this supplier (all statuses, not just fulfilled)
             $orders = Order::with(['supplier', 'rawCoffee'])
                 ->where('supplier_id', $supplierId)
-                ->whereIn('status', ['delivered', 'shipped', 'confirmed'])
                 ->orderBy('created_at', 'desc')
-                ->limit(4)
+                ->limit(5) // Show 5 most recent orders
                 ->get();
 
             $ordersData = [];
@@ -875,62 +876,31 @@ class dashboardController extends Controller
                 // Format quantity with unit
                 $quantity = number_format((float)$order->quantity, 0) . ' kg';
                 
-                // Format status for display
+                // Format status for display with better styling
                 $status = ucfirst($order->status);
+                
+                // Better customer identification
+                $customer = 'Factory Order';
                 
                 $ordersData[] = [
                     'Order ID' => $order->id,
-                    'Customer' => 'Factory Order',
-                    'Product' => $order->rawCoffee ? $order->rawCoffee->coffee_type : 'Unknown Product',
+                    'Customer' => $customer,
+                    'Product' => $order->rawCoffee ? $order->rawCoffee->coffee_type : 'Raw Coffee',
                     'Quantity (kg)' => $quantity,
                     'Status' => $status,
                     'Date' => $order->created_at->format('M d, Y'),
                 ];
             }
 
-            // If no orders found, return fallback data
-            if (empty($ordersData)) {
-                return $this->getSupplierRecentOrdersFallback();
-            }
-
             return $ordersData;
 
         } catch (\Exception $e) {
-            // Return fallback data if database query fails
-            return $this->getSupplierRecentOrdersFallback();
+            // Log the error for debugging
+            \Log::error('Error fetching supplier recent orders: ' . $e->getMessage());
+            
+            // Return empty array instead of fallback data
+            return [];
         }
     }
 
-    /**
-     * Get fallback supplier recent orders data
-     */
-    private function getSupplierRecentOrdersFallback(): array
-    {
-        return [
-            [
-                'Order ID' => 'O00001',
-                'Customer' => 'Factory Order',
-                'Product' => 'Arabica Beans',
-                'Quantity (kg)' => '500 kg',
-                'Status' => 'Delivered',
-                'Date' => 'Jul 10, 2025',
-            ],
-            [
-                'Order ID' => 'O00002',
-                'Customer' => 'Factory Order',
-                'Product' => 'Robusta Beans',
-                'Quantity (kg)' => '300 kg',
-                'Status' => 'Delivered',
-                'Date' => 'Jul 08, 2025',
-            ],
-            [
-                'Order ID' => 'O00003',
-                'Customer' => 'Factory Order',
-                'Product' => 'Excella Beans',
-                'Quantity (kg)' => '200 kg',
-                'Status' => 'Shipped',
-                'Date' => 'Jul 05, 2025',
-            ],
-        ];
-    }
 }

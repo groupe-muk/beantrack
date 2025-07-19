@@ -79,7 +79,10 @@
                             <h3 class="text-sm font-medium text-soft-brown mb-2">Available Inventory</h3>
                             @if($order->rawCoffee)
                                 @php
-                                    $availableStock = \App\Models\Inventory::getAvailableStock($order->raw_coffee_id);
+                                    $supplier = \App\Models\Supplier::where('user_id', auth()->id())->first();
+                                    $availableStock = $supplier ? 
+                                        \App\Models\Inventory::getAvailableStockForSupplier($order->raw_coffee_id, $supplier->id) : 
+                                        \App\Models\Inventory::getAvailableStock($order->raw_coffee_id);
                                     $isStockSufficient = $availableStock >= $order->quantity;
                                 @endphp
                                 <p class="text-lg font-semibold {{ $isStockSufficient ? 'text-green-600' : 'text-red-600' }}">

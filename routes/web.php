@@ -156,7 +156,13 @@ Route::middleware(['auth'])->group(function () {
             Route::put('/{order}', [OrderController::class, 'update'])->name('update');
             Route::delete('/{order}', [OrderController::class, 'destroy'])->name('destroy');
             Route::put('/{order}/status', [OrderController::class, 'updateStatus'])->name('update-status');
+            Route::get('/{order}/check-inventory', [OrderController::class, 'checkInventory'])->name('check-inventory');
+            Route::get('/api/inventory-status', [OrderController::class, 'getOrdersWithInventoryStatus'])->name('api.inventory-status');
             Route::get('/api/stats', [OrderController::class, 'getOrderStats'])->name('api.stats');
+            
+            // Admin vendor order management routes
+            Route::put('/{order}/accept-vendor', [OrderController::class, 'acceptVendorOrder'])->name('accept-vendor');
+            Route::put('/{order}/reject-vendor', [OrderController::class, 'rejectVendorOrder'])->name('reject-vendor');
         });
 
         //Inventory routes
@@ -294,6 +300,13 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/supplier/warehouses/upload-workers', [App\Http\Controllers\WarehouseController::class, 'uploadWorkers'])->name('supplier.warehouses.upload.workers');
         Route::delete('/supplier/warehouse-workers/bulk-delete', [App\Http\Controllers\WarehouseController::class, 'bulkDeleteWorkers'])->name('supplier.warehouses.workers.bulk.delete');
         Route::post('/supplier/warehouses/{warehouse}/move-workers', [App\Http\Controllers\WarehouseController::class, 'moveWorkers'])->name('supplier.warehouses.move.workers');
+
+        // Supplier order management routes
+        Route::get('/supplier/orders', [OrderController::class, 'supplierIndex'])->name('orders.supplier.index');
+        Route::get('/supplier/orders/{order}', [OrderController::class, 'supplierShow'])->name('orders.supplier.show');
+        Route::patch('/supplier/orders/{order}/accept', [OrderController::class, 'supplierAccept'])->name('orders.supplier.accept');
+        Route::patch('/supplier/orders/{order}/reject', [OrderController::class, 'supplierReject'])->name('orders.supplier.reject');
+        Route::patch('/supplier/orders/{order}/ship', [OrderController::class, 'supplierMarkShipped'])->name('orders.supplier.ship');
 
     });
 

@@ -99,6 +99,7 @@
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vendor</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Coffee Product</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Available Stock</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Price</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
@@ -129,6 +130,26 @@
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         <div class="text-sm text-gray-900">{{ number_format($order->quantity) }} kg</div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                        @if($order->coffeeProduct)
+                                            @php
+                                                $availableStock = \App\Models\Inventory::getAvailableStockByType('coffee_product', $order->coffee_product_id);
+                                                $isStockSufficient = $availableStock >= $order->quantity;
+                                            @endphp
+                                            <div class="{{ $isStockSufficient ? 'text-green-600' : 'text-red-600' }}">
+                                                {{ number_format($availableStock) }} kg
+                                            </div>
+                                            @if(!$isStockSufficient && $order->status === 'pending')
+                                                <div class="text-xs text-red-500">
+                                                    Short: {{ number_format($order->quantity - $availableStock) }} kg
+                                                </div>
+                                            @elseif($isStockSufficient && $order->status === 'pending')
+                                                <div class="text-xs text-green-500">✓ Available</div>
+                                            @endif
+                                        @else
+                                            <span class="text-gray-400">N/A</span>
+                                        @endif
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         <div class="text-sm font-medium text-gray-900">${{ number_format($order->total_price, 0) }}</div>

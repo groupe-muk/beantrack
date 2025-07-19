@@ -59,6 +59,19 @@ class Inventory extends Model
     }
 
     /**
+     * Check total available stock for a raw coffee in supplier's warehouses only
+     */
+    public static function getAvailableStockForSupplier($rawCoffeeId, $supplierId)
+    {
+        $warehouseIds = \App\Models\Warehouse::where('supplier_id', $supplierId)->pluck('id');
+        
+        return self::where('raw_coffee_id', $rawCoffeeId)
+            ->whereIn('warehouse_id', $warehouseIds)
+            ->where('quantity_in_stock', '>', 0)
+            ->sum('quantity_in_stock');
+    }
+
+    /**
      * Check if sufficient stock is available for an order
      */
     public static function hasSufficientStock($rawCoffeeId, $requiredQuantity)
@@ -120,6 +133,61 @@ class Inventory extends Model
     }
 
     /**
+     * Reduce inventory stock for supplier warehouses only (FIFO - First In, First Out)
+     */
+    public static function reduceStockForSupplier($rawCoffeeId, $quantityToReduce, $supplierId, $orderId = null, $userId = null)
+    {
+        $warehouseIds = \App\Models\Warehouse::where('supplier_id', $supplierId)->pluck('id');
+        
+        $inventories = self::where('raw_coffee_id', $rawCoffeeId)
+            ->whereIn('warehouse_id', $warehouseIds)
+            ->where('quantity_in_stock', '>', 0)
+            ->orderBy('created_at', 'asc') // FIFO - oldest stock first
+            ->get();
+
+        $remainingToReduce = $quantityToReduce;
+        $reductions = [];
+
+        foreach ($inventories as $inventory) {
+            if ($remainingToReduce <= 0) {
+                break;
+            }
+
+            $availableInThisInventory = $inventory->quantity_in_stock;
+            $reductionFromThis = min($remainingToReduce, $availableInThisInventory);
+
+            if ($reductionFromThis > 0) {
+                $newStock = $inventory->quantity_in_stock - $reductionFromThis;
+                
+                $inventory->update([
+                    'quantity_in_stock' => $newStock,
+                    'last_updated' => now()
+                ]);
+
+                // Create inventory update record
+                InventoryUpdate::create([
+                    'inventory_id' => $inventory->id,
+                    'quantity_change' => -$reductionFromThis, // Negative for reduction
+                    'reason' => $orderId ? "Supplier order fulfillment - Order #{$orderId}" : 'Supplier stock reduction',
+                    'updated_by' => $userId,
+                    'created_at' => now()
+                ]);
+
+                $reductions[] = [
+                    'inventory_id' => $inventory->id,
+                    'warehouse_id' => $inventory->warehouse_id,
+                    'reduced_quantity' => $reductionFromThis,
+                    'remaining_stock' => $newStock
+                ];
+
+                $remainingToReduce -= $reductionFromThis;
+            }
+        }
+
+        return $reductions;
+    }
+
+    /**
      * Restore inventory stock (e.g., when an order is cancelled after being confirmed)
      */
     public static function restoreStock($rawCoffeeId, $quantityToRestore, $orderId = null, $userId = null)
@@ -158,5 +226,67 @@ class Inventory extends Model
             'restored_quantity' => $quantityToRestore,
             'new_stock_level' => $inventory->quantity_in_stock + $quantityToRestore
         ];
+    }
+
+    /**
+     * Check total available stock for either raw coffee or coffee product
+     */
+    public static function getAvailableStockByType($type, $itemId)
+    {
+        $column = $type === 'coffee_product' ? 'coffee_product_id' : 'raw_coffee_id';
+        
+        return self::where($column, $itemId)
+            ->where('quantity_in_stock', '>', 0)
+            ->sum('quantity_in_stock');
+    }
+
+    /**
+     * Reduce inventory stock for either raw coffee or coffee product (FIFO - First In, First Out)
+     */
+    public static function reduceStockByType($type, $itemId, $quantityToReduce, $orderId = null, $userId = null)
+    {
+        $column = $type === 'coffee_product' ? 'coffee_product_id' : 'raw_coffee_id';
+        
+        $inventories = self::where($column, $itemId)
+            ->where('quantity_in_stock', '>', 0)
+            ->orderBy('created_at', 'asc') // FIFO - oldest stock first
+            ->get();
+
+        $remainingToReduce = $quantityToReduce;
+        $reductions = [];
+
+        foreach ($inventories as $inventory) {
+            if ($remainingToReduce <= 0) {
+                break;
+            }
+
+            $availableInThisInventory = $inventory->quantity_in_stock;
+            $reductionFromThis = min($remainingToReduce, $availableInThisInventory);
+
+            // Update the inventory record
+            $inventory->update([
+                'quantity_in_stock' => $inventory->quantity_in_stock - $reductionFromThis,
+                'last_updated' => now()
+            ]);
+
+            // Create inventory update record
+            InventoryUpdate::create([
+                'inventory_id' => $inventory->id,
+                'quantity_change' => -$reductionFromThis, // Negative for reduction
+                'reason' => $orderId ? "Stock allocated - Order #{$orderId}" : 'Stock reduction',
+                'updated_by' => $userId,
+                'created_at' => now()
+            ]);
+
+            $reductions[] = [
+                'inventory_id' => $inventory->id,
+                'reduced_quantity' => $reductionFromThis,
+                'remaining_stock' => $inventory->quantity_in_stock - $reductionFromThis
+            ];
+
+            $remainingToReduce -= $reductionFromThis;
+        }
+
+        return $reductions;
     }
 }

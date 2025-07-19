@@ -29,30 +29,55 @@
                             @if(($order['status'] ?? 'pending') === 'pending' && isset($order['order_id']) && $order['order_id'] !== 'N/A')
                                 @if(($order['order_type'] ?? 'received') === 'received')
                                     {{-- Orders received by the user - show Accept and Reject buttons --}}
-                                    <form method="POST" action="{{ route('orders.update-status', $order['order_id']) }}" class="inline">
-                                        @csrf
-                                        @method('PUT')
-                                        <input type="hidden" name="status" value="rejected">
-                                        <input type="hidden" name="notes" value="Order rejected from dashboard">
-                                        <button type="submit" 
-                                                class="px-4 py-3 text-xs font-medium rounded-md text-dashboard-light bg-off-white hover:bg-light-background dark:text-gray-200 dark:bg-warm-gray dark:hover:bg-mild-gray transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                                                onclick="return confirm('Are you sure you want to reject this order?')"
-                                                onsubmit="this.disabled=true; this.textContent='Processing...'">
-                                            Reject
-                                        </button>
-                                    </form>
-                                    <form method="POST" action="{{ route('orders.update-status', $order['order_id']) }}" class="inline">
-                                        @csrf
-                                        @method('PUT')
-                                        <input type="hidden" name="status" value="confirmed">
-                                        <input type="hidden" name="notes" value="Order confirmed from dashboard">
-                                        <button type="submit" 
-                                                class="px-4 py-3 text-xs font-medium rounded-md text-white bg-light-brown hover:bg-brown transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                                                onclick="return confirm('Are you sure you want to accept this order?')"
-                                                onsubmit="this.disabled=true; this.textContent='Processing...'">
-                                            Accept Order
-                                        </button>
-                                    </form>
+                                    @if(Auth::user()->isSupplier())
+                                        {{-- Supplier-specific routes --}}
+                                        <form method="POST" action="{{ route('orders.supplier.reject', $order['order_id']) }}" class="inline">
+                                            @csrf
+                                            @method('PATCH')
+                                            <button type="submit" 
+                                                    class="px-4 py-3 text-xs font-medium rounded-md text-dashboard-light bg-off-white hover:bg-light-background dark:text-gray-200 dark:bg-warm-gray dark:hover:bg-mild-gray transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                    onclick="return confirm('Are you sure you want to reject this order?')"
+                                                    onsubmit="this.disabled=true; this.textContent='Processing...'">
+                                                Reject
+                                            </button>
+                                        </form>
+                                        <form method="POST" action="{{ route('orders.supplier.accept', $order['order_id']) }}" class="inline">
+                                            @csrf
+                                            @method('PATCH')
+                                            <button type="submit" 
+                                                    class="px-4 py-3 text-xs font-medium rounded-md text-white bg-light-brown hover:bg-brown transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                    onclick="return confirm('Are you sure you want to accept this order?')"
+                                                    onsubmit="this.disabled=true; this.textContent='Processing...'">
+                                                Accept Order
+                                            </button>
+                                        </form>
+                                    @else
+                                        {{-- Generic routes for other user types --}}
+                                        <form method="POST" action="{{ route('orders.update-status', $order['order_id']) }}" class="inline">
+                                            @csrf
+                                            @method('PUT')
+                                            <input type="hidden" name="status" value="rejected">
+                                            <input type="hidden" name="notes" value="Order rejected from dashboard">
+                                            <button type="submit" 
+                                                    class="px-4 py-3 text-xs font-medium rounded-md text-dashboard-light bg-off-white hover:bg-light-background dark:text-gray-200 dark:bg-warm-gray dark:hover:bg-mild-gray transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                    onclick="return confirm('Are you sure you want to reject this order?')"
+                                                    onsubmit="this.disabled=true; this.textContent='Processing...'">
+                                                Reject
+                                            </button>
+                                        </form>
+                                        <form method="POST" action="{{ route('orders.update-status', $order['order_id']) }}" class="inline">
+                                            @csrf
+                                            @method('PUT')
+                                            <input type="hidden" name="status" value="confirmed">
+                                            <input type="hidden" name="notes" value="Order confirmed from dashboard">
+                                            <button type="submit" 
+                                                    class="px-4 py-3 text-xs font-medium rounded-md text-white bg-light-brown hover:bg-brown transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                    onclick="return confirm('Are you sure you want to accept this order?')"
+                                                    onsubmit="this.disabled=true; this.textContent='Processing...'">
+                                                Accept Order
+                                            </button>
+                                        </form>
+                                    @endif
                                 @else
                                     {{-- Orders made by the user - show Cancel button --}}
                                     <form method="POST" action="{{ route('orders.update-status', $order['order_id']) }}" class="inline">

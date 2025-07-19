@@ -31,82 +31,143 @@
     </div>
 
     <!-- Upload Workers Modal -->
-    <div id="uploadWorkersForm" class="hidden fixed inset-0 bg-coffee-brown bg-opacity-40 z-50" style="display: none;">
-        <div class="flex items-center justify-center min-h-screen p-4">
-            <div class="bg-white p-6 rounded shadow-md w-full max-w-lg relative">
-                <button onclick="toggleUploadForm()" class="absolute top-2 right-2 text-coffee-brown hover:text-light-brown text-4xl">&times;</button>
-                <form action="{{ route('vendor.warehouses.upload.workers') }}" method="POST" enctype="multipart/form-data">
-                    @csrf
-                    <h2 class="text-lg font-bold mb-4">Upload Workers Spreadsheet</h2>
-                    <div class="mb-4">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Upload Excel/CSV File</label>
-                        <input type="file" name="worker_file" accept=".xlsx,.xls,.csv" required class="border p-2 w-full">
-                        <p class="text-sm text-gray-600 mt-1">
-                            Expected columns: Name, Role, Shift, Email (optional), Phone (optional), Address (optional)
-                        </p>
+    <div id="uploadWorkersForm" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center" style="display: none;">
+        <div class="bg-white rounded-lg p-6 m-4 max-w-2xl w-full shadow-xl">
+            <h2 class="text-xl font-bold mb-4">Upload Workers</h2>
+            
+            <!-- Excel Format Instructions -->
+            <div class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <h3 class="font-semibold text-blue-800 mb-2">Excel Sheet Format Required:</h3>
+                <p class="text-sm text-blue-700 mb-3">Your Excel file should contain the following columns in this exact order:</p>
+                
+                <div class="grid grid-cols-2 gap-4 text-xs">
+                    <div>
+                        <strong class="text-blue-800">Column A: name</strong>
+                        <p class="text-blue-600">Worker's full name (e.g., John Smith)</p>
                     </div>
-                    <div class="flex gap-2">
-                        <button class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded" type="submit">Upload Workers</button>
-                        <button type="button" onclick="toggleUploadForm()" class="bg-gray-300 text-gray-700 hover:bg-gray-400 px-4 py-2 rounded">Cancel</button>
+                    <div>
+                        <strong class="text-blue-800">Column B: role</strong>
+                        <p class="text-blue-600">Job role (e.g., Operator, Supervisor, Quality Control)</p>
                     </div>
-                </form>
+                    <div>
+                        <strong class="text-blue-800">Column C: shift</strong>
+                        <p class="text-blue-600">Work shift (Morning, Afternoon, or Night)</p>
+                    </div>
+                    <div>
+                        <strong class="text-blue-800">Column D: email</strong>
+                        <p class="text-blue-600">Email address (optional)</p>
+                    </div>
+                    <div>
+                        <strong class="text-blue-800">Column E: phone</strong>
+                        <p class="text-blue-600">Phone number (optional)</p>
+                    </div>
+                    <div>
+                        <strong class="text-blue-800">Column F: address</strong>
+                        <p class="text-blue-600">Home address (optional)</p>
+                    </div>
+                </div>
+                
+                <div class="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded">
+                    <p class="text-xs text-yellow-800"><strong>Note:</strong> Workers will be randomly assigned to available warehouses. Make sure the first row contains column headers exactly as shown above.</p>
+                </div>
             </div>
+            
+            <form action="{{ route('vendor.warehouses.upload.workers') }}" method="POST" enctype="multipart/form-data">
+                @csrf
+                <div class="mb-4">
+                    <label class="block mb-2 font-medium">Select Excel File (.xlsx, .xls, .csv)</label>
+                    <input type="file" name="worker_file" accept=".xlsx,.xls,.csv" required class="border border-gray-300 w-full rounded focus:border-blue-500 focus:outline-none">
+                </div>
+                <div class="flex gap-2">
+                    <button type="submit" class="bg-light-brown hover:bg-brown text-white px-6 py-2 rounded transition-colors">Upload Workers</button>
+                    <button type="button" onclick="toggleUploadForm()" class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded transition-colors">Cancel</button>
+                </div>
+            </form>
         </div>
     </div>
     
-    <div id="warehouseForm" class="hidden fixed inset-0 bg-coffee-brown bg-opacity-40 z-50" style="display: none;">
-        <div class="flex items-center justify-center min-h-screen p-4">
-            <div class="bg-brown p-6 rounded shadow-md w-full max-w-lg relative" style="background-image: url('/images/Landing-page-image-3.jpg'); background-size: cover; background-position: center;">
-                <button onclick="toggleForm()" class="absolute top-2 right-2 text-coffee-brown hover:text-light-brown text-4xl">&times;</button>
-                <form action="{{ route('vendor.warehouses.store') }}" method="POST">
-                    @csrf
-                    <h2 class="text-lg font-bold mb-2">Add New Warehouse</h2>
-                    <div class="grid grid-cols-2 gap-4">
-                        <input name="name" placeholder="Name" required class="border p-2 placeholder:text-black">
-                        <input name="location" placeholder="Location" required class="border p-2 placeholder:text-black">
-                        <input name="manager_name" placeholder="Manager" required class="border p-2 placeholder:text-black">
-                        <input name="capacity" placeholder="Capacity" required type="number" class="border p-2">
-                    </div>
-                    <div class="flex gap-2 mt-3">
-                        <button class="bg-coffee-brown hover:bg-light-brown text-white px-4 py-2 rounded" type="submit">Add Warehouse</button>
-                        <button type="button" onclick="toggleForm()" class="bg-brown text-white hover:bg-light-brown px-4 py-2 rounded">Cancel</button>
-                    </div>
-                </form>
-            </div>
+    <!-- Add Warehouse Modal -->
+    <div id="warehouseForm" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center" style="display: none;">
+        <div class="bg-white rounded-lg p-6 m-4 max-w-lg w-full shadow-xl">
+            <h2 class="text-xl font-bold mb-4">Add New Warehouse</h2>
+            <form action="{{ route('vendor.warehouses.store') }}" method="POST">
+                @csrf
+                <div class="grid grid-cols-2 gap-4">
+                    <input name="name" placeholder="Name" required class="border p-2 rounded">
+                    <input name="location" placeholder="Location" required class="border p-2 rounded">
+                    <input name="manager_name" placeholder="Manager" required class="border p-2 rounded">
+                    <input name="capacity" placeholder="Capacity" required type="number" class="border p-2 rounded">
+                </div>
+                <div class="flex gap-2 mt-3">
+                    <button class="bg-coffee-brown hover:bg-light-brown text-white px-4 py-2 rounded" type="submit">Add Warehouse</button>
+                    <button type="button" onclick="toggleForm()" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded">Cancel</button>
+                </div>
+            </form>
         </div>
     </div>
 
     <!-- Remove Workers Modal -->
-    <div id="removeWorkersForm" class="hidden fixed inset-0 bg-coffee-brown bg-opacity-40 z-50" style="display: none;">
-        <div class="flex items-center justify-center min-h-screen p-4">
-            <div class="bg-white p-6 rounded shadow-md w-full max-w-lg relative max-h-96 overflow-y-auto">
-                <button onclick="toggleRemoveWorkersModal()" class="absolute top-2 right-2 text-coffee-brown hover:text-light-brown text-4xl">&times;</button>
-                <form action="{{ route('vendor.warehouses.workers.bulk.delete') }}" method="POST">
-                    @csrf
-                    @method('DELETE')
-                    <h2 class="text-lg font-bold mb-4">Remove Workers</h2>
-                    <p class="text-sm text-gray-600 mb-4">Select workers to remove:</p>
-                    <div class="max-h-64 overflow-y-auto mb-4">
-                        @foreach ($warehouses as $warehouse)
-                        @foreach ($warehouse->workers as $worker)
-                        <div class="flex items-center p-2 border-b">
-                            <input type="checkbox" name="worker_ids[]" value="{{ $worker->id }}" class="mr-3" id="worker-{{ $worker->id }}">
-                            <label for="worker-{{ $worker->id }}" class="flex-1 cursor-pointer">
-                                <div class="font-medium">{{ $worker->name }}</div>
-                                <div class="text-sm text-gray-600">{{ $worker->role }} - {{ $warehouse->name }}</div>
-                            </label>
-                        </div>
-                        @endforeach
-                        @endforeach
-                    </div>
-                    <div class="flex gap-2">
-                        <button type="submit" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded" onclick="return confirm('Are you sure you want to remove selected workers?')">Remove Selected</button>
-                        <button type="button" onclick="toggleRemoveWorkersModal()" class="bg-gray-300 text-gray-700 hover:bg-gray-400 px-4 py-2 rounded">Cancel</button>
-                    </div>
-                </form>
+    <div id="removeWorkersModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center" style="display: none;">
+        <div class="bg-white rounded-lg p-6 m-4 max-w-4xl w-full shadow-xl max-h-[80vh] overflow-y-auto">
+            <h2 class="text-xl font-bold mb-4 text-red-600">Remove Workers</h2>
+            
+            <div class="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+                <p class="text-sm text-red-700"><strong>Warning:</strong> This action will permanently delete the selected workers. This cannot be undone.</p>
             </div>
+
+            <form action="{{ route('vendor.warehouses.workers.bulk.delete') }}" method="POST" id="removeWorkersForm">
+                @csrf
+                @method('DELETE')
+                
+                <div class="mb-4">
+                    <label class="flex items-center">
+                        <input type="checkbox" id="select-all-remove" class="mr-2 rounded">
+                        <span class="font-medium text-gray-700">Select All Workers</span>
+                    </label>
+                </div>
+                
+                <div class="space-y-4 max-h-96 overflow-y-auto">
+                    @foreach ($warehouses as $warehouse)
+                        @if($warehouse->workers->count() > 0)
+                            <div class="border rounded-lg p-4">
+                                <h4 class="font-medium text-gray-800 mb-3">{{ $warehouse->name }} - {{ $warehouse->location }}</h4>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                    @foreach ($warehouse->workers as $worker)
+                                        <label class="flex items-center gap-3 p-2 border rounded hover:bg-gray-50 cursor-pointer">
+                                            <input type="checkbox" name="worker_ids[]" value="{{ $worker->id }}" class="worker-checkbox rounded">
+                                            <div class="flex-1">
+                                                <div class="font-medium">{{ $worker->name }}</div>
+                                                <div class="text-sm text-gray-600">{{ $worker->role }} - {{ $worker->shift }} Shift</div>
+                                                @if($worker->email)
+                                                    <div class="text-xs text-gray-500">{{ $worker->email }}</div>
+                                                @endif
+                                            </div>
+                                        </label>
+                                    @endforeach
+                                </div>
+                            </div>
+                        @endif
+                    @endforeach
+
+                    @if($warehouses->sum(fn($w) => $w->workers->count()) == 0)
+                        <div class="text-center py-8 text-gray-500">
+                            <svg class="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" stroke-width="1" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                            </svg>
+                            <p class="text-lg font-medium">No workers found</p>
+                            <p class="text-sm">Add some workers first before removing them.</p>
+                        </div>
+                    @endif
+                </div>
+                
+                <div class="flex gap-2 mt-6">
+                    <button type="submit" id="removeSelectedBtn" class="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded transition-colors" disabled>Remove Selected</button>
+                    <button type="button" onclick="toggleRemoveWorkersModal()" class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded transition-colors">Cancel</button>
+                </div>
+            </form>
         </div>
     </div>
+                    
 
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <x-stats-card
@@ -125,7 +186,7 @@
         />
         <x-stats-card
             title="Total Capacity"
-            :value="number_format($warehouses->sum('capacity')) . ' units'"
+            :value="number_format($warehouses->sum('capacity')) . ' kgs'"
             iconClass="fa-weight-hanging"
             iconColorClass="text-light-brown"
             id="total-capacity-card"
@@ -145,7 +206,7 @@
                     <h3 class="text-lg font-bold text-coffee-brown">{{ $warehouse->name }}</h3>
                     <p class="text-gray-600">{{ $warehouse->location }}</p>
                     <p class="text-gray-600">Manager: {{ $warehouse->manager_name }}</p>
-                    <p class="text-gray-600">Capacity: {{ number_format($warehouse->capacity) }} units</p>
+                    <p class="text-gray-600">Capacity: {{ number_format($warehouse->capacity) }} kgs</p>
                 </div>
                 <div class="flex items-center gap-2" onclick="event.stopPropagation()">
                     <button type="button" onclick="toggleEditModal('edit-warehouse-{{ $warehouse->id }}')" class="text-coffee-brown hover:underline text-sm flex items-center gap-1 transition-colors duration-200 hover:text-light-brown">
@@ -223,86 +284,129 @@
 </div>
 
 <script>
-    function toggleForm() {
-        const formDiv = document.getElementById('warehouseForm');
-        if (formDiv.style.display === 'none' || formDiv.style.display === '') {
-            formDiv.style.display = 'block';
-            formDiv.classList.remove('hidden');
-        } else {
-            formDiv.style.display = 'none';
-            formDiv.classList.add('hidden');
+function toggleUploadForm() {
+    const form = document.getElementById('uploadWorkersForm');
+    form.style.display = form.style.display === 'none' ? 'flex' : 'none';
+}
+
+function toggleRemoveWorkersModal() {
+    const modal = document.getElementById('removeWorkersModal');
+    if (!modal) {
+        console.error('Remove workers modal not found');
+        return;
+    }
+    
+    if (modal.style.display === 'none' || modal.style.display === '') {
+        modal.style.display = 'flex';
+    } else {
+        modal.style.display = 'none';
+        // Reset form when closing
+        const form = document.getElementById('removeWorkersForm');
+        if (form) {
+            form.reset();
         }
-        document.body.style.overflow = formDiv.style.display === 'none' ? '' : 'hidden';
-    }
-
-    function toggleUploadForm() {
-        const formDiv = document.getElementById('uploadWorkersForm');
-        if (formDiv.style.display === 'none' || formDiv.style.display === '') {
-            formDiv.style.display = 'block';
-            formDiv.classList.remove('hidden');
-        } else {
-            formDiv.style.display = 'none';
-            formDiv.classList.add('hidden');
+        if (typeof updateRemoveButton === 'function') {
+            updateRemoveButton();
         }
-        document.body.style.overflow = formDiv.style.display === 'none' ? '' : 'hidden';
+    }
+}
+
+function toggleForm() {
+    const form = document.getElementById('warehouseForm');
+    form.style.display = form.style.display === 'none' ? 'flex' : 'none';
+}
+
+function toggleEditModal(modalId) {
+    const modal = document.getElementById(modalId);
+    modal.style.display = modal.style.display === 'none' ? 'flex' : 'none';
+}
+
+function viewWarehouseDetails(warehouseId) {
+    console.log('Attempting to navigate to warehouse:', warehouseId);
+    // Use Laravel's route helper to generate the proper URL
+    const url = `{{ url('/warehouses') }}/${warehouseId}`;
+    console.log('URL:', url);
+    // Navigate to warehouse details page
+    window.location.href = url;
+}
+
+// Remove workers functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const selectAllCheckbox = document.getElementById('select-all-remove');
+    const workerCheckboxes = document.querySelectorAll('.worker-checkbox');
+    const removeButton = document.getElementById('removeSelectedBtn');
+    const removeForm = document.getElementById('removeWorkersForm');
+
+    // Select all functionality
+    if (selectAllCheckbox) {
+        selectAllCheckbox.addEventListener('change', function() {
+            workerCheckboxes.forEach(checkbox => {
+                checkbox.checked = this.checked;
+            });
+            updateRemoveButton();
+        });
     }
 
-    function toggleRemoveWorkersModal() {
-        const formDiv = document.getElementById('removeWorkersForm');
-        if (formDiv.style.display === 'none' || formDiv.style.display === '') {
-            formDiv.style.display = 'block';
-            formDiv.classList.remove('hidden');
-        } else {
-            formDiv.style.display = 'none';
-            formDiv.classList.add('hidden');
-        }
-        document.body.style.overflow = formDiv.style.display === 'none' ? '' : 'hidden';
-    }
-
-    function toggleEditModal(modalId) {
-        const modal = document.getElementById(modalId);
-        modal.style.display = modal.style.display === 'none' ? 'flex' : 'none';
-    }
-
-    function viewWarehouseDetails(warehouseId) {
-        window.location.href = `/vendor/warehouses/${warehouseId}`;
-    }
-
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') {
-            const warehouseForm = document.getElementById('warehouseForm');
-            const uploadForm = document.getElementById('uploadWorkersForm');
-            const removeForm = document.getElementById('removeWorkersForm');
-            
-            if (warehouseForm && !warehouseForm.classList.contains('hidden')) {
-                toggleForm();
-            }
-            if (uploadForm && !uploadForm.classList.contains('hidden')) {
-                toggleUploadForm();
-            }
-            if (removeForm && !removeForm.classList.contains('hidden')) {
-                toggleRemoveWorkersModal();
-            }
-        }
+    // Individual checkbox change
+    workerCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            updateSelectAllState();
+            updateRemoveButton();
+        });
     });
 
-    // Auto-refresh stats every 30 seconds
-    setInterval(function() {
-        fetch(window.location.href, {
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest'
+    // Form submission with confirmation
+    if (removeForm) {
+        removeForm.addEventListener('submit', function(e) {
+            const checkedBoxes = document.querySelectorAll('.worker-checkbox:checked');
+            if (checkedBoxes.length === 0) {
+                e.preventDefault();
+                alert('Please select at least one worker to remove.');
+                return;
             }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.totalWarehouses !== undefined) {
-                // Update stats cards with new data
-                document.querySelector('#total-warehouses-card .text-2xl').textContent = data.totalWarehouses;
-                document.querySelector('#total-staff-card .text-2xl').textContent = data.totalStaff;
-                document.querySelector('#total-capacity-card .text-2xl').textContent = data.totalCapacity + ' units';
+            
+            const workerNames = Array.from(checkedBoxes).map(cb => {
+                const label = cb.closest('label');
+                return label.querySelector('.font-medium').textContent;
+            });
+            
+            const confirmMessage = `Are you sure you want to remove ${checkedBoxes.length} worker(s)?\n\n${workerNames.join('\n')}\n\nThis action cannot be undone.`;
+            
+            if (!confirm(confirmMessage)) {
+                e.preventDefault();
             }
-        })
-        .catch(error => console.log('Stats refresh failed:', error));
-    }, 30000);
+        });
+    }
+
+    function updateSelectAllState() {
+        if (!selectAllCheckbox) return;
+        
+        const checkedCount = document.querySelectorAll('.worker-checkbox:checked').length;
+        const totalCount = workerCheckboxes.length;
+        
+        if (checkedCount === 0) {
+            selectAllCheckbox.checked = false;
+            selectAllCheckbox.indeterminate = false;
+        } else if (checkedCount === totalCount) {
+            selectAllCheckbox.checked = true;
+            selectAllCheckbox.indeterminate = false;
+        } else {
+            selectAllCheckbox.checked = false;
+            selectAllCheckbox.indeterminate = true;
+        }
+    }
+
+    function updateRemoveButton() {
+        if (!removeButton) return;
+        
+        const checkedCount = document.querySelectorAll('.worker-checkbox:checked').length;
+        removeButton.disabled = checkedCount === 0;
+        removeButton.textContent = checkedCount > 0 ? `Remove Selected (${checkedCount})` : 'Remove Selected';
+    }
+
+    // Make functions globally available
+    window.updateRemoveButton = updateRemoveButton;
+    window.updateSelectAllState = updateSelectAllState;
+});
 </script>
 @endsection

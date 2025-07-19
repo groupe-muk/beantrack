@@ -32,6 +32,7 @@ class InventoryController extends Controller
             
             if ($rawCoffee) {
                 $inventory = Inventory::where('raw_coffee_id', $rawCoffee->id)
+                    ->whereNotNull('supply_center_id') // Only admin supply centers
                     ->select(
                         \DB::raw('COALESCE(SUM(quantity_in_stock), 0) as total_quantity'),
                         \DB::raw('MAX(updated_at) as last_updated')
@@ -77,6 +78,7 @@ class InventoryController extends Controller
                 
                 if ($coffeeProduct) {
                     $inventory = Inventory::where('coffee_product_id', $coffeeProduct->id)
+                        ->whereNotNull('supply_center_id') // Only admin supply centers
                         ->select(
                             \DB::raw('COALESCE(SUM(quantity_in_stock), 0) as total_quantity'),
                             \DB::raw('MAX(updated_at) as last_updated')
@@ -109,22 +111,26 @@ class InventoryController extends Controller
         
         
     
-// Calculate quantities for raw coffee types
+// Calculate quantities for raw coffee types (admin supply centers only)
 $rawCoffeeArabicaQuantity = Inventory::join('raw_coffee', 'inventory.raw_coffee_id', '=', 'raw_coffee.id')
     ->where('raw_coffee.coffee_type', 'Arabica')
+    ->whereNotNull('inventory.supply_center_id') // Only admin supply centers
     ->sum('inventory.quantity_in_stock');
     
 $rawCoffeeRobustaQuantity = Inventory::join('raw_coffee', 'inventory.raw_coffee_id', '=', 'raw_coffee.id')
     ->where('raw_coffee.coffee_type', 'Robusta')
+    ->whereNotNull('inventory.supply_center_id') // Only admin supply centers
     ->sum('inventory.quantity_in_stock');
 
-// Calculate quantities for processed coffee products
+// Calculate quantities for processed coffee products (admin supply centers only)
 $processedCoffeeMountainBrewQuantity = Inventory::join('coffee_product', 'inventory.coffee_product_id', '=', 'coffee_product.id')
     ->where('coffee_product.name', 'Mountain Blend')
+    ->whereNotNull('inventory.supply_center_id') // Only admin supply centers
     ->sum('inventory.quantity_in_stock');
     
 $processedCoffeeMorningBrewQuantity = Inventory::join('coffee_product', 'inventory.coffee_product_id', '=', 'coffee_product.id')
     ->where('coffee_product.name', 'Morning Brew')
+    ->whereNotNull('inventory.supply_center_id') // Only admin supply centers
     ->sum('inventory.quantity_in_stock');
 
 // Calculate percentage changes
@@ -185,12 +191,13 @@ return view('Inventory.inventory', compact(
                 
                 if ($specificRawCoffee) {
                     $inventories = Inventory::where('raw_coffee_id', $specificRawCoffee->id)
+                        ->whereNotNull('supply_center_id') // Only admin supply centers
                         ->with('supplyCenter')
                         ->get();
                     
                     $inventoryDetails = $inventories->map(function($inv) use ($grade) {
                         return [
-                            'supply_center' => $inv->supplyCenter->name,
+                            'supply_center' => $inv->supplyCenter ? $inv->supplyCenter->name : 'Unknown Supply Center',
                             'quantity' => $inv->quantity_in_stock,
                             'last_updated' => $inv->updated_at->format('Y-m-d H:i:s'),
                             'grade' => $grade
@@ -225,12 +232,13 @@ return view('Inventory.inventory', compact(
             $inventoryDetails = collect();
             foreach ($allRawCoffee as $rc) {
                 $inventories = Inventory::where('raw_coffee_id', $rc->id)
+                    ->whereNotNull('supply_center_id') // Only admin supply centers
                     ->with('supplyCenter')
                     ->get();
                 
                 foreach ($inventories as $inv) {
                     $inventoryDetails->push([
-                        'supply_center' => $inv->supplyCenter->name,
+                        'supply_center' => $inv->supplyCenter ? $inv->supplyCenter->name : 'Unknown Supply Center',
                         'quantity' => $inv->quantity_in_stock,
                         'last_updated' => $inv->updated_at->format('Y-m-d H:i:s'),
                         'grade' => $rc->grade
@@ -273,12 +281,13 @@ return view('Inventory.inventory', compact(
                 
                 if ($specificCoffeeProduct) {
                     $inventories = Inventory::where('coffee_product_id', $specificCoffeeProduct->id)
+                        ->whereNotNull('supply_center_id') // Only admin supply centers
                         ->with('supplyCenter')
                         ->get();
                     
                     $inventoryDetails = $inventories->map(function($inv) use ($category) {
                         return [
-                            'supply_center' => $inv->supplyCenter->name,
+                            'supply_center' => $inv->supplyCenter ? $inv->supplyCenter->name : 'Unknown Supply Center',
                             'quantity' => $inv->quantity_in_stock,
                             'last_updated' => $inv->updated_at->format('Y-m-d H:i:s'),
                             'category' => $category
@@ -313,12 +322,13 @@ return view('Inventory.inventory', compact(
             $inventoryDetails = collect();
             foreach ($allCoffeeProducts as $cp) {
                 $inventories = Inventory::where('coffee_product_id', $cp->id)
+                    ->whereNotNull('supply_center_id') // Only admin supply centers
                     ->with('supplyCenter')
                     ->get();
                 
                 foreach ($inventories as $inv) {
                     $inventoryDetails->push([
-                        'supply_center' => $inv->supplyCenter->name,
+                        'supply_center' => $inv->supplyCenter ? $inv->supplyCenter->name : 'Unknown Supply Center',
                         'quantity' => $inv->quantity_in_stock,
                         'last_updated' => $inv->updated_at->format('Y-m-d H:i:s'),
                         'category' => $cp->category
@@ -346,25 +356,29 @@ return view('Inventory.inventory', compact(
         $previousWeek = now()->subWeek()->startOfWeek();
         
         if (in_array($type, ['Arabica', 'Robusta'])) {
-            // For raw coffee types
+            // For raw coffee types (admin supply centers only)
             $currentQuantity = Inventory::join('raw_coffee', 'inventory.raw_coffee_id', '=', 'raw_coffee.id')
                 ->where('raw_coffee.coffee_type', $type)
+                ->whereNotNull('inventory.supply_center_id') // Only admin supply centers
                 ->where('inventory.updated_at', '>=', $currentWeek)
                 ->sum('inventory.quantity_in_stock');
                 
             $previousQuantity = Inventory::join('raw_coffee', 'inventory.raw_coffee_id', '=', 'raw_coffee.id')
                 ->where('raw_coffee.coffee_type', $type)
+                ->whereNotNull('inventory.supply_center_id') // Only admin supply centers
                 ->whereBetween('inventory.updated_at', [$previousWeek, $currentWeek])
                 ->sum('inventory.quantity_in_stock');
         } else {
-            // For processed coffee products
+            // For processed coffee products (admin supply centers only)
             $currentQuantity = Inventory::join('coffee_product', 'inventory.coffee_product_id', '=', 'coffee_product.id')
                 ->where('coffee_product.name', $type)
+                ->whereNotNull('inventory.supply_center_id') // Only admin supply centers
                 ->where('inventory.updated_at', '>=', $currentWeek)
                 ->sum('inventory.quantity_in_stock');
                 
             $previousQuantity = Inventory::join('coffee_product', 'inventory.coffee_product_id', '=', 'coffee_product.id')
                 ->where('coffee_product.name', $type)
+                ->whereNotNull('inventory.supply_center_id') // Only admin supply centers
                 ->whereBetween('inventory.updated_at', [$previousWeek, $currentWeek])
                 ->sum('inventory.quantity_in_stock');
         }

@@ -280,21 +280,33 @@ class supplierInventoryController extends Controller
 
     public function getDetails($type)
     {
-        // Get quantities for each grade
+        $user = Auth::user();
+        $supplier = Supplier::where('user_id', $user->id)->first();
+        
+        if (!$supplier) {
+            return response()->json(['error' => 'Supplier profile not found'], 400);
+        }
+
+        $warehouses = Warehouse::where('supplier_id', $supplier->id)->pluck('id');
+
+        // Get quantities for each grade from supplier's warehouses only
         $gradeQuantities = [
             'A' => Inventory::join('raw_coffee', 'inventory.raw_coffee_id', '=', 'raw_coffee.id')
+                ->whereIn('inventory.warehouse_id', $warehouses)
                 ->where('raw_coffee.coffee_type', $type)
                 ->where('raw_coffee.grade', 'A')
                 ->sum('inventory.quantity_in_stock'),
             'B' => Inventory::join('raw_coffee', 'inventory.raw_coffee_id', '=', 'raw_coffee.id')
+                ->whereIn('inventory.warehouse_id', $warehouses)
                 ->where('raw_coffee.coffee_type', $type)
                 ->where('raw_coffee.grade', 'B')
                 ->sum('inventory.quantity_in_stock')
         ];
 
-                // Get all inventory items for this coffee type
+        // Get all inventory items for this coffee type from supplier's warehouses only
         $inventoryItems = Inventory::join('raw_coffee', 'inventory.raw_coffee_id', '=', 'raw_coffee.id')
             ->join('warehouses', 'inventory.warehouse_id', '=', 'warehouses.id')
+            ->whereIn('inventory.warehouse_id', $warehouses)
             ->where('raw_coffee.coffee_type', $type)
             ->select(
                 'inventory.id',
