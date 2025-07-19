@@ -105,6 +105,39 @@
                         </div>
                         
                         <div>
+                            <h3 class="text-sm font-medium text-soft-brown mb-2">Available Stock</h3>
+                            @if($order->coffeeProduct)
+                                @php
+                                    $availableStock = \App\Models\Inventory::getAvailableStockByType('coffee_product', $order->coffee_product_id);
+                                    $isStockSufficient = $availableStock >= $order->quantity;
+                                @endphp
+                                <p class="text-lg font-semibold {{ $isStockSufficient ? 'text-green-600' : 'text-red-600' }}">
+                                    {{ number_format($availableStock) }} kg
+                                </p>
+                                @if(!$isStockSufficient)
+                                    <p class="text-xs text-red-500">Short: {{ number_format($order->quantity - $availableStock) }} kg</p>
+                                @else
+                                    <p class="text-xs text-green-500">✓ Sufficient stock</p>
+                                @endif
+                            @elseif($order->rawCoffee)
+                                @php
+                                    $availableStock = \App\Models\Inventory::getAvailableStock($order->raw_coffee_id);
+                                    $isStockSufficient = $availableStock >= $order->quantity;
+                                @endphp
+                                <p class="text-lg font-semibold {{ $isStockSufficient ? 'text-green-600' : 'text-red-600' }}">
+                                    {{ number_format($availableStock) }} kg
+                                </p>
+                                @if(!$isStockSufficient)
+                                    <p class="text-xs text-red-500">Short: {{ number_format($order->quantity - $availableStock) }} kg</p>
+                                @else
+                                    <p class="text-xs text-green-500">✓ Sufficient stock</p>
+                                @endif
+                            @else
+                                <p class="text-lg font-semibold text-gray-400">N/A</p>
+                            @endif
+                        </div>
+                        
+                        <div>
                             <h3 class="text-sm font-medium text-soft-brown mb-2">Unit Price</h3>
                             <p class="text-lg font-semibold text-dashboard-light">${{ $order->quantity > 0 ? number_format($order->total_price / $order->quantity, 0) : '0.00' }}</p>
                         </div>
@@ -190,9 +223,9 @@
                         
                         @if($order->supplier && $order->status === 'confirmed')
                             <!-- Actions for orders to suppliers -->
-                            <form action="{{ route('orders.updateStatus', $order) }}" method="POST" class="w-full">
+                            <form action="{{ route('orders.update-status', $order) }}" method="POST" class="w-full">
                                 @csrf
-                                @method('PATCH')
+                                @method('PUT')
                                 <input type="hidden" name="status" value="shipped">
                                 <button type="submit" 
                                         class="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200"
@@ -204,9 +237,9 @@
                         
                         @if($order->supplier && $order->status === 'shipped')
                             <!-- Actions for shipped supplier orders -->
-                            <form action="{{ route('orders.updateStatus', $order) }}" method="POST" class="w-full">
+                            <form action="{{ route('orders.update-status', $order) }}" method="POST" class="w-full">
                                 @csrf
-                                @method('PATCH')
+                                @method('PUT')
                                 <input type="hidden" name="status" value="delivered">
                                 <button type="submit" 
                                         class="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200"
@@ -469,7 +502,7 @@
             // Create a form and submit it
             const form = document.createElement('form');
             form.method = 'POST';
-            form.action = '/orders/' + orderId + '/accept';
+            form.action = '/orders/' + orderId + '/accept-vendor';
             
             const csrfToken = document.createElement('input');
             csrfToken.type = 'hidden';
@@ -479,7 +512,7 @@
             const methodField = document.createElement('input');
             methodField.type = 'hidden';
             methodField.name = '_method';
-            methodField.value = 'PATCH';
+            methodField.value = 'PUT';
             
             form.appendChild(csrfToken);
             form.appendChild(methodField);
@@ -494,7 +527,7 @@
             // Create a form and submit it
             const form = document.createElement('form');
             form.method = 'POST';
-            form.action = '/orders/' + orderId + '/reject';
+            form.action = '/orders/' + orderId + '/reject-vendor';
             
             const csrfToken = document.createElement('input');
             csrfToken.type = 'hidden';
@@ -504,7 +537,7 @@
             const methodField = document.createElement('input');
             methodField.type = 'hidden';
             methodField.name = '_method';
-            methodField.value = 'PATCH';
+            methodField.value = 'PUT';
             
             form.appendChild(csrfToken);
             form.appendChild(methodField);

@@ -93,7 +93,10 @@
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                         @if($order->rawCoffee)
                                             @php
-                                                $availableStock = \App\Models\Inventory::getAvailableStock($order->raw_coffee_id);
+                                                $supplier = \App\Models\Supplier::where('user_id', auth()->id())->first();
+                                                $availableStock = $supplier ? 
+                                                    \App\Models\Inventory::getAvailableStockForSupplier($order->raw_coffee_id, $supplier->id) : 
+                                                    \App\Models\Inventory::getAvailableStock($order->raw_coffee_id);
                                                 $isStockSufficient = $availableStock >= $order->quantity;
                                             @endphp
                                             <div class="{{ $isStockSufficient ? 'text-green-600' : 'text-red-600' }}">

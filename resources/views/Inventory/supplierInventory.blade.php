@@ -374,7 +374,7 @@
                             ${item.grade}
                         </td>
                         <td class="px-5 py-3 border-b border-gray-200 bg-white text-sm">
-                            ${parseFloat(item.quantity).toFixed(2)} kg
+                            ${parseFloat(item.quantity_in_stock || 0).toFixed(2)} kg
                         </td>
                         <td class="px-5 py-3 border-b border-gray-200 bg-white text-sm">
                             ${formattedDate}
