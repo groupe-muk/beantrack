@@ -191,6 +191,8 @@ Route::middleware(['auth'])->group(function () {
 
         // Individual inventory item management routes
         Route::get('/inventory/item/{id}', [InventoryController::class, 'getItem'])->name('inventory.getItem');
+        Route::put('/inventory/item/{id}', [InventoryController::class, 'updateItem'])->name('inventory.updateItem');
+        Route::delete('/inventory/item/{id}', [InventoryController::class, 'deleteItem'])->name('inventory.deleteItem');
 
         // Insights routes
         Route::get('/insights', function () {

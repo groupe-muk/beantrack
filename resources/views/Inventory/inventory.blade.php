@@ -446,6 +446,25 @@
     </div>
 </x-modal>
 
+<!-- Edit Item Modal -->
+<x-modal 
+    id="editItemModal" 
+    title="Edit Inventory Item" 
+    size="md" 
+    submit-form="editItemForm" 
+    submit-text="Update Item"
+    cancel-text="Cancel">
+    
+    <form id="editItemForm" method="POST">
+        @csrf
+        @method('PUT')
+        
+        <div id="editItemContent">
+            <!-- Content will be loaded dynamically -->
+        </div>
+    </form>
+</x-modal>
+
 <!-- Create New Coffee Product Modal -->
 <x-modal 
     id="createCoffeeProductModal" 
@@ -761,13 +780,72 @@ function editInventoryItem(itemId) {
     loadingOverlay.innerHTML = '<div class="bg-white p-4 rounded-lg shadow-lg"><i class="fas fa-spinner fa-spin text-blue-600 mr-2"></i> Loading...</div>';
     document.body.appendChild(loadingOverlay);
     
-    // Close the view details modal
+    // Close the view details modal first
     const viewDetailsModal = document.getElementById('viewDetailsModal');
     viewDetailsModal.classList.add('hidden');
     viewDetailsModal.classList.remove('flex');
     
-    // Redirect to edit page or open edit modal
-    window.location.href = `/inventory/${itemId}/edit`;
+    // Fetch item data and populate edit modal
+    fetch(`/inventory/item/${itemId}`)
+        .then(response => response.json())
+        .then(data => {
+            // Remove loading overlay
+            document.body.removeChild(loadingOverlay);
+            
+            // Populate edit form
+            const editForm = document.getElementById('editItemForm');
+            editForm.action = `/inventory/item/${itemId}`;
+            
+            const editContent = document.getElementById('editItemContent');
+            
+            if (data.item.raw_coffee_id) {
+                // Raw Coffee Item
+                editContent.innerHTML = `
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Coffee Type</label>
+                        <input type="text" value="${data.item.raw_coffee.coffee_type}" disabled class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400">
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Grade</label>
+                        <input type="text" value="${data.item.raw_coffee.grade}" disabled class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400">
+                    </div>
+                    <div class="mb-4">
+                        <label for="edit_quantity" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Quantity in Stock *</label>
+                        <input type="number" id="edit_quantity" name="quantity_in_stock" value="${data.item.quantity_in_stock}" min="0" required class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-coffee-brown focus:border-coffee-brown dark:bg-dark-background dark:text-off-white">
+                    </div>
+                    <div class="mb-4">
+                        <label for="edit_location" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Storage Location</label>
+                        <input type="text" id="edit_location" name="storage_location" value="${data.item.storage_location || ''}" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-coffee-brown focus:border-coffee-brown dark:bg-dark-background dark:text-off-white">
+                    </div>
+                `;
+            } else {
+                // Coffee Product Item
+                editContent.innerHTML = `
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Product Name</label>
+                        <input type="text" value="${data.item.coffee_product.name}" disabled class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400">
+                    </div>
+                    <div class="mb-4">
+                        <label for="edit_quantity" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Quantity in Stock *</label>
+                        <input type="number" id="edit_quantity" name="quantity_in_stock" value="${data.item.quantity_in_stock}" min="0" required class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-coffee-brown focus:border-coffee-brown dark:bg-dark-background dark:text-off-white">
+                    </div>
+                    <div class="mb-4">
+                        <label for="edit_location" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Storage Location</label>
+                        <input type="text" id="edit_location" name="storage_location" value="${data.item.storage_location || ''}" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-coffee-brown focus:border-coffee-brown dark:bg-dark-background dark:text-off-white">
+                    </div>
+                `;
+            }
+            
+            // Show edit modal
+            const editModal = document.getElementById('editItemModal');
+            editModal.classList.remove('hidden');
+            editModal.classList.add('flex');
+        })
+        .catch(error => {
+            console.error('Error fetching item data:', error);
+            document.body.removeChild(loadingOverlay);
+            alert('Error loading item data. Please try again.');
+        });
 }
 
 // Delete inventory item function
@@ -781,30 +859,96 @@ function confirmDeleteItem(itemId) {
         loadingOverlay.innerHTML = '<div class="bg-white p-4 rounded-lg shadow-lg"><i class="fas fa-spinner fa-spin text-blue-600 mr-2"></i> Deleting...</div>';
         document.body.appendChild(loadingOverlay);
         
-        // Create and submit a form to delete the item
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.action = `/inventory/${itemId}`;
-        
-        // Add CSRF token
+        // Get CSRF token
         const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-        const csrfInput = document.createElement('input');
-        csrfInput.type = 'hidden';
-        csrfInput.name = '_token';
-        csrfInput.value = csrfToken;
-        form.appendChild(csrfInput);
         
-        // Add method override for DELETE
-        const methodInput = document.createElement('input');
-        methodInput.type = 'hidden';
-        methodInput.name = '_method';
-        methodInput.value = 'DELETE';
-        form.appendChild(methodInput);
-        
-        // Append form to body and submit
-        document.body.appendChild(form);
-        form.submit();
+        // Use fetch for AJAX delete
+        fetch(`/inventory/item/${itemId}`, {
+            method: 'DELETE',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': csrfToken,
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            // Remove loading overlay
+            document.body.removeChild(loadingOverlay);
+            
+            if (data.success) {
+                // Close view details modal if open
+                const viewDetailsModal = document.getElementById('viewDetailsModal');
+                if (viewDetailsModal) {
+                    viewDetailsModal.classList.add('hidden');
+                    viewDetailsModal.classList.remove('flex');
+                }
+                
+                // Show success message and reload page
+                alert('Inventory item deleted successfully!');
+                window.location.reload();
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error deleting item:', error);
+            document.body.removeChild(loadingOverlay);
+            alert('An error occurred while deleting the item. Please try again.');
+        });
     }
 }
+
+// Handle edit form submission
+document.addEventListener('DOMContentLoaded', function() {
+    const editForm = document.getElementById('editItemForm');
+    if (editForm) {
+        editForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(editForm);
+            const submitButton = editForm.querySelector('button[type="submit"]');
+            const originalText = submitButton.textContent;
+            
+            // Show loading state
+            submitButton.disabled = true;
+            submitButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Updating...';
+            
+            fetch(editForm.action, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Close modal
+                    const editModal = document.getElementById('editItemModal');
+                    editModal.classList.add('hidden');
+                    editModal.classList.remove('flex');
+                    
+                    // Show success message and reload page
+                    alert('Inventory item updated successfully!');
+                    window.location.reload();
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while updating the item.');
+            })
+            .finally(() => {
+                // Reset button state
+                submitButton.disabled = false;
+                submitButton.textContent = originalText;
+            });
+        });
+    }
+});
 </script>
 @endpush

@@ -806,16 +806,8 @@ return view('Inventory.inventory', compact(
             ->findOrFail($id);
 
         return response()->json([
-            'id' => $inventoryItem->id,
-            'raw_coffee_id' => $inventoryItem->raw_coffee_id,
-            'coffee_product_id' => $inventoryItem->coffee_product_id,
-            'grade' => $inventoryItem->rawCoffee->grade ?? null,
-            'coffee_type' => $inventoryItem->rawCoffee->coffee_type ?? null,
-            'category' => $inventoryItem->coffeeProduct->category ?? null,
-            'product_name' => $inventoryItem->coffeeProduct->name ?? null,
-            'quantity_in_stock' => $inventoryItem->quantity_in_stock,
-            'supply_center_id' => $inventoryItem->supply_center_id,
-            'supply_center_name' => $inventoryItem->supplyCenter->name ?? 'Unknown',
+            'item' => $inventoryItem,
+            'success' => true
         ]);
     }
     
@@ -944,6 +936,96 @@ return view('Inventory.inventory', compact(
         } catch (\Exception $e) {
             \Log::error('Error getting product details: ' . $e->getMessage());
             return response()->json(['error' => 'Failed to load details'], 500);
+        }
+    }
+
+    /**
+     * Show the form for editing an individual inventory item
+     */
+    public function editItem($id)
+    {
+        try {
+            $inventory = Inventory::with(['rawCoffee', 'coffeeProduct', 'supplyCenter'])->findOrFail($id);
+            
+            return view('admin.inventory.edit', compact('inventory'));
+        } catch (\Exception $e) {
+            return redirect()->route('inventory.index')->with('error', 'Inventory item not found.');
+        }
+    }
+
+    /**
+     * Update an individual inventory item
+     */
+    public function updateItem(Request $request, $id)
+    {
+        try {
+            $request->validate([
+                'quantity_in_stock' => 'required|numeric|min:0',
+                'storage_location' => 'nullable|string|max:255',
+            ]);
+
+            $inventory = Inventory::findOrFail($id);
+            $oldQuantity = $inventory->quantity_in_stock;
+            
+            $inventory->update([
+                'quantity_in_stock' => $request->quantity_in_stock,
+                'storage_location' => $request->storage_location,
+            ]);
+
+            // Create inventory update record to track the change
+            \App\Models\InventoryUpdate::create([
+                'inventory_id' => $inventory->id,
+                'quantity_change' => $request->quantity_in_stock - $oldQuantity,
+                'type' => 'manual_adjustment',
+                'notes' => 'Admin manual update',
+            ]);
+
+            if ($request->ajax()) {
+                return response()->json(['success' => true, 'message' => 'Inventory item updated successfully.']);
+            }
+
+            return redirect()->route('inventory.index')->with('success', 'Inventory item updated successfully.');
+        } catch (\Exception $e) {
+            if ($request->ajax()) {
+                return response()->json(['success' => false, 'message' => 'Failed to update inventory item.'], 500);
+            }
+            return redirect()->route('inventory.index')->with('error', 'Failed to update inventory item.');
+        }
+    }
+
+    /**
+     * Delete an individual inventory item
+     */
+    public function deleteItem($id)
+    {
+        try {
+            $inventory = Inventory::whereNotNull('supply_center_id') // Only admin inventory
+                ->findOrFail($id);
+            
+            // Simply delete the inventory record
+            // The database should handle the cascade delete for inventory_updates if configured
+            $inventory->delete();
+
+            if (request()->ajax()) {
+                return response()->json(['success' => true, 'message' => 'Inventory item deleted successfully.']);
+            }
+
+            return redirect()->route('inventory.index')->with('success', 'Inventory item deleted successfully.');
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            if (request()->ajax()) {
+                return response()->json(['success' => false, 'message' => 'Inventory item not found.'], 404);
+            }
+            return redirect()->route('inventory.index')->with('error', 'Inventory item not found.');
+        } catch (\Exception $e) {
+            \Log::error('Error deleting inventory item: ' . $e->getMessage(), [
+                'id' => $id,
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            if (request()->ajax()) {
+                return response()->json(['success' => false, 'message' => 'Failed to delete inventory item: ' . $e->getMessage()], 500);
+            }
+            return redirect()->route('inventory.index')->with('error', 'Failed to delete inventory item.');
         }
     }
 }

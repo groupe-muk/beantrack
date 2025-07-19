@@ -20,6 +20,7 @@ class Inventory extends Model
         'quantity_in_stock',
         'supply_center_id',
         'warehouse_id',
+        'storage_location',
         'last_updated'
     ];
 

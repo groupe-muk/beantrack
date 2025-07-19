@@ -11,6 +11,7 @@ use App\Models\Inventory;
 use App\Models\RawCoffee;
 use App\Models\CoffeeProduct;
 use App\Models\Supplier;
+use App\Models\SupplyCenter;
 use Laravel\Sanctum\HasApiTokens;
 use App\Services\DemandForecastService;
 use Carbon\Carbon;
@@ -113,6 +114,9 @@ class dashboardController extends Controller
             // Recent reports data
             'recentReports' => $this->getRecentReports(2),
 
+            // Dynamic inventory items for progress card
+            'inventoryItems' => $this->getAdminInventoryItems(),
+
         ];   
 
     }
@@ -134,32 +138,7 @@ class dashboardController extends Controller
             'productsTableHeaders' => ['Order ID', 'Customer', 'Product', 'Quantity (kg)', 'Status', 'Date'],
             'productsTableData' => $this->getSupplierRecentOrders(),
         
-        'inventoryItems' => [
-            [
-                'name' => 'Arabica Grade A',
-                'available' => 1000,
-                'allocated' => 1340,
-                'statusLabel' => 'Healthy',
-            ],
-            [
-                'name' => 'Arabica Grade B',
-                'available' => 400,
-                'allocated' => 640,
-                'statusLabel' => 'Healthy',
-            ],
-            [
-                'name' => 'Robusta Grade A',
-                'available' => 150,
-                'allocated' => 360,
-                'statusLabel' => 'Low',
-            ],
-            [
-                'name' => 'Colombia Supremo',
-                'available' => 20,
-                'allocated' => 180,
-                'statusLabel' => 'Critical',
-            ],
-        ],
+            'inventoryItems' => $this->getSupplierInventoryItems(),
 
         ]; 
     }
@@ -204,32 +183,7 @@ class dashboardController extends Controller
 
             'pendingOrders' => $pendingOrders->toArray(),
             
-            'inventoryItems' => [
-            [
-                'name' => 'Arabica Grade A',
-                'available' => 1000,
-                'allocated' => 1340,
-                'statusLabel' => 'Healthy',
-            ],
-            [
-                'name' => 'Arabica Grade B',
-                'available' => 400,
-                'allocated' => 640,
-                'statusLabel' => 'Healthy',
-            ],
-            [
-                'name' => 'Robusta Grade A',
-                'available' => 150,
-                'allocated' => 360,
-                'statusLabel' => 'Low',
-            ],
-            [
-                'name' => 'Colombia Supremo',
-                'available' => 20,
-                'allocated' => 180,
-                'statusLabel' => 'Critical',
-            ],
-        ],
+            'inventoryItems' => $this->getVendorInventoryItems(),
         
         // Recent reports data for vendor
         'recentReports' => $this->getRecentReportsForVendor(2),
@@ -691,23 +645,19 @@ class dashboardController extends Controller
 
             // Generate categories for the last 7 days
             $categories = [];
-            for ($i = 6; $i >= 0; $i--) {
-                $date = now()->subDays($i);
-                $categories[] = $date->format('M d');
-            }
-
-            // Calculate total inventory levels
-            $rawCoffeeTotal = $rawCoffeeInventory->sum('quantity_in_stock');
-            $coffeeProductTotal = $coffeeProductInventory->sum('quantity_in_stock');
-
-            // Create realistic data trends over 7 days
             $rawCoffeeData = [];
             $coffeeProductData = [];
             
-            for ($i = 0; $i < 7; $i++) {
-                // Add slight variations around the base values to simulate daily changes
-                $rawCoffeeData[$i] = max(0, $rawCoffeeTotal + rand(-20, 20));
-                $coffeeProductData[$i] = max(0, $coffeeProductTotal + rand(-15, 15));
+            for ($i = 6; $i >= 0; $i--) {
+                $date = now()->subDays($i);
+                $categories[] = $date->format('M d');
+                
+                // Calculate inventory levels for this specific date by looking at inventory updates
+                $rawCoffeeTotal = $this->getInventoryLevelForDate($date, 'raw_coffee');
+                $coffeeProductTotal = $this->getInventoryLevelForDate($date, 'coffee_product');
+                
+                $rawCoffeeData[] = $rawCoffeeTotal;
+                $coffeeProductData[] = $coffeeProductTotal;
             }
 
             return [
@@ -723,6 +673,41 @@ class dashboardController extends Controller
                 'coffeeProductData' => [80, 100, 90, 110, 105, 120, 130],
                 'categories' => ['Jun 24', 'Jun 25', 'Jun 26', 'Jun 27', 'Jun 28', 'Jun 29', 'Jun 30']
             ];
+        }
+    }
+
+    /**
+     * Calculate inventory level for a specific date based on inventory updates
+     */
+    private function getInventoryLevelForDate($date, $type): int
+    {
+        try {
+            // Get current total
+            if ($type === 'raw_coffee') {
+                $currentTotal = Inventory::whereNotNull('raw_coffee_id')->sum('quantity_in_stock');
+                $inventoryIds = Inventory::whereNotNull('raw_coffee_id')->pluck('id');
+            } else {
+                $currentTotal = Inventory::whereNotNull('coffee_product_id')->sum('quantity_in_stock');
+                $inventoryIds = Inventory::whereNotNull('coffee_product_id')->pluck('id');
+            }
+
+            // Get all updates after the target date
+            $updatesAfterDate = \App\Models\InventoryUpdate::whereIn('inventory_id', $inventoryIds)
+                ->where('created_at', '>', $date->endOfDay())
+                ->sum('quantity_change');
+
+            // Subtract the changes that happened after the target date to get historical level
+            $historicalLevel = $currentTotal - $updatesAfterDate;
+            
+            return max(0, $historicalLevel);
+            
+        } catch (\Exception $e) {
+            // Fallback to current total if calculation fails
+            if ($type === 'raw_coffee') {
+                return Inventory::whereNotNull('raw_coffee_id')->sum('quantity_in_stock') ?? 0;
+            } else {
+                return Inventory::whereNotNull('coffee_product_id')->sum('quantity_in_stock') ?? 0;
+            }
         }
     }
 
@@ -1246,6 +1231,222 @@ class dashboardController extends Controller
             'ordersInTransit' => ['value' => 0, 'change' => ['percentage' => 0, 'direction' => 'right', 'type' => 'neutral']],
             'warehouseCount' => ['value' => 0, 'change' => ['percentage' => 0, 'direction' => 'right', 'type' => 'neutral']],
         ];
+    }
+
+    /**
+     * Get dynamic inventory items for supplier dashboard
+     */
+    private function getSupplierInventoryItems(): array
+    {
+        $user = Auth::user();
+        $supplier = $user->supplier;
+        
+        if (!$supplier) {
+            return [];
+        }
+
+        // Get all warehouses for this supplier
+        $warehouses = $supplier->warehouses;
+        
+        if ($warehouses->isEmpty()) {
+            return [];
+        }
+
+        // Get inventory items from supplier's warehouses
+        $inventoryItems = Inventory::whereIn('warehouse_id', $warehouses->pluck('id'))
+            ->with(['rawCoffee', 'warehouse'])
+            ->get();
+
+        if ($inventoryItems->isEmpty()) {
+            return [];
+        }
+
+        // Group by coffee type and grade, take random 4 items
+        $groupedItems = $inventoryItems->groupBy(function($item) {
+            if ($item->rawCoffee) {
+                return $item->rawCoffee->coffee_type . ' - ' . ($item->rawCoffee->grade ?? 'Unknown');
+            }
+            return 'Unknown Product';
+        });
+
+        $result = [];
+        $count = 0;
+        
+        foreach ($groupedItems->take(4) as $groupName => $items) {
+            $totalQuantity = $items->sum('quantity_in_stock');
+            $warehouseIds = $items->pluck('warehouse_id')->unique();
+            
+            // Calculate allocated space: warehouse capacity divided by number of inventory items in that warehouse
+            $allocatedSpace = 0;
+            foreach ($warehouseIds as $warehouseId) {
+                $warehouse = $warehouses->where('id', $warehouseId)->first();
+                if ($warehouse) {
+                    $itemsInWarehouse = $inventoryItems->where('warehouse_id', $warehouseId)->count();
+                    $allocatedSpace += $itemsInWarehouse > 0 ? ($warehouse->capacity / $itemsInWarehouse) : 0;
+                }
+            }
+
+            // Determine status based on quantity vs allocated space ratio
+            $ratio = $allocatedSpace > 0 ? ($totalQuantity / $allocatedSpace) * 100 : 0;
+            $statusLabel = 'Healthy';
+            if ($ratio < 20) {
+                $statusLabel = 'Critical';
+            } elseif ($ratio < 50) {
+                $statusLabel = 'Low';
+            }
+
+            $result[] = [
+                'name' => $groupName,
+                'available' => $totalQuantity,
+                'allocated' => round($allocatedSpace, 2),
+                'statusLabel' => $statusLabel,
+            ];
+            
+            $count++;
+            if ($count >= 4) break;
+        }
+
+        return $result;
+    }
+
+    /**
+     * Get dynamic inventory items for vendor dashboard
+     */
+    private function getVendorInventoryItems(): array
+    {
+        $user = Auth::user();
+        $wholesaler = $user->wholesaler;
+        
+        if (!$wholesaler) {
+            return [];
+        }
+
+        // Get all warehouses for this wholesaler
+        $warehouses = $wholesaler->warehouses;
+        
+        if ($warehouses->isEmpty()) {
+            return [];
+        }
+
+        // Get inventory items from vendor's warehouses
+        $inventoryItems = Inventory::whereIn('warehouse_id', $warehouses->pluck('id'))
+            ->with(['coffeeProduct', 'warehouse'])
+            ->get();
+
+        if ($inventoryItems->isEmpty()) {
+            return [];
+        }
+
+        // Group by coffee product name, take random 4 items
+        $groupedItems = $inventoryItems->groupBy(function($item) {
+            if ($item->coffeeProduct) {
+                return $item->coffeeProduct->name;
+            }
+            return 'Unknown Product';
+        });
+
+        $result = [];
+        $count = 0;
+        
+        foreach ($groupedItems->take(4) as $groupName => $items) {
+            $totalQuantity = $items->sum('quantity_in_stock');
+            $warehouseIds = $items->pluck('warehouse_id')->unique();
+            
+            // Calculate allocated space: warehouse capacity divided by number of inventory items in that warehouse
+            $allocatedSpace = 0;
+            foreach ($warehouseIds as $warehouseId) {
+                $warehouse = $warehouses->where('id', $warehouseId)->first();
+                if ($warehouse) {
+                    $itemsInWarehouse = $inventoryItems->where('warehouse_id', $warehouseId)->count();
+                    $allocatedSpace += $itemsInWarehouse > 0 ? ($warehouse->capacity / $itemsInWarehouse) : 0;
+                }
+            }
+
+            // Determine status based on quantity vs allocated space ratio
+            $ratio = $allocatedSpace > 0 ? ($totalQuantity / $allocatedSpace) * 100 : 0;
+            $statusLabel = 'Healthy';
+            if ($ratio < 20) {
+                $statusLabel = 'Critical';
+            } elseif ($ratio < 50) {
+                $statusLabel = 'Low';
+            }
+
+            $result[] = [
+                'name' => $groupName,
+                'available' => $totalQuantity,
+                'allocated' => round($allocatedSpace, 2),
+                'statusLabel' => $statusLabel,
+            ];
+            
+            $count++;
+            if ($count >= 4) break;
+        }
+
+        return $result;
+    }
+
+    /**
+     * Get dynamic inventory items for admin dashboard
+     */
+    private function getAdminInventoryItems(): array
+    {
+        // Get inventory items from supply centers (admin manages supply centers)
+        $inventoryItems = Inventory::whereNotNull('supply_center_id')
+            ->with(['rawCoffee', 'coffeeProduct', 'supplyCenter'])
+            ->get();
+
+        if ($inventoryItems->isEmpty()) {
+            return [];
+        }
+
+        // Group by product type, take random 4 items
+        $groupedItems = $inventoryItems->groupBy(function($item) {
+            if ($item->rawCoffee) {
+                return $item->rawCoffee->coffee_type . ' - ' . ($item->rawCoffee->grade ?? 'Unknown');
+            } elseif ($item->coffeeProduct) {
+                return $item->coffeeProduct->name;
+            }
+            return 'Unknown Product';
+        });
+
+        $result = [];
+        $count = 0;
+        
+        foreach ($groupedItems->take(4) as $groupName => $items) {
+            $totalQuantity = $items->sum('quantity_in_stock');
+            $supplyCenterIds = $items->pluck('supply_center_id')->unique()->filter();
+            
+            // Calculate allocated space: supply center capacity divided by number of inventory items
+            $allocatedSpace = 0;
+            foreach ($supplyCenterIds as $supplyCenterId) {
+                $supplyCenter = \App\Models\SupplyCenter::find($supplyCenterId);
+                if ($supplyCenter) {
+                    $itemsInSupplyCenter = $inventoryItems->where('supply_center_id', $supplyCenterId)->count();
+                    $allocatedSpace += $itemsInSupplyCenter > 0 ? ($supplyCenter->capacity / $itemsInSupplyCenter) : 0;
+                }
+            }
+
+            // Determine status based on quantity vs allocated space ratio
+            $ratio = $allocatedSpace > 0 ? ($totalQuantity / $allocatedSpace) * 100 : 0;
+            $statusLabel = 'Healthy';
+            if ($ratio < 20) {
+                $statusLabel = 'Critical';
+            } elseif ($ratio < 50) {
+                $statusLabel = 'Low';
+            }
+
+            $result[] = [
+                'name' => $groupName,
+                'available' => $totalQuantity,
+                'allocated' => round($allocatedSpace, 2),
+                'statusLabel' => $statusLabel,
+            ];
+            
+            $count++;
+            if ($count >= 4) break;
+        }
+
+        return $result;
     }
 
 }

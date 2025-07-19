@@ -13,7 +13,7 @@ return new class extends Migration {
             $table->string('supplycenter_id', 7)->nullable();
             $table->string('warehouse_id', 7)->nullable();
             $table->foreign('supplycenter_id')->references('id')->on('supply_centers')->onDelete('cascade');
-            $table->foreign('warehouse_id')->references('id')->on('warehouses')->onDelete('cascade');
+            // warehouse_id foreign key will be added in a separate migration after warehouses table is created
             $table->string('name', 255);
             $table->string('role', 100)->nullable();
             $table->string('address', 255)->nullable();
