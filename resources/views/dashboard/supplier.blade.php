@@ -7,39 +7,37 @@
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 w-full">
                 <x-stats-card
                     title="Active Orders"
-                    value="5"
+                    value="{{ $supplierStats['activeOrders']['value'] }}"
                     iconClass="fa-cube"
-                    unit="kgs"
-                    changeText="5.2% from last period"
-                    changeIconClass="fa-arrow-up"
-                    changeType="positive"
+                    changeText="{{ $supplierStats['activeOrders']['change']['percentage'] }}% from last period"
+                    changeIconClass="fa-arrow-{{ $supplierStats['activeOrders']['change']['direction'] }}"
+                    changeType="{{ $supplierStats['activeOrders']['change']['type'] }}"
                 />
                 <x-stats-card
-                    title="Production Volume"
-                    value="1,240"
+                    title="Total Inventory"
+                    value="{{ $supplierStats['totalInventory']['value'] }}"
                     iconClass="fa-weight-hanging"
                     unit="kg"
-                    changeText="1.2% from last period"
-                    changeIconClass="fa-arrow-down"
-                    changeType="negative"
+                    changeText="{{ $supplierStats['totalInventory']['change']['percentage'] }}% from last period"
+                    changeIconClass="fa-arrow-{{ $supplierStats['totalInventory']['change']['direction'] }}"
+                    changeType="{{ $supplierStats['totalInventory']['change']['type'] }}"
                 />
                 <x-stats-card
-                    title="Delivery Schedule"
-                    value="8"
+                    title="Pending Deliveries"
+                    value="{{ $supplierStats['pendingDeliveries']['value'] }}"
                     iconClass="fa-calendar-alt"
                     unit="shipments"
-                    changeText="2.1% from last period"
-                    changeIconClass="fa-arrow-up"
-                    changeType="positive"
+                    changeText="{{ $supplierStats['pendingDeliveries']['change']['percentage'] }}% from last period"
+                    changeIconClass="fa-arrow-{{ $supplierStats['pendingDeliveries']['change']['direction'] }}"
+                    changeType="{{ $supplierStats['pendingDeliveries']['change']['type'] }}"
                 />
                 <x-stats-card
-                    title="Quality Score"
-                    value="92/100"
+                    title="Performance Score"
+                    value="{{ $supplierStats['qualityScore']['value'] }}"
                     iconClass="fa-star"
-                    unit=""
-                    changeText="0.5% from last period"
-                    changeIconClass="fa-arrow-up"
-                    changeType="positive"
+                    changeText="{{ $supplierStats['qualityScore']['change']['percentage'] }}% from last period"
+                    changeIconClass="fa-arrow-{{ $supplierStats['qualityScore']['change']['direction'] }}"
+                    changeType="{{ $supplierStats['qualityScore']['change']['type'] }}"
                 />
             </div>
         </div>

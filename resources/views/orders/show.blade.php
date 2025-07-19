@@ -221,6 +221,20 @@
                             </button>
                         @endif
                         
+                        @if($order->wholesaler && $order->status === 'confirmed')
+                            <!-- Actions for confirmed vendor orders -->
+                            <form action="{{ route('orders.update-status', $order) }}" method="POST" class="w-full">
+                                @csrf
+                                @method('PUT')
+                                <input type="hidden" name="status" value="shipped">
+                                <button type="submit" 
+                                        class="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200"
+                                        onclick="return confirm('Mark this vendor order as in transit?')">
+                                    Mark as In Transit
+                                </button>
+                            </form>
+                        @endif
+                        
                         @if($order->supplier && $order->status === 'confirmed')
                             <!-- Actions for orders to suppliers -->
                             <form action="{{ route('orders.update-status', $order) }}" method="POST" class="w-full">
@@ -249,7 +263,7 @@
                             </form>
                         @endif
                         
-                        @if(in_array($order->status, ['delivered', 'cancelled']))
+                        @if(in_array($order->status, ['delivered', 'cancelled']) || ($order->wholesaler && $order->status === 'shipped'))
                             <div class="bg-gray-100 text-gray-600 text-center py-2 px-4 rounded-lg">
                                 No actions available
                             </div>

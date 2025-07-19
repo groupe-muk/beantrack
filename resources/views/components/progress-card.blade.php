@@ -71,7 +71,13 @@
                 </div>
             </div>
         @empty
-            <p class="text-center text-gray-500 dark:text-gray-400">No inventory items to display.</p>
+            <div class="text-center py-8">
+                <div class="mx-auto w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                    <i class="fas fa-box-open text-gray-400 text-2xl"></i>
+                </div>
+                <p class="text-gray-500 dark:text-gray-400 text-lg font-medium">You have no inventory</p>
+                <p class="text-gray-400 dark:text-gray-500 text-sm mt-2">Start adding inventory items to track their status here.</p>
+            </div>
         @endforelse
     </div>
 </div>

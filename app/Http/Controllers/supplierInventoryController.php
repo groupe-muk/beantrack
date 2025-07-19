@@ -33,14 +33,20 @@ class supplierInventoryController extends Controller
             ->whereIn('warehouse_id', $warehouses->pluck('id'))
             ->get();
         
-        $rawCoffeeItems = RawCoffee::all();
+        // Get all raw coffee items that belong to this supplier
+        $rawCoffeeItems = RawCoffee::where('supplier_id', $supplier->id)->get();
 
+        // Get all unique coffee types and grades from this supplier's raw coffee
+        $coffeeTypes = RawCoffee::where('supplier_id', $supplier->id)
+            ->distinct()
+            ->pluck('coffee_type')
+            ->toArray();
         
+        $grades = RawCoffee::where('supplier_id', $supplier->id)
+            ->distinct()
+            ->pluck('grade')
+            ->toArray();
 
-        // Calculate quantities for each coffee type and grade from supplier's warehouses
-        $coffeeTypes = ['Arabica', 'Robusta'];
-        $grades = ['A', 'B'];
-        
         $typeGradeQuantities = [];
         $typeGradeTrends = [];
         
@@ -50,6 +56,7 @@ class supplierInventoryController extends Controller
                     ->whereIn('inventory.warehouse_id', $warehouses->pluck('id'))
                     ->where('raw_coffee.coffee_type', $type)
                     ->where('raw_coffee.grade', $grade)
+                    ->where('raw_coffee.supplier_id', $supplier->id)
                     ->sum('inventory.quantity_in_stock');
                 
                 $typeGradeQuantities["{$type}_{$grade}"] = $quantity;
@@ -57,69 +64,81 @@ class supplierInventoryController extends Controller
             }
         }
 
-        // Calculate total quantities for cards
-        $arabicaQuantity = $typeGradeQuantities['Arabica_A'] + $typeGradeQuantities['Arabica_B'];
-        $robustaQuantity = $typeGradeQuantities['Robusta_A'] + $typeGradeQuantities['Robusta_B'];
-        $totalQuantity = $arabicaQuantity + $robustaQuantity;
-
-        // Calculate trends for cards
-        $arabicaTrend = $this->calculateTrend('Arabica', null, $warehouses->pluck('id'));
-        $robustaTrend = $this->calculateTrend('Robusta', null, $warehouses->pluck('id'));
+        // Calculate total quantities dynamically
+        $totalQuantity = 0;
+        $coffeeTypeQuantities = [];
+        $coffeeTypeTrends = [];
         
-         // Create inventory items for the table
-    $inventoryItems = collect();
-    foreach ($coffeeTypes as $type) {
-        $totalTypeQuantity = $typeGradeQuantities["{$type}_A"] + $typeGradeQuantities["{$type}_B"];
-        
-        // Find a raw coffee item with this type to use its ID
-        $rawCoffee = RawCoffee::where('coffee_type', $type)->first();
-        
-        if ($rawCoffee) {
-            $inventoryItems->push((object)[
-                'id' => preg_replace('/[^0-9]/', '', $rawCoffee->id), // Extract only numbers from ID
-                'name' => $type,
-                'total_quantity' => $totalTypeQuantity
-            ]);
+        foreach ($coffeeTypes as $type) {
+            $typeQuantity = 0;
+            foreach ($grades as $grade) {
+                $typeQuantity += $typeGradeQuantities["{$type}_{$grade}"] ?? 0;
+            }
+            $coffeeTypeQuantities[$type] = $typeQuantity;
+            $coffeeTypeTrends[$type] = $this->calculateTrend($type, null, $warehouses->pluck('id'));
+            $totalQuantity += $typeQuantity;
         }
-    }
+        
+         // Create inventory items for the table - show all coffee types for this supplier
+        $inventoryItems = collect();
+        foreach ($coffeeTypes as $type) {
+            $totalTypeQuantity = $coffeeTypeQuantities[$type] ?? 0;
+            
+            // Find a raw coffee item with this type to use its ID
+            $rawCoffee = RawCoffee::where('coffee_type', $type)
+                ->where('supplier_id', $supplier->id)
+                ->first();
+            
+            if ($rawCoffee) {
+                $inventoryItems->push((object)[
+                    'id' => preg_replace('/[^0-9]/', '', $rawCoffee->id), // Extract only numbers from ID
+                    'name' => $type,
+                    'total_quantity' => $totalTypeQuantity
+                ]);
+            }
+        }
 
-    // Define products variable for form dropdowns
-    $products = RawCoffee::select('id', 'coffee_type as name', 'grade')
-        ->get()
-        ->map(function($item) {
-            return (object)[
-                'id' => $item->id,
-                'name' => "{$item->name} (Grade {$item->grade})"
-            ];
-        });
+        // Define products variable for form dropdowns - only show this supplier's raw coffee
+        $products = RawCoffee::where('supplier_id', $supplier->id)
+            ->select('id', 'coffee_type as name', 'grade')
+            ->get()
+            ->map(function($item) {
+                return (object)[
+                    'id' => $item->id,
+                    'name' => "{$item->name} (Grade {$item->grade})"
+                ];
+            });
 
         return view('Inventory.supplierInventory', compact(
             'rawCoffeeInventory',
             'rawCoffeeItems',
             'warehouses',
-            'arabicaQuantity',
-            'arabicaTrend',
-            'robustaQuantity',
-            'robustaTrend',
             'totalQuantity',
             'typeGradeQuantities',
             'typeGradeTrends',
             'coffeeTypes',
             'grades',
             'inventoryItems',
-            'products'
-
-
+            'products',
+            'coffeeTypeQuantities',
+            'coffeeTypeTrends'
         ));
     }
 
     private function calculateTrend($type, $grade = null, $warehouseIds = null)
     {
+        $user = Auth::user();
+        $supplier = Supplier::where('user_id', $user->id)->first();
+        
         $currentWeek = now()->startOfWeek();
         $previousWeek = now()->subWeek()->startOfWeek();
         
         $query = Inventory::join('raw_coffee', 'inventory.raw_coffee_id', '=', 'raw_coffee.id')
             ->where('raw_coffee.coffee_type', $type);
+            
+        if ($supplier) {
+            $query->where('raw_coffee.supplier_id', $supplier->id);
+        }
             
         if ($grade) {
             $query->where('raw_coffee.grade', $grade);
@@ -156,9 +175,10 @@ class supplierInventoryController extends Controller
         }
 
         $validated = $request->validate([
-            'raw_coffee_id' => 'required',
+            'raw_coffee_id' => 'required|exists:raw_coffee,id',
             'quantity_in_stock' => 'required|numeric|min:0',
-            'supply_center_id' => 'required|exists:warehouses,id'
+            'supply_center_id' => 'required|exists:warehouses,id', // This is actually warehouse_id for suppliers
+            'defect_count' => 'nullable|integer|min:0',
         ]);
 
         // Verify the warehouse belongs to this supplier
@@ -171,17 +191,20 @@ class supplierInventoryController extends Controller
                 ->with('error', 'Invalid warehouse selected.');
         }
         
-        // Create the inventory item
+        // For suppliers, we don't create new raw coffee records - they work with existing ones
+        // The defect_count is for information only and doesn't modify the raw coffee record
+        
+        // Create the inventory item in supplier's warehouse
         $inventory = new Inventory();
         $inventory->raw_coffee_id = $validated['raw_coffee_id'];
         $inventory->quantity_in_stock = $validated['quantity_in_stock'];
-        $inventory->warehouse_id = $validated['supply_center_id'];
+        $inventory->warehouse_id = $validated['supply_center_id']; // Supplier's warehouse
         $inventory->save();
         
         return redirect()
             ->route('supplierInventory.index')
             ->with('success', 'Inventory item added successfully');
-}
+    }
 
         
     
@@ -289,38 +312,56 @@ class supplierInventoryController extends Controller
 
         $warehouses = Warehouse::where('supplier_id', $supplier->id)->pluck('id');
 
-        // Get quantities for each grade from supplier's warehouses only
-        $gradeQuantities = [
-            'A' => Inventory::join('raw_coffee', 'inventory.raw_coffee_id', '=', 'raw_coffee.id')
-                ->whereIn('inventory.warehouse_id', $warehouses)
-                ->where('raw_coffee.coffee_type', $type)
-                ->where('raw_coffee.grade', 'A')
-                ->sum('inventory.quantity_in_stock'),
-            'B' => Inventory::join('raw_coffee', 'inventory.raw_coffee_id', '=', 'raw_coffee.id')
-                ->whereIn('inventory.warehouse_id', $warehouses)
-                ->where('raw_coffee.coffee_type', $type)
-                ->where('raw_coffee.grade', 'B')
-                ->sum('inventory.quantity_in_stock')
-        ];
-
-        // Get all inventory items for this coffee type from supplier's warehouses only
-        $inventoryItems = Inventory::join('raw_coffee', 'inventory.raw_coffee_id', '=', 'raw_coffee.id')
-            ->join('warehouses', 'inventory.warehouse_id', '=', 'warehouses.id')
-            ->whereIn('inventory.warehouse_id', $warehouses)
-            ->where('raw_coffee.coffee_type', $type)
-            ->select(
-                'inventory.id',
-                'inventory.quantity_in_stock',
-                'raw_coffee.grade',
-                'warehouses.name as warehouse'
-            )
-            ->orderBy('inventory.updated_at', 'desc')
+        // Get all raw coffee items of this type for this supplier
+        $rawCoffeeItems = RawCoffee::where('coffee_type', $type)
+            ->where('supplier_id', $supplier->id)
             ->get();
+
+        // Get all grades available for this coffee type
+        $availableGrades = $rawCoffeeItems->pluck('grade')->unique()->toArray();
+        
+        $gradeBreakdown = [];
+        $totalQuantity = 0;
+
+        foreach ($availableGrades as $grade) {
+            // Get inventory for this specific grade
+            $gradeInventories = Inventory::join('raw_coffee', 'inventory.raw_coffee_id', '=', 'raw_coffee.id')
+                ->join('warehouses', 'inventory.warehouse_id', '=', 'warehouses.id')
+                ->whereIn('inventory.warehouse_id', $warehouses)
+                ->where('raw_coffee.coffee_type', $type)
+                ->where('raw_coffee.grade', $grade)
+                ->where('raw_coffee.supplier_id', $supplier->id)
+                ->select(
+                    'inventory.id',
+                    'inventory.quantity_in_stock',
+                    'warehouses.name as warehouse_name',
+                    'inventory.updated_at'
+                )
+                ->get();
+
+            $gradeTotal = $gradeInventories->sum('quantity_in_stock');
+            $totalQuantity += $gradeTotal;
+
+            $warehouseDetails = $gradeInventories->map(function($item) {
+                return [
+                    'id' => $item->id,
+                    'warehouse' => $item->warehouse_name,
+                    'quantity' => $item->quantity_in_stock,
+                    'last_updated' => $item->updated_at->format('Y-m-d H:i:s')
+                ];
+            })->toArray();
+
+            $gradeBreakdown[] = [
+                'grade' => $grade,
+                'total_quantity' => $gradeTotal,
+                'warehouse_details' => $warehouseDetails
+            ];
+        }
 
         return response()->json([
             'coffee_type' => $type,
-            'gradeQuantities' => $gradeQuantities,
-            'inventoryItems' => $inventoryItems
+            'total_quantity' => $totalQuantity,
+            'grade_breakdown' => $gradeBreakdown
         ]);
     }
 
@@ -329,8 +370,30 @@ class supplierInventoryController extends Controller
      */
     public function getItem($id)
     {
-        $inventoryItem = Inventory::findOrFail($id);
-        return response()->json($inventoryItem);
+        $user = Auth::user();
+        $supplier = Supplier::where('user_id', $user->id)->first();
+        
+        if (!$supplier) {
+            return response()->json(['error' => 'Supplier profile not found.'], 404);
+        }
+
+        // Get supplier's warehouse IDs
+        $warehouseIds = Warehouse::where('supplier_id', $supplier->id)->pluck('id');
+        
+        // Get the inventory item, ensuring it belongs to this supplier's warehouses
+        $inventoryItem = Inventory::with(['rawCoffee', 'warehouse'])
+            ->whereIn('warehouse_id', $warehouseIds)
+            ->findOrFail($id);
+
+        return response()->json([
+            'id' => $inventoryItem->id,
+            'raw_coffee_id' => $inventoryItem->raw_coffee_id,
+            'grade' => $inventoryItem->rawCoffee->grade ?? null,
+            'coffee_type' => $inventoryItem->rawCoffee->coffee_type ?? null,
+            'quantity_in_stock' => $inventoryItem->quantity_in_stock,
+            'supply_center_id' => $inventoryItem->warehouse_id,
+            'warehouse_name' => $inventoryItem->warehouse->location ?? 'Unknown',
+        ]);
     }
 
     /**
@@ -385,6 +448,58 @@ class supplierInventoryController extends Controller
         return redirect()
             ->route('supplierInventory.index')
             ->with('success', 'Inventory item deleted successfully');
+    }
+
+    /**
+     * Create a new raw coffee type (Supplier only)
+     */
+    public function createRawCoffee(Request $request)
+    {
+        $user = Auth::user();
+        $supplier = Supplier::where('user_id', $user->id)->first();
+        
+        if (!$supplier) {
+            return redirect()->route('supplierInventory.index')
+                ->with('error', 'Supplier profile not found.');
+        }
+
+        $validated = $request->validate([
+            'coffee_type' => 'required|string|max:50',
+            'grades' => 'required|array|min:1',
+            'grades.*' => 'string|in:A,B,C,AA,Premium',
+            'screen_size' => 'nullable|string|max:10',
+            'defect_count' => 'nullable|integer|min:0',
+        ]);
+
+        // Create a raw coffee record for each selected grade
+        $createdGrades = [];
+        foreach ($validated['grades'] as $grade) {
+            // Check if this supplier already has this coffee type and grade combination
+            $existingRawCoffee = RawCoffee::where('supplier_id', $supplier->id)
+                ->where('coffee_type', $validated['coffee_type'])
+                ->where('grade', $grade)
+                ->first();
+
+            if (!$existingRawCoffee) {
+                // Create the new raw coffee record
+                RawCoffee::create([
+                    'supplier_id' => $supplier->id,
+                    'coffee_type' => $validated['coffee_type'],
+                    'grade' => $grade,
+                    'screen_size' => $validated['screen_size'],
+                    'defect_count' => $validated['defect_count'] ?? 0,
+                    'harvest_date' => null, // Will be set when inventory batches are added
+                ]);
+                $createdGrades[] = $grade;
+            }
+        }
+
+        $message = count($createdGrades) > 0 
+            ? 'New raw coffee created successfully for grades: ' . implode(', ', $createdGrades)
+            : 'Raw coffee creation completed (some grades may already exist)';
+
+        return redirect()->route('supplierInventory.index')
+            ->with('success', $message);
     }
 }
 

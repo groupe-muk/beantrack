@@ -101,7 +101,7 @@
             @forelse ($uniqueProducts as $product)
                 <tr class="hover:bg-gray-50 dark:hover:bg-mild-gray transition-colors duration-150">
                     <td class="px-5 py-5 border-b border-soft-gray dark:border-mild-gray text-sm text-gray-900 dark:text-off-white">
-                        {{ $product['id'] }}
+                        {{ $loop->iteration }}
                     </td>
                     <td class="px-5 py-5 border-b border-soft-gray dark:border-mild-gray text-sm text-gray-900 dark:text-off-white">
                         {{ $product['name'] }}
@@ -120,7 +120,7 @@
                     </td>
                     <td class="px-5 py-5 border-b border-soft-gray dark:border-mild-gray text-sm">
                         <button type="button"
-                            class="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-600 transition-colors duration-200 text-xs cursor-pointer view-details-btn"
+                            class="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-600 transition-colors duration-200 cursor-pointer view-details-btn"
                             data-product-id="{{ $product['id'] }}">
                             View Details
                         </button>
@@ -223,20 +223,19 @@
     </form>
 </x-modal>
 
-<!-- Product Details Modal -->
-<div id="productDetailsModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 p-4" style="backdrop-filter: blur(4px);">
-    <div class="bg-white rounded-lg w-full max-w-3xl mx-4 my-4 max-h-[90vh] flex flex-col">
-        <div class="flex justify-between items-center p-4 border-b flex-shrink-0">
-            <h3 class="text-lg font-semibold">Product Details</h3>
-            <button type="button" onclick="closeProductDetails()" class="text-gray-500 hover:text-gray-700">
-                <i class="fas fa-times"></i>
-            </button>
-        </div>
-        <div id="productDetailsContent" class="p-4 space-y-4 flex-1 overflow-y-auto modal-scrollbar" style="min-height: 0; max-height: calc(90vh - 80px);">
-            <!-- Content will be loaded dynamically -->
-        </div>
+<!-- View Details Modal -->
+<x-modal 
+    id="viewDetailsModal" 
+    title="Coffee Product Details" 
+    size="xl" 
+    submit-form=""
+    submit-text=""
+    cancel-text="Close">
+    
+    <div id="itemDetailsContent">
+        <!-- Content will be loaded dynamically -->
     </div>
-</div>
+</x-modal>
   @endsection
   @push('scripts')
   <script>
@@ -390,13 +389,14 @@ function showProductDetails(productId) {
     console.log('Fetching details for product:', productId);
     
     // Show loading state
-    const content = document.getElementById('productDetailsContent');
-    content.innerHTML = '<div class="flex justify-center items-center p-8"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div></div>';
+    const content = document.getElementById('itemDetailsContent');
+    content.innerHTML = '<div class="flex justify-center items-center py-8"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div><p class="mt-2 text-gray-600">Loading details...</p></div>';
     
     // Show modal immediately with loading state
-    const modal = document.getElementById('productDetailsModal');
+    const modal = document.getElementById('viewDetailsModal');
     modal.classList.remove('hidden');
     modal.classList.add('flex');
+    document.body.style.overflow = 'hidden';
 
     fetch(`/vendorInventory/details/${productId}`, {
         method: 'GET',
@@ -420,78 +420,68 @@ function showProductDetails(productId) {
         }
 
         const detailsHtml = `
-            <div class="bg-white rounded-lg">
-                <div class="mb-6">
-                    <h3 class="text-xl font-semibold mb-2">${data.name}</h3>
-                    <div class="grid grid-cols-2 gap-4 text-sm">
-                        <div>
-                            <span class="text-gray-600">SKU:</span>
-                            <span class="font-medium">${data.id}</span>
-                        </div>
-                        <div>
-                            <span class="text-gray-600">Total Quantity:</span>
-                            <span class="font-medium">${data.total_quantity} kg</span>
-                        </div>
+            <div class="space-y-6">
+                <!-- Total Quantity Section -->
+                <div class="bg-gray-50 p-4 rounded-lg">
+                    <h3 class="text-xl font-semibold text-gray-900">${data.name}</h3>
+                    <div class="mt-2">
+                        <div class="text-3xl font-bold text-light-brown mt-1">${data.total_quantity} kg</div>
                     </div>
                 </div>
-
-                <div class="mb-6">
-                    <h4 class="text-lg font-semibold mb-2">Category Totals</h4>
-                    <div class="grid grid-cols-2 gap-4">
-                        ${Object.entries(data.category_totals).map(([category, total]) => `
-                            <div class="bg-gray-50 p-3 rounded">
-                                <span class="font-medium capitalize">${category}:</span>
-                                <span>${total} kg</span>
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>
-
-                <div class="mt-6">
-                    <div class="mb-4">
-                        <h4 class="text-lg font-semibold">Inventory Items</h4>
-                    </div>
-                    ${data.inventory_items.length === 0 ? `
-                        <p class="text-gray-500 text-center py-4">No inventory items found.</p>
-                    ` : `
+                
+                <!-- Category Breakdown -->
+                <div>
+                    <h4 class="text-lg font-medium text-gray-900 mb-3">Category Breakdown</h4>
+                    ${data.inventory_items && data.inventory_items.length > 0 ? `
                         <div class="space-y-4">
                             ${data.inventory_items.map(item => `
-                                <div class="bg-gray-50 p-4 rounded-lg">
-                                    <div class="flex justify-between items-center mb-3">
-                                        <h5 class="font-medium text-lg capitalize">${item.category}</h5>
-                                        <div class="space-x-2">
-                                            <button type="button" 
-                                                onclick="editInventory('${data.id}', '${item.id}')" 
-                                                class="text-blue-600 hover:text-blue-900 text-sm">
-                                                Edit
-                                            </button>
-                                            <button type="button" 
-                                                onclick="deleteInventory('${item.id}')"
-                                                class="text-red-600 hover:text-red-900 text-sm">
-                                                Delete
-                                            </button>
-                                        </div>
+                                <div class="border border-gray-200 rounded-lg p-4">
+                                    <div class="flex justify-between items-center mb-4">
+                                        <h5 class="text-lg font-semibold text-gray-800 capitalize">${item.category}</h5>
+                                        <span class="text-2xl font-bold text-light-brown">${item.quantity} kg</span>
                                     </div>
-                                    <div class="grid grid-cols-2 gap-4 text-sm">
-                                        <div>
-                                            <span class="text-gray-600">Quantity:</span>
-                                            <span class="font-medium">${item.quantity} kg</span>
-                                        </div>
-                                        <div>
-                                            <span class="text-gray-600">Warehouse:</span>
-                                            <span class="font-medium">${item.warehouse}</span>
-                                        </div>
-                                        <div>
-                                            <span class="text-gray-600">Added on:</span>
-                                            <span class="font-medium">${item.created_at}</span>
-                                        </div>
-                                        <div>
-                                            <span class="text-gray-600">Last Updated:</span>
-                                            <span class="font-medium">${item.last_updated}</span>
-                                        </div>
+                                    
+                                    <div class="overflow-x-auto">
+                                        <table class="min-w-full divide-y divide-gray-200">
+                                            <thead class="bg-gray-50">
+                                                <tr>
+                                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Warehouse</th>
+                                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
+                                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Updated</th>
+                                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody class="bg-white divide-y divide-gray-200">
+                                                <tr>
+                                                    <td class="px-4 py-2 text-sm text-gray-900">${item.warehouse}</td>
+                                                    <td class="px-4 py-2 text-sm text-gray-900">${item.quantity} kg</td>
+                                                    <td class="px-4 py-2 text-sm text-gray-500">${item.last_updated}</td>
+                                                    <td class="px-4 py-2 text-sm">
+                                                        <div class="flex space-x-2">
+                                                            <button 
+                                                                type="button"
+                                                                onclick="editInventory('${data.id}', '${item.id}')" 
+                                                                class="text-blue-600 hover:text-blue-900 text-sm font-medium">
+                                                                Edit
+                                                            </button>
+                                                            <button 
+                                                                type="button"
+                                                                onclick="deleteInventory('${item.id}')"
+                                                                class="text-red-600 hover:text-red-900 text-sm font-medium">
+                                                                Delete
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
                                     </div>
                                 </div>
                             `).join('')}
+                        </div>
+                    ` : `
+                        <div class="text-center py-8 text-gray-500">
+                            <p>No inventory records found for this coffee product.</p>
                         </div>
                     `}
                 </div>
@@ -503,9 +493,9 @@ function showProductDetails(productId) {
     .catch(error => {
         console.error('Error:', error);
         content.innerHTML = `
-            <div class="text-center text-red-600 p-4">
-                <p>Error loading product details.</p>
-                <p class="text-sm">${error.message}</p>
+            <div class="text-center text-red-600 py-8">
+                <p class="text-lg font-medium">Error loading product details</p>
+                <p class="text-sm mt-2">${error.message}</p>
             </div>
         `;
     });
@@ -513,9 +503,10 @@ function showProductDetails(productId) {
 
 function closeProductDetails() {
     console.log('Closing modal'); // Debug log
-    const modal = document.getElementById('productDetailsModal');
+    const modal = document.getElementById('viewDetailsModal');
     modal.classList.add('hidden');
     modal.classList.remove('flex');
+    document.body.style.overflow = 'auto';
 }
 
 function addInventory(productId) {
@@ -606,7 +597,7 @@ function deleteInventory(inventoryId) {
 }
 
 // Close modal when clicking outside
-document.getElementById('productDetailsModal').addEventListener('click', function(e) {
+document.getElementById('viewDetailsModal').addEventListener('click', function(e) {
     if (e.target === this) {
         closeProductDetails();
     }
