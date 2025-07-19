@@ -87,7 +87,9 @@
 <div class="mt-10">
     <div class="flex justify-between items-center mb-6">
         <h1 class="text-2xl font-semibold text-dashboard-light pb-5">Raw Coffee</h1>
-        <button class="bg-light-brown text-white px-4 py-2 rounded"data-modal-open="addRawCoffeeModal">+ Add Item</button>
+        <div class="flex space-x-2">
+            <button class="bg-light-brown text-white px-4 py-2 rounded hover:bg-coffee-brown transition-colors" data-modal-open="addRawCoffeeModal">+ Add to Inventory</button>
+        </div>
     </div>
     <div class="bg-white rounded shadow overflow-x-auto p-4">
         <table class="min-w-full leading-normal" id="search-table">
@@ -113,7 +115,7 @@
                 @forelse ($consolidatedRawCoffee as $rawCoffee)
                     <tr class="hover:bg-gray-50 dark:hover:bg-mild-gray transition-colors duration-150">
                         <td class="px-5 py-5 border-b border-soft-gray dark:border-mild-gray text-sm text-gray-900 dark:text-off-white">
-                            {{ $rawCoffee->id ?? 'N/A' }}
+                            {{ $loop->iteration }}
                         </td>
                         <td class="px-5 py-5 border-b border-soft-gray dark:border-mild-gray text-sm text-gray-900 dark:text-off-white">
                             {{ $rawCoffee->coffee_type }}
@@ -134,9 +136,11 @@
                             <div class="flex items-center space-x-3">
                                 <button 
                                     type="button"
-                                    class="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-600 transition-colors duration-200 text-xs cursor-pointer view-details-btn"
+                                    class="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-600 transition-colors duration-200 cursor-pointer view-details-btn"
                                     data-type="raw-coffee"
-                                    data-id="{{ $rawCoffee->id }}">
+                                    data-id="{{ $rawCoffee->id }}"
+                                    data-coffee-type="{{ $rawCoffee->coffee_type }}"
+                                    data-current-grade="{{ $rawCoffee->grade ?? 'Unknown' }}">
                                     View Details
                                 </button>
                             </div>
@@ -157,8 +161,9 @@
 <!-- Processed Coffee Table -->
 <div class="flex justify-between items-center mb-6 pt-10">
     <h1 class="text-2xl font-semibold text-dashboard-light pb-5">Processed Coffee</h1>
-    <div>
-        <button class="bg-light-brown text-white px-4 py-2 rounded" data-mode="add" data-modal-open="addProcessedCoffeeModal">+ Add Item</button>
+    <div class="flex space-x-2">
+        <button class="bg-coffee-brown text-white px-4 py-2 rounded hover:bg-light-brown transition-colors" data-modal-open="createCoffeeProductModal">+ Create New Product</button>
+        <button class="bg-light-brown text-white px-4 py-2 rounded hover:bg-coffee-brown transition-colors" data-mode="add" data-modal-open="addProcessedCoffeeModal">+ Add to Inventory</button>
     </div>
 </div>
 <div class="bg-white rounded shadow overflow-x-auto p-4">
@@ -186,7 +191,7 @@
             @forelse ($consolidatedCoffeeProducts as $coffeeProduct)
                 <tr class="hover:bg-gray-50 dark:hover:bg-mild-gray transition-colors duration-150">
                     <td class="px-5 py-5 border-b border-soft-gray dark:border-mild-gray text-sm text-gray-900 dark:text-off-white">
-                        {{ $coffeeProduct->id ?? 'N/A' }}
+                        {{ $loop->iteration }}
                     </td>
                     <td class="px-5 py-5 border-b border-soft-gray dark:border-mild-gray text-sm text-gray-900 dark:text-off-white">
                         {{ $coffeeProduct->name }}
@@ -207,9 +212,11 @@
                         <div class="flex items-center space-x-3">
                             <button 
                                 type="button"
-                                class="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-600 transition-colors duration-200 text-xs cursor-pointer view-details-btn"
+                                class="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-600 transition-colors duration-200 cursor-pointer view-details-btn"
                                 data-type="coffee-product"
-                                data-id="{{ $coffeeProduct->id }}">
+                                data-id="{{ $coffeeProduct->id }}"
+                                data-product-name="{{ $coffeeProduct->name ?? 'Unknown' }}"
+                                data-current-category="{{ $coffeeProduct->category ?? 'Unknown' }}">
                                 View Details
                             </button>
                         </div>
@@ -249,7 +256,9 @@
             <select name="raw_coffee_id" id="raw-coffee-name" required>
               <option value="">Select Raw Coffee Item</option>
               @foreach($rawCoffeeItems as $rawCoffeeItem)
-              <option value="{{ $rawCoffeeItem->id }}">{{ $rawCoffeeItem->coffee_type }}</option>
+              <option value="{{ $rawCoffeeItem->id }}" data-grade="{{ $rawCoffeeItem->grade }}">
+                {{ $rawCoffeeItem->coffee_type }} - Grade {{ $rawCoffeeItem->grade }}
+              </option>
               @endforeach
             </select>
             @error('raw_coffee_id')
@@ -260,18 +269,21 @@
         {{-- Grade Field --}}
         <div class="mb-4">
             <label for="rawCoffeeGrade" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Grade
+                Grade (Auto-selected)
             </label>
             <input type="text" 
                 id="rawCoffeeGrade" 
                 name="grade" 
-                required
-                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-coffee-brown focus:border-coffee-brown dark:bg-dark-background dark:text-off-white"
-                placeholder="Enter coffee grade"
+                readonly
+                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400"
+                placeholder="Grade will be auto-selected"
                 value="{{ old('grade') }}">
             @error('grade')
                 <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
             @enderror
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                Grade is automatically set based on selected coffee item.
+            </p>
         </div>
 
         {{-- Quantity Field --}}
@@ -290,6 +302,27 @@
             @error('quantity_in_stock')
                 <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
             @enderror
+        </div>
+
+        {{-- Defect Count Field --}}
+        <div class="mb-4">
+            <label for="rawCoffeeDefectCount" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Defect Count (per 100g sample)
+            </label>
+            <input type="number" 
+                id="rawCoffeeDefectCount" 
+                name="defect_count"
+                min="0"
+                step="1" 
+                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-coffee-brown focus:border-coffee-brown dark:bg-dark-background dark:text-off-white"
+                placeholder="Enter defect count (leave empty to keep existing)"
+                value="{{ old('defect_count') }}">
+            @error('defect_count')
+                <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
+            @enderror
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                Only applies when creating new coffee grades. Leave empty to keep existing defect count.
+            </p>
         </div>
 
         {{-- Warehouse Field --}}
@@ -330,7 +363,9 @@
             <select name="coffee_product_id" id="coffee-product-name" required>
               <option value="">Select Processed Coffee Item</option>
               @foreach($coffeeProductItems as $coffeeProductItem)
-              <option value="{{ $coffeeProductItem->id }}">{{ $coffeeProductItem->name }}</option>
+              <option value="{{ $coffeeProductItem->id }}" data-category="{{ $coffeeProductItem->category }}">
+                {{ $coffeeProductItem->name }} - {{ ucfirst($coffeeProductItem->category) }}
+              </option>
               @endforeach
             </select>
             @error('coffee_product_id')
@@ -346,13 +381,18 @@
             <input type="text" 
                    id="coffee-product-category" 
                    name="category" 
-                   required
-                   class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-coffee-brown focus:border-coffee-brown dark:bg-dark-background dark:text-off-white"
-                   placeholder="Enter coffee category"
+                   readonly
+                   class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md 
+                          bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 
+                          cursor-not-allowed"
+                   placeholder="Select coffee product to see category"
                    value="{{ old('category') }}">
             @error('category')
                 <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
             @enderror
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                Category is automatically set based on selected coffee product.
+            </p>
         </div>
 
         {{-- Quantity Field --}}
@@ -406,274 +446,168 @@
     </div>
 </x-modal>
 
+<!-- Create New Coffee Product Modal -->
+<x-modal 
+    id="createCoffeeProductModal" 
+    title="Create New Coffee Product" 
+    size="md" 
+    submit-form="createCoffeeProductForm" 
+    submit-text="Create Product"
+    cancel-text="Cancel">
+    
+    <form action="{{ route('coffeeproduct.store') }}" method="POST" id="createCoffeeProductForm">
+        @csrf
+        
+        {{-- Raw Coffee Source Field --}}
+        <div class="mb-4">
+            <label for="raw_coffee_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Raw Coffee Source *
+            </label>
+            <select name="raw_coffee_id" id="raw_coffee_id" required>
+                <option value="">Select Raw Coffee Source</option>
+                @foreach($rawCoffeeItems as $rawCoffeeItem)
+                    <option value="{{ $rawCoffeeItem->id }}">{{ $rawCoffeeItem->coffee_type }} - {{ $rawCoffeeItem->grade }}</option>
+                @endforeach
+            </select>
+            @error('raw_coffee_id')
+                <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
+            @enderror
+        </div>
+        
+        {{-- Product Name Field --}}
+        <div class="mb-4">
+            <label for="product_name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Product Name *
+            </label>
+            <input type="text" 
+                id="product_name" 
+                name="name" 
+                required
+                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-coffee-brown focus:border-coffee-brown dark:bg-dark-background dark:text-off-white"
+                placeholder="e.g., Premium Espresso Blend, Single Origin Pour Over"
+                value="{{ old('name') }}">
+            @error('name')
+                <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
+            @enderror
+        </div>
+
+        {{-- Category Field --}}
+        <div class="mb-4">
+            <label for="categories" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Categories * (Select multiple)
+            </label>
+            <div class="space-y-2">
+                <label class="flex items-center">
+                    <input type="checkbox" name="categories[]" value="premium" 
+                           class="rounded border-gray-300 text-coffee-brown focus:ring-coffee-brown"
+                           {{ in_array('premium', old('categories', [])) ? 'checked' : '' }}>
+                    <span class="ml-2">Premium</span>
+                </label>
+                <label class="flex items-center">
+                    <input type="checkbox" name="categories[]" value="standard" 
+                           class="rounded border-gray-300 text-coffee-brown focus:ring-coffee-brown"
+                           {{ in_array('standard', old('categories', [])) ? 'checked' : '' }}>
+                    <span class="ml-2">Standard</span>
+                </label>
+                <label class="flex items-center">
+                    <input type="checkbox" name="categories[]" value="specialty" 
+                           class="rounded border-gray-300 text-coffee-brown focus:ring-coffee-brown"
+                           {{ in_array('specialty', old('categories', [])) ? 'checked' : '' }}>
+                    <span class="ml-2">Specialty</span>
+                </label>
+                <label class="flex items-center">
+                    <input type="checkbox" name="categories[]" value="organic" 
+                           class="rounded border-gray-300 text-coffee-brown focus:ring-coffee-brown"
+                           {{ in_array('organic', old('categories', [])) ? 'checked' : '' }}>
+                    <span class="ml-2">Organic</span>
+                </label>
+            </div>
+            @error('categories')
+                <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
+            @enderror
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                Select all categories that will be available for this product. Each category can have separate inventory.
+            </p>
+        </div>
+
+        {{-- Product Form Field --}}
+        <div class="mb-4">
+            <label for="product_form" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Product Form *
+            </label>
+            <select name="product_form" 
+                id="product_form"
+                required
+                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-coffee-brown focus:border-coffee-brown dark:bg-dark-background dark:text-off-white">
+                <option value="">Select product form</option>
+                <option value="Whole Bean" {{ old('product_form') == 'Whole Bean' ? 'selected' : '' }}>Whole Bean</option>
+                <option value="Ground" {{ old('product_form') == 'Ground' ? 'selected' : '' }}>Ground</option>
+                <option value="Instant" {{ old('product_form') == 'Instant' ? 'selected' : '' }}>Instant</option>
+                <option value="Espresso" {{ old('product_form') == 'Espresso' ? 'selected' : '' }}>Espresso</option>
+            </select>
+            @error('product_form')
+                <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
+            @enderror
+        </div>
+
+        {{-- Roast Level Field --}}
+        <div class="mb-4">
+            <label for="roast_level" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Roast Level
+            </label>
+            <select name="roast_level" 
+                id="roast_level"
+                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-coffee-brown focus:border-coffee-brown dark:bg-dark-background dark:text-off-white">
+                <option value="">Select roast level</option>
+                <option value="Light" {{ old('roast_level') == 'Light' ? 'selected' : '' }}>Light</option>
+                <option value="Medium-Light" {{ old('roast_level') == 'Medium-Light' ? 'selected' : '' }}>Medium-Light</option>
+                <option value="Medium" {{ old('roast_level') == 'Medium' ? 'selected' : '' }}>Medium</option>
+                <option value="Medium-Dark" {{ old('roast_level') == 'Medium-Dark' ? 'selected' : '' }}>Medium-Dark</option>
+                <option value="Dark" {{ old('roast_level') == 'Dark' ? 'selected' : '' }}>Dark</option>
+            </select>
+            @error('roast_level')
+                <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
+            @enderror
+        </div>
+    </form>
+</x-modal>
+
 @endsection
 
 @push('scripts')
 <script>
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Admin inventory: DOMContentLoaded event triggered');
     
-     if (document.getElementById("search-table") && typeof simpleDatatables.DataTable !== 'undefined') {
-          const dataTable = new simpleDatatables.DataTable("#search-table", {
-              searchable: true,
-              sortable: false
-          });
-      }
-      if (document.getElementById("search-table2") && typeof simpleDatatables.DataTable !== 'undefined') {
-          const dataTable2 = new simpleDatatables.DataTable("#search-table2", {
-              searchable: true,
-              sortable: false
-          });
-      }
-
-document.addEventListener('DOMContentLoaded', function () {
-
-    // --- Essential Modal and Form Elements ---
-    const rawCoffeeModal = document.getElementById('addRawCoffeeModal');
-    const rawCoffeeForm = document.getElementById('addRawCoffeeForm');
-    const processedCoffeeModal = document.getElementById('addProcessedCoffeeModal');
-    const processedCoffeeForm = document.getElementById('addProcessedCoffeeForm');
-
-    // Add Raw Coffee Button
-    const addRawCoffeeButton = document.querySelector('button[data-modal-open="addRawCoffeeModal"]');
-    if (addRawCoffeeButton && rawCoffeeModal && rawCoffeeForm) {
-        addRawCoffeeButton.addEventListener('click', function() {
-            rawCoffeeForm.reset();
-            
-            // Update modal title and button text
-            const modalTitle = rawCoffeeModal.querySelector('h3');
-            const submitButton = rawCoffeeModal.querySelector('button[type="submit"]');
-            const methodInput = rawCoffeeForm.querySelector('input[name="_method"]');
-            
-            if (modalTitle) modalTitle.textContent = 'Add New Raw Coffee Item';
-            if (submitButton) submitButton.textContent = 'Add Item';
-            
-            rawCoffeeForm.action = "{{ route('inventory.store') }}";
-            if (methodInput) methodInput.value = 'POST';
-
-            // Open modal
-            rawCoffeeModal.classList.remove('hidden');
-            rawCoffeeModal.classList.add('flex');
-            document.body.style.overflow = 'hidden';
-        });
-    }
-
-    // Add Processed Coffee Button
-    const addProcessedCoffeeButton = document.querySelector('button[data-modal-open="addProcessedCoffeeModal"]');
-    if (addProcessedCoffeeButton && processedCoffeeModal && processedCoffeeForm) {
-        addProcessedCoffeeButton.addEventListener('click', function() {
-            processedCoffeeForm.reset();
-            
-            // Update modal title and button text
-            const modalTitle = processedCoffeeModal.querySelector('h3');
-            const submitButton = processedCoffeeModal.querySelector('button[type="submit"]');
-            const methodInput = processedCoffeeForm.querySelector('input[name="_method"]');
-            
-            if (modalTitle) modalTitle.textContent = 'Add New Processed Coffee Item';
-            if (submitButton) submitButton.textContent = 'Add Item';
-            
-            processedCoffeeForm.action = "{{ route('inventory.store') }}";
-            if (methodInput) methodInput.value = 'POST';
-
-            // Open modal
-            processedCoffeeModal.classList.remove('hidden');
-            processedCoffeeModal.classList.add('flex');
-            document.body.style.overflow = 'hidden';
-        });
-    }
-
-    // Edit Raw Coffee Buttons
-    const editRawCoffeeButtons = document.querySelectorAll('.edit-RawCoffee-btn');
-    editRawCoffeeButtons.forEach(btn => {
-        btn.addEventListener('click', function() {
-            const itemId = btn.getAttribute('data-rawCoffee-id');
-            const itemName = btn.getAttribute('data-rawCoffee-name');
-            const itemGrade = btn.getAttribute('data-rawCoffee-grade');
-            const itemQuantity = btn.getAttribute('data-rawCoffee-quantity');
-            const itemLocation = btn.getAttribute('data-rawCoffee-location');
-
-            // Validation
-            if (!itemId || !itemName || !itemGrade || !itemQuantity || !itemLocation) {
-                console.error("Missing raw coffee data:", { itemId, itemName, itemGrade, itemQuantity, itemLocation });
-                alert("Error: Missing item data. Please refresh the page and try again.");
-                return;
-            }
-
-            if (rawCoffeeForm && rawCoffeeModal) {
-                rawCoffeeForm.reset();
-                
-                // Update modal elements
-                const modalTitle = rawCoffeeModal.querySelector('h3');
-                const submitButton = rawCoffeeModal.querySelector('button[type="submit"]');
-                const methodInput = rawCoffeeForm.querySelector('input[name="_method"]');
-                
-                if (modalTitle) modalTitle.textContent = 'Edit Raw Coffee Item';
-                if (submitButton) submitButton.textContent = 'Update Item';
-                
-                // Set form action and method
-                const updateUrl = "{{ route('inventory.update.rawCoffee', ['rawCoffee' => ':id']) }}".replace(':id', encodeURIComponent(itemId));
-                rawCoffeeForm.action = updateUrl;
-                if (methodInput) methodInput.value = 'PATCH';
-
-                // Populate form fields
-                const nameSelect = document.getElementById('raw-coffee-name');
-                const gradeInput = document.getElementById('rawCoffeeGrade');
-                const quantityInput = document.getElementById('rawCoffeeQuantity');
-                const warehouseSelect = document.getElementById('coffeeProductWarehouse');
-                
-                if (nameSelect) nameSelect.value = itemId;
-                if (gradeInput) gradeInput.value = itemGrade;
-                if (quantityInput) quantityInput.value = itemQuantity;
-                if (warehouseSelect) {
-                    // Find warehouse by name and set the value
-                    for (let option of warehouseSelect.options) {
-                        if (option.text === itemLocation) {
-                            warehouseSelect.value = option.value;
-                            break;
-                        }
-                    }
-                }
-
-                // Open modal
-                rawCoffeeModal.classList.remove('hidden');
-                rawCoffeeModal.classList.add('flex');
-                document.body.style.overflow = 'hidden';
-            }
-        });
-    });
-
-    // Edit Processed Coffee Buttons
-    const editProcessedCoffeeButtons = document.querySelectorAll('.edit-CoffeeProduct-btn');
-    editProcessedCoffeeButtons.forEach(btn => {
-        btn.addEventListener('click', function() {
-            const itemId = btn.getAttribute('data-coffeeProduct-id');
-            const itemName = btn.getAttribute('data-coffeeProduct-name');
-            const itemCategory = btn.getAttribute('data-coffeeProduct-category');
-            const itemQuantity = btn.getAttribute('data-coffeeProduct-quantity');
-            const itemLocation = btn.getAttribute('data-coffeeProduct-location');
-
-            // Validation
-            if (!itemId || !itemName || !itemCategory || !itemQuantity || !itemLocation) {
-                console.error("Missing processed coffee data:", { itemId, itemName, itemCategory, itemQuantity, itemLocation });
-                alert("Error: Missing item data. Please refresh the page and try again.");
-                return;
-            }
-
-            if (processedCoffeeForm && processedCoffeeModal) {
-                processedCoffeeForm.reset();
-                
-                // Update modal elements
-                const modalTitle = processedCoffeeModal.querySelector('h3');
-                const submitButton = processedCoffeeModal.querySelector('button[type="submit"]');
-                const methodInput = processedCoffeeForm.querySelector('input[name="_method"]');
-                
-                if (modalTitle) modalTitle.textContent = 'Edit Processed Coffee Item';
-                if (submitButton) submitButton.textContent = 'Update Item';
-                
-                // Set form action and method
-                const updateUrl = "{{ route('inventory.update.coffeeProduct', ['coffeeProduct' => ':id']) }}".replace(':id', encodeURIComponent(itemId));
-                processedCoffeeForm.action = updateUrl;
-                if (methodInput) methodInput.value = 'PATCH';
-
-                // Populate form fields
-                const nameSelect = document.getElementById('coffee-product-name');
-                const categoryInput = document.getElementById('coffee-product-category');
-                const quantityInput = document.getElementById('coffee-product-quantity');
-                const warehouseSelect = document.getElementById('processedCoffeeWarehouse');
-                
-                if (nameSelect) nameSelect.value = itemId;
-                if (categoryInput) categoryInput.value = itemCategory;
-                if (quantityInput) quantityInput.value = itemQuantity;
-                if (warehouseSelect) {
-                    // Find warehouse by name and set the value
-                    for (let option of warehouseSelect.options) {
-                        if (option.text === itemLocation) {
-                            warehouseSelect.value = option.value;
-                            break;
-                        }
-                    }
-                }
-
-                // Open modal
-                processedCoffeeModal.classList.remove('hidden');
-                processedCoffeeModal.classList.add('flex');
-                document.body.style.overflow = 'hidden';
-            }
-        });
-    });
-
-    // Delete Raw Coffee Confirmation
-    const deleteRawCoffeeForms = document.querySelectorAll('.delete-RawCoffee-form');
-    deleteRawCoffeeForms.forEach(form => {
-        form.addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            const itemName = form.closest('tr').querySelector('td:nth-child(2)').textContent.trim();
-            
-            if (confirm(`Are you sure you want to delete "${itemName}"? This action cannot be undone.`)) {
-                form.submit();
-            }
-        });
-    });
-
-    // Delete Processed Coffee Confirmation
-    const deleteProcessedCoffeeForms = document.querySelectorAll('.delete-CoffeeProduct-form');
-    deleteProcessedCoffeeForms.forEach(form => {
-        form.addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            const itemName = form.closest('tr').querySelector('td:nth-child(2)').textContent.trim();
-            
-            if (confirm(`Are you sure you want to delete "${itemName}"? This action cannot be undone.`)) {
-                form.submit();
-            }
-        });
-    });
-
-    // Modal close functionality
-    function setupModalClose(modal) {
-        if (!modal) return;
-        
-        // Close on backdrop click
-        modal.addEventListener('click', function(e) {
-            if (e.target === modal) {
-                modal.classList.add('hidden');
-                modal.classList.remove('flex');
-                document.body.style.overflow = 'auto';
-            }
-        });
-        
-        // Close on escape key
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape' && !modal.classList.contains('hidden')) {
-                modal.classList.add('hidden');
-                modal.classList.remove('flex');
-                document.body.style.overflow = 'auto';
-            }
-        });
-        
-        // Close on cancel button
-        const cancelButton = modal.querySelector('button[data-modal-close]');
-        if (cancelButton) {
-            cancelButton.addEventListener('click', function() {
-                modal.classList.add('hidden');
-                modal.classList.remove('flex');
-                document.body.style.overflow = 'auto';
-            });
-        }
-    }
+    // Get all view details buttons
+    const buttons = document.querySelectorAll('.view-details-btn');
+    console.log('Admin inventory: Found view details buttons:', buttons.length);
     
-    // Setup modal close for both modals
-    setupModalClose(rawCoffeeModal);
-    setupModalClose(processedCoffeeModal);
-    
-    // View Details functionality
-    const viewDetailsButtons = document.querySelectorAll('.view-details-btn');
     const viewDetailsModal = document.getElementById('viewDetailsModal');
     const itemDetailsContent = document.getElementById('itemDetailsContent');
     
-    viewDetailsButtons.forEach(btn => {
-        btn.addEventListener('click', function() {
-            const type = btn.getAttribute('data-type');
-            const id = btn.getAttribute('data-id');
+    // Setup modal close functionality
+    setupModalClose(viewDetailsModal);
+    
+    // Set up view details functionality
+    buttons.forEach(button => {
+        button.addEventListener('click', function() {
+            console.log('Admin inventory: View details button clicked!');
+            
+            const dataType = this.getAttribute('data-type');
+            const dataId = this.getAttribute('data-id');
+            
+            let identifier;
+            if (dataType === 'raw-coffee') {
+                identifier = this.getAttribute('data-coffee-type');
+            } else if (dataType === 'coffee-product') {
+                identifier = this.getAttribute('data-product-name');
+            }
+            
+            if (!identifier) {
+                console.error('No identifier found for button');
+                return;
+            }
             
             // Show loading state
             itemDetailsContent.innerHTML = '<div class="text-center py-8"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div><p class="mt-2 text-gray-600">Loading details...</p></div>';
@@ -683,251 +617,174 @@ document.addEventListener('DOMContentLoaded', function () {
             viewDetailsModal.classList.add('flex');
             document.body.style.overflow = 'hidden';
             
-            // Fetch item details
-            fetch(`/inventory/details/${type}/${id}`)
-                .then(response => response.json())
-                .then(data => {
-                    let content = '';
-                    
-                    if (type === 'raw-coffee') {
-                        content = `
-                            <div class="space-y-6">
-                                <!-- Total Quantity Section -->
-                                <div class="bg-gray-50 p-4 rounded-lg">
-                                    <h3 class="text-xl font-semibold text-gray-900">${data.name}</h3>
-                                    <div class="mt-2">
-                                            <p class="text-gray-600">Total Quantity</p>
-                                        <p class="text-2xl font-bold text-gray-900">${data.total_quantity.toFixed(2)} kg</p>
-                                    </div>
-                                </div>
-
-                                <!-- Grade Breakdown -->
-                                <div>
-                                    <h4 class="text-lg font-semibold text-gray-900 mb-3">Grade Breakdown</h4>
-                                    <div class="grid grid-cols-2 gap-4">
-                                        ${['A', 'B'].map(grade => {
-                                            const gradeItems = data.inventory_details.filter(item => item.grade === grade);
-                                            const gradeTotal = gradeItems.reduce((sum, item) => sum + parseFloat(item.quantity), 0);
-                                            return `
-                                                <div class="bg-white p-3 rounded-lg border">
-                                                    <h5 class="font-medium text-gray-900">Grade ${grade}</h5>
-                                                    <p class="text-xl font-bold text-gray-900">${gradeTotal.toFixed(2)} kg</p>
-                                                </div>
-                                            `;
-                                        }).join('')}
-                                    </div>
-                                </div>
-                                
-                                <!-- Inventory Items List -->
-                                <div>
-                                    <h4 class="text-lg font-semibold text-gray-900 mb-3">Inventory Items</h4>
-                                    <div class="space-y-3">
-                                        ${data.inventory_details.map(item => `
-                                            <div class="bg-white p-4 rounded-lg border">
-                                                <div class="flex justify-between items-start">
-                                                    <div class="grid grid-cols-2 gap-4 flex-grow">
-                                                        <div>
-                                                            <p class="text-sm text-gray-500">Grade</p>
-                                                            <p class="font-medium">Grade ${item.grade}</p>
-                                                        </div>
-                                                        <div>
-                                                            <p class="text-sm text-gray-500">Quantity</p>
-                                                            <p class="font-medium">${parseFloat(item.quantity).toFixed(2)} kg</p>
-                                                        </div>
-                                                        <div>
-                                                            <p class="text-sm text-gray-500">Warehouse</p>
-                                                            <p class="font-medium">${item.supply_center}</p>
-                                                        </div>
-                                                        <div>
-                                                            <p class="text-sm text-gray-500">Last Updated</p>
-                                                            <p class="font-medium">${new Date(item.last_updated).toLocaleString()}</p>
-                                                        </div>
-                                                    </div>
-                                                    <div class="flex space-x-2 ml-4">
-                                                        <button type="button" 
-                                                            class="px-3 py-1 text-xs bg-green-100 text-green-700 rounded hover:bg-green-200 transition-colors duration-200"
-                                                            onclick="editItem('raw-coffee', '${data.id}', '${item.grade}')">
-                                                            Edit
-                                                        </button>
-                                                        <button type="button" 
-                                                            class="px-3 py-1 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors duration-200"
-                                                            onclick="deleteItem('raw-coffee', '${data.id}', '${item.grade}')">
-                                                            Delete
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        `).join('')}
-                                    </div>
-                                </div>
-                            </div>
-                        `;
-                    } else {
-                        content = `
-                            <div class="space-y-6">
-                                <!-- Total Quantity Section -->
-                                <div class="bg-gray-50 p-4 rounded-lg">
-                                    <h3 class="text-xl font-semibold text-gray-900">${data.name}</h3>
-                                    <div class="mt-2">
-                                            <p class="text-gray-600">Total Quantity</p>
-                                        <p class="text-2xl font-bold text-gray-900">${data.total_quantity.toFixed(2)} kg</p>
-                                    </div>
-                                </div>
-
-                                <!-- Category Breakdown -->
-                                <div>
-                                    <h4 class="text-lg font-semibold text-gray-900 mb-3">Category Breakdown</h4>
-                                    <div class="grid grid-cols-2 gap-4">
-                                        ${['Premium', 'Standard'].map(category => {
-                                            const categoryItems = data.inventory_details.filter(item => item.category === category);
-                                            const categoryTotal = categoryItems.reduce((sum, item) => sum + parseFloat(item.quantity), 0);
-                                            return `
-                                                <div class="bg-white p-3 rounded-lg border">
-                                                    <h5 class="font-medium text-gray-900">${category}</h5>
-                                                    <p class="text-xl font-bold text-gray-900">${categoryTotal.toFixed(2)} kg</p>
-                                                </div>
-                                            `;
-                                        }).join('')}
-                                    </div>
-                                </div>
-                                
-                                <!-- Inventory Items List -->
-                                <div>
-                                    <h4 class="text-lg font-semibold text-gray-900 mb-3">Inventory Items</h4>
-                                    <div class="space-y-3">
-                                        ${data.inventory_details.map(item => `
-                                            <div class="bg-white p-4 rounded-lg border">
-                                                <div class="flex justify-between items-start">
-                                                    <div class="grid grid-cols-2 gap-4 flex-grow">
-                                                        <div>
-                                                            <p class="text-sm text-gray-500">Category</p>
-                                                            <p class="font-medium">${item.category}</p>
-                                                        </div>
-                                                        <div>
-                                                            <p class="text-sm text-gray-500">Quantity</p>
-                                                            <p class="font-medium">${parseFloat(item.quantity).toFixed(2)} kg</p>
-                                                        </div>
-                                                        <div>
-                                                            <p class="text-sm text-gray-500">Warehouse</p>
-                                                            <p class="font-medium">${item.supply_center}</p>
-                                                        </div>
-                                                        <div>
-                                                            <p class="text-sm text-gray-500">Last Updated</p>
-                                                            <p class="font-medium">${new Date(item.last_updated).toLocaleString()}</p>
-                                                        </div>
-                                                    </div>
-                                                    <div class="flex space-x-2 ml-4">
-                                                        <button type="button" 
-                                                            class="px-3 py-1 text-xs bg-green-100 text-green-700 rounded hover:bg-green-200 transition-colors duration-200"
-                                                            onclick="editItem('coffee-product', '${data.id}', '${item.category}')">
-                                                            Edit
-                                                        </button>
-                                                        <button type="button" 
-                                                            class="px-3 py-1 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors duration-200"
-                                                            onclick="deleteItem('coffee-product', '${data.id}', '${item.category}')">
-                                                            Delete
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        `).join('')}
-                                    </div>
-                                </div>
-                            </div>
-                        `;
+            // Fetch details from the server
+            const endpoint = dataType === 'raw-coffee' 
+                ? `/inventory/details/${encodeURIComponent(identifier)}`
+                : `/inventory/product-details/${encodeURIComponent(identifier)}`;
+                
+            fetch(endpoint)
+                .then(response => {
+                    console.log('Response status:', response.status);
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
                     }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Fetched data:', data);
+                    
+                    let content = `
+                        <div class="space-y-6">
+                            <!-- Total Quantity Section -->
+                            <div class="bg-gray-50 p-4 rounded-lg">
+                                <h3 class="text-xl font-semibold text-gray-900">${data.name || identifier}</h3>
+                                <div class="mt-2">
+                                    <div class="text-3xl font-bold text-light-brown mt-1">${data.total_quantity || 0} ${dataType === 'raw-coffee' ? 'kg' : 'units'}</div>
+                                </div>
+                            </div>
+                            
+                            <!-- Details Breakdown -->
+                            <div>
+                                <h4 class="text-lg font-medium text-gray-900 mb-3">${dataType === 'raw-coffee' ? 'Grade Breakdown' : 'Location Breakdown'}</h4>
+                                ${data.breakdown && data.breakdown.length > 0 ? `
+                                    <div class="space-y-4">
+                                        ${data.breakdown.map(item => `
+                                            <div class="border border-gray-200 rounded-lg p-4">
+                                                <div class="flex justify-between items-center mb-3">
+                                                    <h5 class="text-lg font-medium text-gray-900">${dataType === 'raw-coffee' ? 'Grade: ' + item.grade : 'Location: ' + item.location}</h5>
+                                                    <span class="text-xl font-bold text-light-brown">${item.total_quantity} ${dataType === 'raw-coffee' ? 'kg' : 'units'}</span>
+                                                </div>
+                                                
+                                                ${item.details && item.details.length > 0 ? `
+                                                    <div class="overflow-x-auto">
+                                                        <table class="min-w-full divide-y divide-gray-200">
+                                                            <thead class="bg-gray-50">
+                                                                <tr>
+                                                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">${dataType === 'raw-coffee' ? 'Warehouse' : 'Category'}</th>
+                                                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
+                                                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Updated</th>
+                                                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody class="bg-white divide-y divide-gray-200">
+                                                                ${item.details.map(detail => `
+                                                                    <tr>
+                                                                        <td class="px-4 py-2 text-sm text-gray-900">${detail.location || detail.category}</td>
+                                                                        <td class="px-4 py-2 text-sm text-gray-900">${detail.quantity} ${dataType === 'raw-coffee' ? 'kg' : 'units'}</td>
+                                                                        <td class="px-4 py-2 text-sm text-gray-500">${detail.last_updated}</td>
+                                                                        <td class="px-4 py-2 text-sm">
+                                                                            <div class="flex space-x-2">
+                                                                                <button 
+                                                                                    type="button"
+                                                                                    onclick="editInventoryItem('${detail.id}')" 
+                                                                                    class="text-blue-600 hover:text-blue-900 text-sm font-medium">
+                                                                                    Edit
+                                                                                </button>
+                                                                                <button 
+                                                                                    type="button"
+                                                                                    onclick="confirmDeleteItem('${detail.id}')"
+                                                                                    class="text-red-600 hover:text-red-900 text-sm font-medium">
+                                                                                    Delete
+                                                                                </button>
+                                                                            </div>
+                                                                        </td>
+                                                                    </tr>
+                                                                `).join('')}
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+                                                ` : `
+                                                    <p class="text-gray-500 text-center py-4">No inventory found for this ${dataType === 'raw-coffee' ? 'grade' : 'category'}</p>
+                                                `}
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                ` : `
+                                    <div class="text-center py-8 text-gray-500">
+                                        <p>No inventory records found for this ${dataType === 'raw-coffee' ? 'coffee type' : 'product'}.</p>
+                                    </div>
+                                `}
+                            </div>
+                        </div>
+                    `;
                     
                     itemDetailsContent.innerHTML = content;
                 })
                 .catch(error => {
-                    console.error('Error fetching item details:', error);
-                    itemDetailsContent.innerHTML = '<div class="text-center py-8"><p class="text-red-600">Error loading details. Please try again.</p></div>';
+                    console.error('Error fetching details:', error);
+                    itemDetailsContent.innerHTML = '<div class="text-center py-8 text-red-600"><p>Error loading details. Please try again.</p></div>';
                 });
         });
     });
     
-    // Setup modal close for view details modal
-    setupModalClose(viewDetailsModal);
+    // Modal close functionality
+    function setupModalClose(modal) {
+        if (!modal) return;
+        
+        // Close on backdrop click
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) {
+                closeModal(modal);
+            }
+        });
+        
+        // Close on escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && !modal.classList.contains('hidden')) {
+                closeModal(modal);
+            }
+        });
+        
+        // Close on cancel button
+        const cancelButton = modal.querySelector('button[data-modal-close]');
+        if (cancelButton) {
+            cancelButton.addEventListener('click', function() {
+                closeModal(modal);
+            });
+        }
+    }
+    
+    function closeModal(modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+        document.body.style.overflow = 'auto';
+    }
 });
 
-// Global functions for edit and delete
-function editItem(type, id, gradeOrCategory) {
-    // Close the details modal
+// Edit inventory item function
+function editInventoryItem(itemId) {
+    console.log('Editing inventory item:', itemId);
+    
+    // Show loading overlay
+    const loadingOverlay = document.createElement('div');
+    loadingOverlay.className = 'fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50';
+    loadingOverlay.innerHTML = '<div class="bg-white p-4 rounded-lg shadow-lg"><i class="fas fa-spinner fa-spin text-blue-600 mr-2"></i> Loading...</div>';
+    document.body.appendChild(loadingOverlay);
+    
+    // Close the view details modal
     const viewDetailsModal = document.getElementById('viewDetailsModal');
     viewDetailsModal.classList.add('hidden');
     viewDetailsModal.classList.remove('flex');
-    document.body.style.overflow = 'auto';
     
-    // Open the appropriate edit modal based on type
-    if (type === 'raw-coffee') {
-        const rawCoffeeModal = document.getElementById('addRawCoffeeModal');
-        const rawCoffeeForm = document.getElementById('addRawCoffeeForm');
-        
-        if (rawCoffeeModal && rawCoffeeForm) {
-            // Update modal title and button text
-            const modalTitle = rawCoffeeModal.querySelector('h3');
-            const submitButton = rawCoffeeModal.querySelector('button[type="submit"]');
-            const methodInput = rawCoffeeForm.querySelector('input[name="_method"]');
-            const gradeInput = document.getElementById('rawCoffeeGrade');
-            
-            if (modalTitle) modalTitle.textContent = 'Edit Raw Coffee Item';
-            if (submitButton) submitButton.textContent = 'Update Item';
-            if (gradeInput) gradeInput.value = gradeOrCategory;
-            
-            // Set form action and method
-            const updateUrl = `/inventory/raw-coffee/${id}`;
-            rawCoffeeForm.action = updateUrl;
-            if (methodInput) methodInput.value = 'PATCH';
-            
-            // Open modal
-            rawCoffeeModal.classList.remove('hidden');
-            rawCoffeeModal.classList.add('flex');
-            document.body.style.overflow = 'hidden';
-        }
-    } else {
-        const processedCoffeeModal = document.getElementById('addProcessedCoffeeModal');
-        const processedCoffeeForm = document.getElementById('addProcessedCoffeeForm');
-        
-        if (processedCoffeeModal && processedCoffeeForm) {
-            // Update modal title and button text
-            const modalTitle = processedCoffeeModal.querySelector('h3');
-            const submitButton = processedCoffeeModal.querySelector('button[type="submit"]');
-            const methodInput = processedCoffeeForm.querySelector('input[name="_method"]');
-            const categoryInput = document.getElementById('coffee-product-category');
-            
-            if (modalTitle) modalTitle.textContent = 'Edit Processed Coffee Item';
-            if (submitButton) submitButton.textContent = 'Update Item';
-            if (categoryInput) categoryInput.value = gradeOrCategory;
-            
-            // Set form action and method
-            const updateUrl = `/inventory/coffee-product/${id}`;
-            processedCoffeeForm.action = updateUrl;
-            if (methodInput) methodInput.value = 'PATCH';
-            
-            // Open modal
-            processedCoffeeModal.classList.remove('hidden');
-            processedCoffeeModal.classList.add('flex');
-            document.body.style.overflow = 'hidden';
-        }
-    }
+    // Redirect to edit page or open edit modal
+    window.location.href = `/inventory/${itemId}/edit`;
 }
 
-function deleteItem(type, id, gradeOrCategory) {
-    const itemType = type === 'raw-coffee' ? 'raw coffee' : 'processed coffee';
-    const itemIdentifier = type === 'raw-coffee' ? `Grade ${gradeOrCategory}` : gradeOrCategory;
+// Delete inventory item function
+function confirmDeleteItem(itemId) {
+    console.log('Attempting to delete inventory item:', itemId);
     
-    if (confirm(`Are you sure you want to delete this ${itemType} item (${itemIdentifier})? This action cannot be undone.`)) {
-        let url;
-        if (type === 'raw-coffee') {
-            url = `/inventory/raw-coffee/${id}`;
-        } else {
-            url = `/inventory/coffee-product/${id}`;
-        }
+    if (confirm('Are you sure you want to delete this inventory item? This action cannot be undone.')) {
+        // Show loading overlay
+        const loadingOverlay = document.createElement('div');
+        loadingOverlay.className = 'fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50';
+        loadingOverlay.innerHTML = '<div class="bg-white p-4 rounded-lg shadow-lg"><i class="fas fa-spinner fa-spin text-blue-600 mr-2"></i> Deleting...</div>';
+        document.body.appendChild(loadingOverlay);
         
-        // Create a form to submit the delete request
+        // Create and submit a form to delete the item
         const form = document.createElement('form');
         form.method = 'POST';
-        form.action = url;
+        form.action = `/inventory/${itemId}`;
         
         // Add CSRF token
         const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
@@ -937,71 +794,17 @@ function deleteItem(type, id, gradeOrCategory) {
         csrfInput.value = csrfToken;
         form.appendChild(csrfInput);
         
-        // Add method override
+        // Add method override for DELETE
         const methodInput = document.createElement('input');
         methodInput.type = 'hidden';
         methodInput.name = '_method';
         methodInput.value = 'DELETE';
         form.appendChild(methodInput);
         
-        // Add grade/category parameter
-        const gradeOrCategoryInput = document.createElement('input');
-        gradeOrCategoryInput.type = 'hidden';
-        gradeOrCategoryInput.name = type === 'raw-coffee' ? 'grade' : 'category';
-        gradeOrCategoryInput.value = gradeOrCategory;
-        form.appendChild(gradeOrCategoryInput);
-        
-        // Submit the form
+        // Append form to body and submit
         document.body.appendChild(form);
         form.submit();
     }
 }
-  function updateStatsCards() {
-    fetch('/inventory/stats')
-        .then(response => response.json())
-        .then(data => {
-            // Update the card values by their IDs
-            const arabicaElement = document.getElementById('raw-coffee-arabica-quantity');
-            const robustaElement = document.getElementById('raw-coffee-robusta-quantity');
-            const mountainBrewElement = document.getElementById('processed-coffee-mountain-brew-quantity');
-            const morningBrewElement = document.getElementById('processed-coffee-morning-brew-quantity');
-            
-            if (arabicaElement) arabicaElement.textContent = data.rawCoffeeArabicaQuantity || '0';
-            if (robustaElement) robustaElement.textContent = data.rawCoffeeRobustaQuantity || '0';
-            if (mountainBrewElement) mountainBrewElement.textContent = data.processedCoffeeMountainBrewQuantity || '0';
-            if (morningBrewElement) morningBrewElement.textContent = data.processedCoffeeMorningBrewQuantity || '0';
-            
-            // Update percentage changes
-            updatePercentageChange('arabica', data.arabicaChange);
-            updatePercentageChange('robusta', data.robustaChange);
-            updatePercentageChange('mountain-brew', data.mountainBrewChange);
-            updatePercentageChange('morning-brew', data.morningBrewChange);
-        })
-        .catch(error => {
-            console.error('Error fetching stats:', error);
-        });
-  }
-  
-  function updatePercentageChange(type, change) {
-    const card = document.querySelector(`[data-change-type="${type}"]`);
-    if (card) {
-      const arrowElement = card.querySelector('.fa-arrow-up, .fa-arrow-down');
-      const textElement = card.querySelector('.text-xs.font-medium');
-      
-      if (arrowElement && textElement) {
-        // Update arrow direction
-        arrowElement.className = `fa-solid ${change >= 0 ? 'fa-arrow-up' : 'fa-arrow-down'} text-xs ${change >= 0 ? 'text-green-500' : 'text-red-500'}`;
-        
-        // Update text
-        textElement.textContent = `${change}% from last week`;
-        textElement.className = `text-xs font-medium ml-1 ${change >= 0 ? 'text-green-500' : 'text-red-500'}`;
-      }
-    }
-  }
-  // Call once on page load
-   updateStatsCards();
-   // Refresh every 60 seconds
-   setInterval(updateStatsCards, 60000);
-
 </script>
 @endpush

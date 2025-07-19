@@ -163,24 +163,55 @@ return view('Inventory.inventory', compact(
     {
         $grade = request()->query('grade');
         $category = request()->query('category');
+        $showAllVariants = request()->query('show_all_variants', false);
         
         if ($type === 'raw-coffee') {
-            if ($id === 'placeholder' && $grade) {
-                // Handle placeholder case - find the actual raw coffee record
-                $rawCoffee = RawCoffee::where('grade', $grade)->first();
-                if (!$rawCoffee) {
-                    return response()->json([
-                        'type' => 'raw-coffee',
-                        'id' => null,
-                        'name' => 'Unknown',
-                        'grade' => $grade,
-                        'total_quantity' => 0,
-                        'inventory_details' => []
-                    ]);
+            $rawCoffee = RawCoffee::findOrFail($id);
+            
+            if ($showAllVariants) {
+                // Get all grades available for this coffee type
+                $allGrades = RawCoffee::where('coffee_type', $rawCoffee->coffee_type)
+                    ->distinct()
+                    ->pluck('grade')
+                    ->toArray();
+                
+                $variantDetails = [];
+                foreach ($allGrades as $gradeVariant) {
+                    $specificRawCoffee = RawCoffee::where('coffee_type', $rawCoffee->coffee_type)
+                        ->where('grade', $gradeVariant)
+                        ->first();
+                    
+                    if ($specificRawCoffee) {
+                        $inventories = Inventory::where('raw_coffee_id', $specificRawCoffee->id)
+                            ->whereNotNull('supply_center_id')
+                            ->with('supplyCenter')
+                            ->get();
+                        
+                        $inventoryDetails = $inventories->map(function($inv) use ($gradeVariant) {
+                            return [
+                                'id' => $inv->id,
+                                'supply_center' => $inv->supplyCenter ? $inv->supplyCenter->name : 'Unknown Supply Center',
+                                'quantity' => $inv->quantity_in_stock,
+                                'last_updated' => $inv->updated_at->format('Y-m-d H:i:s'),
+                                'grade' => $gradeVariant
+                            ];
+                        });
+                        
+                        $variantDetails[] = [
+                            'grade' => $gradeVariant,
+                            'total_quantity' => $inventories->sum('quantity_in_stock'),
+                            'inventory_details' => $inventoryDetails->toArray()
+                        ];
+                    }
                 }
-            } else {
-                // Get the raw coffee record
-                $rawCoffee = RawCoffee::findOrFail($id);
+                
+                return response()->json([
+                    'type' => 'raw-coffee',
+                    'id' => $rawCoffee->id,
+                    'name' => $rawCoffee->coffee_type,
+                    'show_all_variants' => true,
+                    'variants' => $variantDetails
+                ]);
             }
             
             if ($grade) {
@@ -197,6 +228,7 @@ return view('Inventory.inventory', compact(
                     
                     $inventoryDetails = $inventories->map(function($inv) use ($grade) {
                         return [
+                            'id' => $inv->id,
                             'supply_center' => $inv->supplyCenter ? $inv->supplyCenter->name : 'Unknown Supply Center',
                             'quantity' => $inv->quantity_in_stock,
                             'last_updated' => $inv->updated_at->format('Y-m-d H:i:s'),
@@ -255,22 +287,53 @@ return view('Inventory.inventory', compact(
                 'inventory_details' => $inventoryDetails->toArray()
             ]);
         } else {
-            if ($id === 'placeholder' && $category) {
-                // Handle placeholder case - find the actual coffee product record
-                $coffeeProduct = CoffeeProduct::where('category', $category)->first();
-                if (!$coffeeProduct) {
-                    return response()->json([
-                        'type' => 'coffee-product',
-                        'id' => null,
-                        'name' => 'Unknown',
-                        'category' => $category,
-                        'total_quantity' => 0,
-                        'inventory_details' => []
-                    ]);
+            // Coffee Product
+            $coffeeProduct = CoffeeProduct::findOrFail($id);
+            
+            if ($showAllVariants) {
+                // Get all categories available for this product name
+                $allCategories = CoffeeProduct::where('name', $coffeeProduct->name)
+                    ->distinct()
+                    ->pluck('category')
+                    ->toArray();
+                
+                $variantDetails = [];
+                foreach ($allCategories as $categoryVariant) {
+                    $specificCoffeeProduct = CoffeeProduct::where('name', $coffeeProduct->name)
+                        ->where('category', $categoryVariant)
+                        ->first();
+                    
+                    if ($specificCoffeeProduct) {
+                        $inventories = Inventory::where('coffee_product_id', $specificCoffeeProduct->id)
+                            ->whereNotNull('supply_center_id')
+                            ->with('supplyCenter')
+                            ->get();
+                        
+                        $inventoryDetails = $inventories->map(function($inv) use ($categoryVariant) {
+                            return [
+                                'id' => $inv->id,
+                                'supply_center' => $inv->supplyCenter ? $inv->supplyCenter->name : 'Unknown Supply Center',
+                                'quantity' => $inv->quantity_in_stock,
+                                'last_updated' => $inv->updated_at->format('Y-m-d H:i:s'),
+                                'category' => $categoryVariant
+                            ];
+                        });
+                        
+                        $variantDetails[] = [
+                            'category' => $categoryVariant,
+                            'total_quantity' => $inventories->sum('quantity_in_stock'),
+                            'inventory_details' => $inventoryDetails->toArray()
+                        ];
+                    }
                 }
-            } else {
-                // Get the coffee product record
-                $coffeeProduct = CoffeeProduct::findOrFail($id);
+                
+                return response()->json([
+                    'type' => 'coffee-product',
+                    'id' => $coffeeProduct->id,
+                    'name' => $coffeeProduct->name,
+                    'show_all_variants' => true,
+                    'variants' => $variantDetails
+                ]);
             }
             
             if ($category) {
@@ -287,6 +350,7 @@ return view('Inventory.inventory', compact(
                     
                     $inventoryDetails = $inventories->map(function($inv) use ($category) {
                         return [
+                            'id' => $inv->id,
                             'supply_center' => $inv->supplyCenter ? $inv->supplyCenter->name : 'Unknown Supply Center',
                             'quantity' => $inv->quantity_in_stock,
                             'last_updated' => $inv->updated_at->format('Y-m-d H:i:s'),
@@ -401,6 +465,7 @@ return view('Inventory.inventory', compact(
             'coffee_product_id' => 'nullable|exists:coffee_product,id',
             'grade' => 'nullable|string|max:255',
             'category' => 'nullable|string|max:255',
+            'defect_count' => 'nullable|integer|min:0',
         ]);
 
         // Ensure either raw_coffee_id or coffee_product_id is provided, but not both
@@ -421,8 +486,10 @@ return view('Inventory.inventory', compact(
         }
 
         try {
-            // Handle raw coffee inventory
-            if (isset($data['raw_coffee_id']) && !empty($data['raw_coffee_id'])) {
+            // Explicitly set one ID to null based on which type we're working with
+            if (!empty($data['raw_coffee_id'])) {
+                $data['coffee_product_id'] = null;
+                
                 $rawCoffee = RawCoffee::find($data['raw_coffee_id']);
                 
                 if (!$rawCoffee) {
@@ -437,24 +504,22 @@ return view('Inventory.inventory', compact(
                         'coffee_type' => $rawCoffee->coffee_type,
                         'grade' => $data['grade'],
                         'screen_size' => $rawCoffee->screen_size,
-                        'defect_count' => $rawCoffee->defect_count,
+                        'defect_count' => isset($data['defect_count']) && $data['defect_count'] !== null ? $data['defect_count'] : $rawCoffee->defect_count,
                         'harvest_date' => $rawCoffee->harvest_date,
                     ]);
                     $data['raw_coffee_id'] = $newRawCoffee->id;
-                } elseif (isset($data['grade'])) {
-                    // Update the existing raw coffee record with the new grade
-                    $rawCoffee->update(['grade' => $data['grade']]);
+                } elseif (isset($data['defect_count']) && $data['defect_count'] !== null) {
+                    // Update defect count on existing raw coffee if only defect count changed
+                    $rawCoffee->update(['defect_count' => $data['defect_count']]);
                 }
                 
-                // Remove grade from data as it's not part of inventory table
+                // Remove grade and defect_count from data as they're not part of inventory table
                 unset($data['grade']);
+                unset($data['defect_count']);
                 
-                // Ensure coffee_product_id is null for raw coffee
-                $data['coffee_product_id'] = null;
-            }
-            
-            // Handle coffee product inventory
-            if (isset($data['coffee_product_id']) && !empty($data['coffee_product_id'])) {
+            } elseif (!empty($data['coffee_product_id'])) {
+                $data['raw_coffee_id'] = null;
+                
                 $coffeeProduct = CoffeeProduct::find($data['coffee_product_id']);
                 
                 if (!$coffeeProduct) {
@@ -480,15 +545,16 @@ return view('Inventory.inventory', compact(
                 
                 // Remove category from data as it's not part of inventory table
                 unset($data['category']);
-                
-                // Ensure raw_coffee_id is null for coffee product
-                $data['raw_coffee_id'] = null;
             }
 
             // Ensure warehouse_id is null since we're using supply_center_id
             $data['warehouse_id'] = null;
 
-            Inventory::create($data);
+            // Clean up any extra fields that shouldn't be in the inventory table
+            $allowedFields = ['raw_coffee_id', 'coffee_product_id', 'supply_center_id', 'warehouse_id', 'quantity_in_stock'];
+            $cleanData = array_intersect_key($data, array_flip($allowedFields));
+
+            Inventory::create($cleanData);
             return redirect()->route('inventory.index')->with('success', 'Item added successfully!');
         } catch (\Exception $e) {
             return redirect()->route('inventory.index')->with('error', 'Failed to add item: ' . $e->getMessage());
@@ -675,5 +741,209 @@ return view('Inventory.inventory', compact(
             'mountainBrewChange' => $mountainBrewChange,
             'morningBrewChange' => $morningBrewChange
         ]);
+    }
+
+    /**
+     * Create a new raw coffee type (Admin only) - REMOVED
+     * Raw coffee items should only be created by suppliers
+     */
+    public function createRawCoffee(Request $request)
+    {
+        return redirect()->route('inventory.index')
+            ->with('error', 'Raw coffee items can only be created by suppliers. Please contact the relevant supplier to add new coffee types.');
+    }
+
+        /**
+     * Create a new coffee product (Admin only)
+     */
+    public function createCoffeeProduct(Request $request)
+    {
+        $validated = $request->validate([
+            'raw_coffee_id' => 'required|exists:raw_coffee,id',
+            'name' => 'required|string|max:100|unique:coffee_product,name',
+            'categories' => 'required|array|min:1',
+            'categories.*' => 'string|in:premium,standard,specialty,organic',
+            'product_form' => 'required|string|max:50',
+            'roast_level' => 'nullable|string|max:20',
+        ]);
+
+        // Create a coffee product record for each selected category
+        $createdProducts = [];
+        foreach ($validated['categories'] as $category) {
+            // Check if this combination already exists
+            $existingProduct = CoffeeProduct::where('name', $validated['name'])
+                ->where('category', $category)
+                ->first();
+                
+            if (!$existingProduct) {
+                $product = CoffeeProduct::create([
+                    'raw_coffee_id' => $validated['raw_coffee_id'],
+                    'name' => $validated['name'],
+                    'category' => $category,
+                    'product_form' => $validated['product_form'],
+                    'roast_level' => $validated['roast_level'],
+                    'production_date' => null, // Will be set when inventory batches are produced
+                ]);
+                $createdProducts[] = ucfirst($category);
+            }
+        }
+
+        $message = count($createdProducts) > 0 
+            ? 'New coffee product created successfully for categories: ' . implode(', ', $createdProducts)
+            : 'Coffee product creation completed (some categories may already exist)';
+
+        return redirect()->route('inventory.index')
+            ->with('success', $message);
+    }
+
+    /**
+     * Get individual inventory item for editing
+     */
+    public function getItem($id)
+    {
+        $inventoryItem = Inventory::with(['rawCoffee', 'coffeeProduct', 'supplyCenter'])
+            ->whereNotNull('supply_center_id') // Only admin supply centers
+            ->findOrFail($id);
+
+        return response()->json([
+            'id' => $inventoryItem->id,
+            'raw_coffee_id' => $inventoryItem->raw_coffee_id,
+            'coffee_product_id' => $inventoryItem->coffee_product_id,
+            'grade' => $inventoryItem->rawCoffee->grade ?? null,
+            'coffee_type' => $inventoryItem->rawCoffee->coffee_type ?? null,
+            'category' => $inventoryItem->coffeeProduct->category ?? null,
+            'product_name' => $inventoryItem->coffeeProduct->name ?? null,
+            'quantity_in_stock' => $inventoryItem->quantity_in_stock,
+            'supply_center_id' => $inventoryItem->supply_center_id,
+            'supply_center_name' => $inventoryItem->supplyCenter->name ?? 'Unknown',
+        ]);
+    }
+    
+    /**
+     * Get details by coffee type (matching supplier inventory pattern)
+     */
+    public function getDetailsByType($coffeeType)
+    {
+        try {
+            // Get all raw coffee records for this coffee type
+            $rawCoffees = RawCoffee::where('coffee_type', $coffeeType)->get();
+            
+            if ($rawCoffees->isEmpty()) {
+                return response()->json([
+                    'name' => $coffeeType,
+                    'total_quantity' => 0,
+                    'breakdown' => []
+                ]);
+            }
+            
+            $totalQuantity = 0;
+            $gradeBreakdown = [];
+            
+            // Group by grade
+            $gradeGroups = $rawCoffees->groupBy('grade');
+            
+            foreach ($gradeGroups as $grade => $coffees) {
+                $gradeQuantity = 0;
+                $gradeDetails = [];
+                
+                foreach ($coffees as $coffee) {
+                    $inventories = Inventory::where('raw_coffee_id', $coffee->id)
+                        ->whereNotNull('supply_center_id')
+                        ->with('supplyCenter')
+                        ->get();
+                    
+                    foreach ($inventories as $inventory) {
+                        $gradeQuantity += $inventory->quantity_in_stock;
+                        $gradeDetails[] = [
+                            'id' => $inventory->id,
+                            'location' => $inventory->supplyCenter ? $inventory->supplyCenter->name : 'Unknown',
+                            'quantity' => $inventory->quantity_in_stock,
+                            'last_updated' => $inventory->updated_at->format('Y-m-d H:i:s')
+                        ];
+                    }
+                }
+                
+                $totalQuantity += $gradeQuantity;
+                $gradeBreakdown[] = [
+                    'grade' => $grade ?: 'Unknown',
+                    'total_quantity' => $gradeQuantity,
+                    'details' => $gradeDetails
+                ];
+            }
+            
+            return response()->json([
+                'name' => $coffeeType,
+                'total_quantity' => $totalQuantity,
+                'breakdown' => $gradeBreakdown
+            ]);
+            
+        } catch (\Exception $e) {
+            \Log::error('Error getting coffee type details: ' . $e->getMessage());
+            return response()->json(['error' => 'Failed to load details'], 500);
+        }
+    }
+    
+    /**
+     * Get details by product name (matching supplier inventory pattern)
+     */
+    public function getProductDetailsByName($productName)
+    {
+        try {
+            // Get all coffee product records for this product name
+            $coffeeProducts = CoffeeProduct::where('name', $productName)->get();
+            
+            if ($coffeeProducts->isEmpty()) {
+                return response()->json([
+                    'name' => $productName,
+                    'total_quantity' => 0,
+                    'breakdown' => []
+                ]);
+            }
+            
+            $totalQuantity = 0;
+            $categoryBreakdown = [];
+            
+            // Group by category
+            $categoryGroups = $coffeeProducts->groupBy('category');
+            
+            foreach ($categoryGroups as $category => $products) {
+                $categoryQuantity = 0;
+                $categoryDetails = [];
+                
+                foreach ($products as $product) {
+                    $inventories = Inventory::where('coffee_product_id', $product->id)
+                        ->whereNotNull('supply_center_id')
+                        ->with('supplyCenter')
+                        ->get();
+                    
+                    foreach ($inventories as $inventory) {
+                        $categoryQuantity += $inventory->quantity_in_stock;
+                        $categoryDetails[] = [
+                            'id' => $inventory->id,
+                            'location' => $inventory->supplyCenter ? $inventory->supplyCenter->name : 'Unknown',
+                            'quantity' => $inventory->quantity_in_stock,
+                            'last_updated' => $inventory->updated_at->format('Y-m-d H:i:s')
+                        ];
+                    }
+                }
+                
+                $totalQuantity += $categoryQuantity;
+                $categoryBreakdown[] = [
+                    'location' => $category ?: 'Unknown',
+                    'total_quantity' => $categoryQuantity,
+                    'details' => $categoryDetails
+                ];
+            }
+            
+            return response()->json([
+                'name' => $productName,
+                'total_quantity' => $totalQuantity,
+                'breakdown' => $categoryBreakdown
+            ]);
+            
+        } catch (\Exception $e) {
+            \Log::error('Error getting product details: ' . $e->getMessage());
+            return response()->json(['error' => 'Failed to load details'], 500);
+        }
     }
 }

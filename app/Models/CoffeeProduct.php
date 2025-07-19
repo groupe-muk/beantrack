@@ -13,7 +13,7 @@ class CoffeeProduct extends Model
     protected $keyType = 'string';
     public $incrementing = false;
     protected $fillable = [
-        'raw_coffee_id', 'category', 'name', 'product_form', 'roast_level', 'production_date', 'created_at', 'updated_at'
+        'raw_coffee_id', 'category', 'name', 'product_form', 'roast_level', 'production_date'
     ];
 
     public function rawCoffee()

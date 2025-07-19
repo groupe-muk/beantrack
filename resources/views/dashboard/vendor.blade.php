@@ -7,35 +7,38 @@
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 w-full">
                 <x-stats-card
                     title="Active Orders"
-                    value="5"
+                    value="{{ $vendorStats['activeOrders']['value'] }}"
                     iconClass="fa-cube"
-                    unit="kgs"
-                    changeText="5.2% from last period"
-                    changeIconClass="fa-arrow-up"
+                    changeText="{{ $vendorStats['activeOrders']['change']['percentage'] }}% from last period"
+                    changeIconClass="fa-arrow-{{ $vendorStats['activeOrders']['change']['direction'] }}"
+                    changeType="{{ $vendorStats['activeOrders']['change']['type'] }}"
                 />
                 <x-stats-card
                     title="Inventory"
-                    value="1,240"
+                    value="{{ $vendorStats['totalInventory']['value'] }}"
                     iconClass="fa-weight-hanging"
-                    unit="kg"
-                    changeText="1.2% from last period"
-                    changeIconClass="fa-arrow-down"
+                    unit="kgs"
+                    changeText="{{ $vendorStats['totalInventory']['change']['percentage'] }}% from last period"
+                    changeIconClass="fa-arrow-{{ $vendorStats['totalInventory']['change']['direction'] }}"
+                    changeType="{{ $vendorStats['totalInventory']['change']['type'] }}"
                 />
                 <x-stats-card
-                    title="Next Delivery"
-                    value="8"
-                    iconClass="fa-calendar-alt"
+                    title="Orders in Transit"
+                    value="{{ $vendorStats['ordersInTransit']['value'] }}"
+                    iconClass="fa-truck"
                     unit="shipments"
-                    changeText="2.1% from last period"
-                    changeIconClass="fa-arrow-up"
+                    changeText="{{ $vendorStats['ordersInTransit']['change']['percentage'] }}% from last period"
+                    changeIconClass="fa-arrow-{{ $vendorStats['ordersInTransit']['change']['direction'] }}"
+                    changeType="{{ $vendorStats['ordersInTransit']['change']['type'] }}"
                 />
                 <x-stats-card
-                    title="Quality Score"
-                    value="92/100"
-                    iconClass="fa-star"
+                    title="Number of Warehouses"
+                    value="{{ $vendorStats['warehouseCount']['value'] }}"
+                    iconClass="fa-warehouse"
                     unit=""
-                    changeText="0.5% from last period"
-                    changeIconClass="fa-arrow-up"
+                    changeText="{{ $vendorStats['warehouseCount']['change']['percentage'] }}% from last period"
+                    changeIconClass="fa-arrow-{{ $vendorStats['warehouseCount']['change']['direction'] }}"
+                    changeType="{{ $vendorStats['warehouseCount']['change']['type'] }}"
                 />
             </div>
         </div>
