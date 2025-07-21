@@ -4,15 +4,19 @@ namespace App\Http\Controllers;
 
 use App\Models\User; 
 use App\Models\VendorApplication;
+use App\Models\SupplierApplication;
 use App\Models\Supplier;
 use App\Models\Wholesaler;
 use App\Models\SupplyCenter;
 use App\Services\VendorValidationService;
+use App\Services\SupplierValidationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\Auth;
+use Exception;
 use Illuminate\Validation\Rule;
 
 class userManagerController extends Controller
@@ -460,7 +464,65 @@ class userManagerController extends Controller
             }
 
         } catch (\Exception $e) {
-            \Log::error('Failed to send welcome email', [
+            Log::error('Failed to send welcome email', [
+                'application_id' => $application->id,
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+        }
+    }
+
+    /**
+     * Send supplier welcome email with login credentials
+     */
+    private function sendSupplierWelcomeEmail(SupplierApplication $application, User $user, $password, $roleData = null)
+    {
+        try {
+            // Prepare basic email data
+            $emailData = [
+                'type' => 'welcome',
+                'email' => $user->email,
+                'applicantName' => $user->name,
+                'businessName' => $application->business_name,
+                'userId' => $user->id,
+                'password' => $password,
+                'loginUrl' => route('login')
+            ];
+
+            // Add supply center information if available
+            if ($roleData && isset($roleData['supplyCenter'])) {
+                $supplyCenter = $roleData['supplyCenter'];
+                $emailData['supplyCenterName'] = $supplyCenter->name;
+                $emailData['supplyCenterLocation'] = $supplyCenter->location;
+            }
+
+            Log::info('Sending supplier welcome email data to Java server', $emailData);
+
+            // Call Java server email endpoint using form data  
+            $response = Http::timeout(10)
+                ->asForm()
+                ->post(config('services.validation_server.url', 'http://localhost:8081') . '/api/suppliers/send-email', $emailData);
+
+            Log::info('Java server response for supplier welcome email', [
+                'status' => $response->status(),
+                'body' => $response->body()
+            ]);
+
+            if ($response->failed()) {
+                Log::error('Java server returned error for supplier welcome email', [
+                    'status' => $response->status(),
+                    'body' => $response->body()
+                ]);
+            } else {
+                Log::info('Supplier welcome email sent successfully', [
+                    'email' => $user->email,
+                    'userId' => $user->id
+                ]);
+            }
+
+        } catch (Exception $e) {
+            Log::error('Failed to send supplier welcome email', [
                 'application_id' => $application->id,
                 'user_id' => $user->id,
                 'error' => $e->getMessage(),
@@ -481,7 +543,7 @@ class userManagerController extends Controller
                 'user_email' => $user->email,
                 'role' => $user->role
             ]);
-            return;
+            return null;
         }
 
         try {
@@ -492,7 +554,7 @@ class userManagerController extends Controller
             ]);
             
             if ($user->role === 'supplier') {
-                // Get first available supply center
+                // Get first available supply center for supplier assignment
                 $supplyCenter = SupplyCenter::first();
                 if ($supplyCenter) {
                     \Log::info('Creating supplier record', [
@@ -514,8 +576,11 @@ class userManagerController extends Controller
                     
                     \Log::info('Supplier record created successfully', [
                         'user_id' => $user->id,
-                        'supplier_id' => $supplier->id
+                        'supplier_id' => $supplier->id,
+                        'supply_center_id' => $supplyCenter->id
                     ]);
+                    
+                    return ['supplyCenter' => $supplyCenter];
                 } else {
                     \Log::error('No supply center found for supplier creation', [
                         'user_id' => $user->id
@@ -542,6 +607,8 @@ class userManagerController extends Controller
                     'user_id' => $user->id,
                     'wholesaler_id' => $wholesaler->id
                 ]);
+                
+                return null; // No specific data to return for vendors
             }
         } catch (\Exception $e) {
             // Log detailed error information
@@ -557,6 +624,8 @@ class userManagerController extends Controller
             // Don't fail the user creation, but we could optionally flash an error message
             // session()->flash('warning', 'User created but there was an issue creating the associated record. Please contact support.');
         }
+        
+        return null;
     }
 
     /**
@@ -640,6 +709,329 @@ class userManagerController extends Controller
         
         // Shuffle the password
         return str_shuffle($password);
+    }
+
+    /**
+     * Get supplier applications for API (AJAX)
+     */
+    public function getSupplierApplications(Request $request)
+    {
+        if (!Auth::check() || !Auth::user()->isAdmin()) {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+
+        $query = SupplierApplication::query()->orderBy('created_at', 'desc');
+
+        // Filter by status
+        if ($request->has('status') && $request->status !== 'all') {
+            $query->where('status', $request->status);
+        }
+
+        // Filter for suppliers not yet added to system
+        if ($request->has('not_added') && $request->boolean('not_added')) {
+            $query->whereNull('created_user_id');
+        }
+
+        $applications = $query->get();
+
+        return response()->json([
+            'success' => true,
+            'applications' => $applications
+        ]);
+    }
+
+    /**
+     * Get single supplier application details for API (AJAX)
+     */
+    public function getSupplierApplicationDetails($applicationId)
+    {
+        if (!Auth::check() || !Auth::user()->isAdmin()) {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+
+        try {
+            $application = SupplierApplication::findOrFail($applicationId);
+            
+            return response()->json([
+                'success' => true,
+                'application' => $application
+            ]);
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Application not found'
+            ], 404);
+        }
+    }
+
+    /**
+     * Update supplier application status
+     */
+    public function updateSupplierApplicationStatus(Request $request, $applicationId)
+    {
+        if (!Auth::check() || !Auth::user()->isAdmin()) {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+
+        $request->validate([
+            'status' => 'required|in:pending,under_review,approved,rejected',
+            'rejection_reason' => 'required_if:status,rejected|string|max:500'
+        ]);
+
+        try {
+            $application = SupplierApplication::findOrFail($applicationId);
+            
+            $oldStatus = $application->status;
+            $newStatus = $request->status;
+            
+            $application->status = $newStatus;
+            
+            if ($newStatus === 'rejected') {
+                $application->rejection_reason = $request->rejection_reason;
+                $application->rejected_at = now();
+                $application->rejected_by = Auth::id();
+            } else if ($newStatus === 'approved') {
+                $application->approved_at = now();
+                $application->approved_by = Auth::id();
+                $application->rejection_reason = null;
+                
+                // Automatically add supplier to system when approved
+                if (!$application->created_user_id) {
+                    $this->autoAddSupplierToSystem($application);
+                }
+                
+            } else if ($newStatus === 'under_review') {
+                $application->under_review_at = now();
+                $application->under_review_by = Auth::id();
+                $application->rejection_reason = null;
+            }
+            
+            $application->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => $newStatus === 'approved' 
+                    ? 'Application approved and supplier added to system successfully'
+                    : 'Application status updated successfully',
+                'application' => $application
+            ]);
+            
+        } catch (Exception $e) {
+            Log::error('Error updating supplier application status: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update application status'
+            ], 500);
+        }
+    }
+
+    /**
+     * Reject supplier application with reason
+     */
+    public function rejectSupplierApplication(Request $request, $applicationId)
+    {
+        if (!Auth::check() || !Auth::user()->isAdmin()) {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+
+        $validatedData = $request->validate([
+            'rejection_reason' => 'nullable|string|max:1000'
+        ]);
+
+        try {
+            $application = SupplierApplication::findOrFail($applicationId);
+            
+            // Ensure rejection reason is properly handled (convert empty string to null)
+            $rejectionReason = !empty($validatedData['rejection_reason']) ? $validatedData['rejection_reason'] : null;
+            
+            // Use the SupplierValidationService to handle rejection and email sending
+            app(SupplierValidationService::class)->rejectApplication($application, $rejectionReason);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Application rejected successfully. Rejection email has been sent to the applicant.'
+            ]);
+
+        } catch (Exception $e) {
+            Log::error('Failed to reject supplier application', [
+                'application_id' => $applicationId,
+                'error' => $e->getMessage()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to reject application'
+            ], 500);
+        }
+    }
+
+    /**
+     * Add approved supplier to system as user
+     */
+    public function addSupplierToSystem(Request $request, $applicationId)
+    {
+        if (!Auth::check() || !Auth::user()->isAdmin()) {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+
+        $validatedData = $request->validate([
+            'default_password' => 'required|string|min:8',
+            'confirm_password' => 'required|string|same:default_password'
+        ]);
+
+        try {
+            $application = SupplierApplication::findOrFail($applicationId);
+
+            // Check if application is approved
+            if ($application->status !== 'approved') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Application must be approved before adding to system'
+                ], 400);
+            }
+
+            // Check if user already exists
+            if ($application->created_user_id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'User account already created for this application'
+                ], 400);
+            }
+
+            // Generate next user ID
+            $lastUser = User::orderBy('id', 'desc')->first();
+            $nextIdNumber = $lastUser ? intval(substr($lastUser->id, 1)) + 1 : 1;
+            $nextUserId = 'U' . str_pad($nextIdNumber, 5, '0', STR_PAD_LEFT);
+
+            // Create user account
+            $user = User::create([
+                'id' => $nextUserId,
+                'name' => $application->applicant_name,
+                'email' => $application->email,
+                'password' => Hash::make($validatedData['default_password']),
+                'role' => 'supplier',
+                'phone' => $application->phone_number
+            ]);
+
+            // Link application to user
+            $application->update([
+                'created_user_id' => $user->id
+            ]);
+
+            // Create supplier record for user
+            $roleData = $this->createRoleSpecificRecord($user);
+
+            // Send welcome email with login credentials
+            $this->sendSupplierWelcomeEmail($application, $user, $validatedData['default_password'], $roleData);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Supplier added to system successfully',
+                'user' => [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email
+                ]
+            ]);
+
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to add supplier to system: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Automatically add supplier to system when approved (internal method)
+     */
+    private function autoAddSupplierToSystem(SupplierApplication $application)
+    {
+        try {
+            // Check if user with this email already exists
+            $existingUser = User::where('email', $application->email)->first();
+            if ($existingUser) {
+                Log::warning('User with email already exists, skipping auto-creation', [
+                    'email' => $application->email,
+                    'existing_user_id' => $existingUser->id
+                ]);
+                return;
+            }
+
+            // Generate next user ID
+            $lastUser = User::orderBy('id', 'desc')->first();
+            $nextIdNumber = $lastUser ? intval(substr($lastUser->id, 1)) + 1 : 1;
+            $nextUserId = 'U' . str_pad($nextIdNumber, 5, '0', STR_PAD_LEFT);
+
+            // Generate a random password
+            $password = $this->generateRandomPassword();
+
+            // Create user account
+            $user = User::create([
+                'id' => $nextUserId,
+                'name' => $application->applicant_name,
+                'email' => $application->email,
+                'password' => Hash::make($password),
+                'role' => 'supplier',
+                'phone' => $application->phone_number
+            ]);
+
+            // Link application to user
+            $application->update([
+                'created_user_id' => $user->id
+            ]);
+
+            // Create supplier record for user
+            $roleData = $this->createRoleSpecificRecord($user);
+
+            // Send welcome email with login credentials
+            $this->sendSupplierWelcomeEmail($application, $user, $password, $roleData);
+
+            Log::info('Supplier automatically added to system on approval', [
+                'application_id' => $application->id,
+                'user_id' => $user->id,
+                'email' => $user->email
+            ]);
+
+        } catch (Exception $e) {
+            Log::error('Failed to automatically add supplier to system', [
+                'application_id' => $application->id,
+                'error' => $e->getMessage()
+            ]);
+            // Don't throw the exception - we don't want approval to fail if user creation fails
+        }
+    }
+
+    /**
+     * Get admin emails for notifications
+     * Returns a list of all admin user emails
+     */
+    public function getAdminEmails()
+    {
+        try {
+            // Get all users with admin role
+            $adminEmails = User::where('role', 'admin')
+                             ->whereNotNull('email')
+                             ->pluck('email')
+                             ->toArray();
+
+            return response()->json([
+                'success' => true,
+                'data' => $adminEmails,
+                'count' => count($adminEmails)
+            ]);
+
+        } catch (Exception $e) {
+            Log::error('Failed to fetch admin emails', [
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch admin emails',
+                'data' => []
+            ], 500);
+        }
     }
 }
 

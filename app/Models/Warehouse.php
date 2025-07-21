@@ -14,7 +14,7 @@ class Warehouse extends Model
     public $incrementing = false;
     
     protected $fillable = [
-        'id', 'name', 'location', 'capacity', 'supplier_id', 'wholesaler_id', 'manager_name'
+        'name', 'location', 'capacity', 'supplier_id', 'wholesaler_id', 'manager_name'
     ];
 
     /**
@@ -39,6 +39,14 @@ class Warehouse extends Model
     public function inventories()
     {
         return $this->hasMany(Inventory::class, 'warehouse_id');
+    }
+
+    /**
+     * Get all workers in this warehouse
+     */
+    public function workers()
+    {
+        return $this->hasMany(Worker::class, 'warehouse_id');
     }
 
     /**

@@ -59,7 +59,7 @@
                 @endif
             >{{ $value }}</span>
             @if ($unit)      
-            <span class="text-lg font-normal text-gray-500 ml-1">{{ $unit }}</span>
+            <span class="text-lg font-semibold text-dashboard-light ml-1">{{ $unit }}</span>
             @endif
         </p>
 

@@ -27,11 +27,11 @@
         @stack('styles')
     </head>
 
-    <body class = "font-serif">        
+    <body class="font-serif">        
     <x-partials.navbar-dashboard/>
         <x-partials.sidebar :menuItems="\App\Helpers\MenuHelper::getMenuItems(auth()->user()->role ?? null)"/>
 
-        <div id="main-content" class="relative w-full h-full overflow-y-auto bg-gray-50 lg:pl-64 dark:bg-gray-900 pt-16">
+        <div id="main-content" class="relative w-full min-h-screen overflow-y-auto bg-light-background lg:pl-64 dark:bg-dark-background pt-16">
 
         {{-- Charts, KPIs go here --}}
      @yield('content')  

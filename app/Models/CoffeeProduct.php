@@ -13,7 +13,7 @@ class CoffeeProduct extends Model
     protected $keyType = 'string';
     public $incrementing = false;
     protected $fillable = [
-        'raw_coffee_id', 'category', 'name', 'product_form', 'roast_level', 'production_date', 'created_at', 'updated_at'
+        'raw_coffee_id', 'category', 'name', 'product_form', 'roast_level', 'production_date'
     ];
 
     public function rawCoffee()
@@ -42,14 +42,14 @@ class CoffeeProduct extends Model
         // Adjust price based on category
         switch(strtolower($this->category ?? '')) {
             case 'premium':
-                $basePrice = 1500;
+                $basePrice = 5.04;
                 break;
             case 'specialty':
-                $basePrice = 1200;
+                $basePrice = 4.20;
                 break;
             case 'standard':
             default:
-                $basePrice = 1000;
+                $basePrice = 3.04;
                 break;
         }
         
@@ -70,7 +70,8 @@ class CoffeeProduct extends Model
         $markup = 0.20; // 20% markup
         $pricePerKg = $basePrice + ($basePrice * $markup);
         
-        return $pricePerKg * $quantity;
+        // Round to avoid decimal issues and ensure whole numbers
+        return round($pricePerKg * $quantity);
     }
     
     /**

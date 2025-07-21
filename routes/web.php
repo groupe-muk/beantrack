@@ -63,16 +63,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard', [dashboardController::class, 'index'])->name('dashboard');
     Route::get('/dashboard/chart-data', [dashboardController::class, 'getChartData'])->name('dashboard.chart-data');
     
-    // Debug route to check user role
-    Route::get('/debug/user-role', function() {
-        $user = Auth::user();
-        return response()->json([
-            'user_id' => $user->id,
-            'role' => $user->role,
-            'wholesaler' => $user->wholesaler,
-            'is_vendor' => $user->role === 'vendor'
-        ]);
-    })->name('debug.user.role');
+
     
     // Chat Routes
     Route::get('/chat', [ChatController::class, 'index'])->name('chat.index');
@@ -147,6 +138,14 @@ Route::middleware(['auth'])->group(function () {
         Route::post('admin/vendor-applications/{application}/add-to-system', [userManagerController::class, 'addVendorToSystem'])->name('admin.vendor-applications.add-to-system');
         Route::post('admin/vendor-applications/{application}/retry-validation', [VendorApplicationController::class, 'retryValidation'])->name('admin.vendor-applications.retry-validation');
       
+        // Supplier Application Management API Routes
+        Route::get('api/supplier-applications', [userManagerController::class, 'getSupplierApplications'])->name('api.supplier-applications');
+        Route::get('api/supplier-applications/{application}', [userManagerController::class, 'getSupplierApplicationDetails'])->name('api.supplier-applications.details');
+        Route::post('admin/supplier-applications/{application}/update-status', [userManagerController::class, 'updateSupplierApplicationStatus'])->name('admin.supplier-applications.update-status');
+        Route::post('admin/supplier-applications/{application}/reject', [userManagerController::class, 'rejectSupplierApplication'])->name('admin.supplier-applications.reject-status');
+        Route::post('admin/supplier-applications/{application}/add-to-system', [userManagerController::class, 'addSupplierToSystem'])->name('admin.supplier-applications.add-to-system');
+        Route::post('admin/supplier-applications/{application}/retry-validation', [SupplierApplicationController::class, 'retryValidation'])->name('admin.supplier-applications.retry-validation');
+      
        // Order routes
         Route::prefix('orders')->name('orders.')->group(function () {
             Route::get('/', [OrderController::class, 'index'])->name('index');
@@ -157,7 +156,13 @@ Route::middleware(['auth'])->group(function () {
             Route::put('/{order}', [OrderController::class, 'update'])->name('update');
             Route::delete('/{order}', [OrderController::class, 'destroy'])->name('destroy');
             Route::put('/{order}/status', [OrderController::class, 'updateStatus'])->name('update-status');
+            Route::get('/{order}/check-inventory', [OrderController::class, 'checkInventory'])->name('check-inventory');
+            Route::get('/api/inventory-status', [OrderController::class, 'getOrdersWithInventoryStatus'])->name('api.inventory-status');
             Route::get('/api/stats', [OrderController::class, 'getOrderStats'])->name('api.stats');
+            
+            // Admin vendor order management routes
+            Route::put('/{order}/accept-vendor', [OrderController::class, 'acceptVendorOrder'])->name('accept-vendor');
+            Route::put('/{order}/reject-vendor', [OrderController::class, 'rejectVendorOrder'])->name('reject-vendor');
         });
 
         //Inventory routes
@@ -165,6 +170,16 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/inventory', [InventoryController::class, 'store'])->name('inventory.store');
         Route::get('/inventory/stats', [InventoryController::class, 'stats'])->name('inventory.stats');
         Route::get('/inventory/details/{type}/{id}', [InventoryController::class, 'getItemDetails'])->name('inventory.details');
+        
+        // Simple details routes matching supplier inventory pattern
+        Route::get('/inventory/details/{coffeeType}', [InventoryController::class, 'getDetailsByType'])->name('inventory.details.type');
+        Route::get('/inventory/product-details/{productName}', [InventoryController::class, 'getProductDetailsByName'])->name('inventory.product.details.name');
+
+        // Raw Coffee creation routes (disabled - suppliers only)
+        Route::post('/raw-coffee', [InventoryController::class, 'createRawCoffee'])->name('rawcoffee.store');
+        
+        // Coffee Product creation routes (admin only)
+        Route::post('/coffee-product', [InventoryController::class, 'createCoffeeProduct'])->name('coffeeproduct.store');
 
         // Raw Coffee routes
         Route::patch('/inventory/raw-coffee/{rawCoffee}', [InventoryController::class, 'updateRawCoffee'])->name('inventory.update.rawCoffee');
@@ -174,7 +189,15 @@ Route::middleware(['auth'])->group(function () {
         Route::patch('/inventory/coffee-product/{coffeeProduct}', [InventoryController::class, 'updateCoffeeProduct'])->name('inventory.update.coffeeProduct');
         Route::delete('/inventory/coffee-product/{coffeeProduct}', [InventoryController::class, 'destroyCoffeeProduct'])->name('inventory.destroy.coffeeProduct');
 
+        // Individual inventory item management routes
+        Route::get('/inventory/item/{id}', [InventoryController::class, 'getItem'])->name('inventory.getItem');
+        Route::put('/inventory/item/{id}', [InventoryController::class, 'updateItem'])->name('inventory.updateItem');
+        Route::delete('/inventory/item/{id}', [InventoryController::class, 'deleteItem'])->name('inventory.deleteItem');
 
+        // Insights routes
+        Route::get('/insights', function () {
+            return view('insights');
+        })->name('insights');
 
 
         // Vendor Application Management Routes (Admin only)
@@ -225,6 +248,18 @@ Route::middleware(['auth'])->group(function () {
             Route::get('/{report}/download', [App\Http\Controllers\ReportController::class, 'download'])->name('reports.download');
             Route::get('/{report}/view', [App\Http\Controllers\ReportController::class, 'view'])->name('reports.view');
         });
+
+        // Supply Center Management Routes (Admin only)
+        Route::get('/SupplyCenters', [SupplyCentersController::class, 'supplycenters'])->name('supplycenters');
+        Route::get('/supply-centers/{supplycenter}', [SupplyCentersController::class, 'show'])->name('supplycenters.show');
+        Route::post('/SupplyCenters', [SupplyCentersController::class, 'store'])->name('supplycenters.store');
+        Route::patch('/SupplyCenters/{supplycenter}', [SupplyCentersController::class, 'update'])->name('supplycenters.update');
+        Route::delete('/SupplyCenters/{supplycenter}', [SupplyCentersController::class, 'destroy'])->name('supplycenters.destroy');
+        Route::post('/SupplyCenters/{supplycenter}/worker', [SupplyCentersController::class, 'storeWorker'])->name('worker.store');
+        Route::patch('/worker/{worker}', [SupplyCentersController::class, 'updateWorker'])->name('worker.update');
+        Route::post('/SupplyCenters/upload-workers', [SupplyCentersController::class, 'uploadWorkers'])->name('supplycenters.upload.workers');
+        Route::delete('/workers/bulk-delete', [SupplyCentersController::class, 'bulkDeleteWorkers'])->name('workers.bulk.delete');
+        Route::post('/SupplyCenters/{supplycenter}/move-workers', [SupplyCentersController::class, 'moveWorkers'])->name('supplycenters.move.workers');
     });
 
     // Supplier routes - also require auth
@@ -254,6 +289,7 @@ Route::middleware(['auth'])->group(function () {
        // Supplier inventory routes
          Route::get('/supplierInventory', [supplierInventoryController::class, 'index'])->name('supplierInventory.index');
          Route::post('/supplierInventory', [supplierInventoryController::class, 'store'])->name('supplierInventory.store')->middleware(['auth','role:supplier']);
+         Route::post('/supplierInventory/raw-coffee', [supplierInventoryController::class, 'createRawCoffee'])->name('supplierInventory.createRawCoffee')->middleware(['auth','role:supplier']);
          Route::get('/supplierInventory/stats', [supplierInventoryController::class, 'stats'])->name('supplierInventory.stats');
          Route::get('/supplierInventory/details/{type}', [supplierInventoryController::class, 'getDetails'])->name('supplierInventory.details');
          Route::get('/supplierInventory/{id}/edit', [supplierInventoryController::class, 'edit'])->name('supplierInventory.edit');
@@ -268,8 +304,28 @@ Route::middleware(['auth'])->group(function () {
          Route::get('/supplierInventory/item/{id}', [supplierInventoryController::class, 'getItem'])
              ->name('supplierInventory.getItem')
              ->middleware(['auth', 'role:supplier']);
+         Route::delete('/supplierInventory/item/{id}', [supplierInventoryController::class, 'deleteItem'])
+             ->name('supplierInventory.deleteItem')
+             ->middleware(['auth', 'role:supplier']);
 
+        // Supplier warehouse routes
+        Route::get('/supplier/warehouses', [App\Http\Controllers\WarehouseController::class, 'supplierIndex'])->name('supplier.warehouses.index');
+        Route::get('/supplier/warehouses/{warehouse}', [App\Http\Controllers\WarehouseController::class, 'show'])->name('supplier.warehouses.show');
+        Route::post('/supplier/warehouses', [App\Http\Controllers\WarehouseController::class, 'store'])->name('supplier.warehouses.store');
+        Route::patch('/supplier/warehouses/{warehouse}', [App\Http\Controllers\WarehouseController::class, 'update'])->name('supplier.warehouses.update');
+        Route::delete('/supplier/warehouses/{warehouse}', [App\Http\Controllers\WarehouseController::class, 'destroy'])->name('supplier.warehouses.destroy');
+        Route::post('/supplier/warehouses/{warehouse}/workers', [App\Http\Controllers\WarehouseController::class, 'storeWorker'])->name('supplier.warehouses.workers.store');
+        Route::patch('/supplier/warehouse-workers/{worker}', [App\Http\Controllers\WarehouseController::class, 'updateWorker'])->name('supplier.warehouses.workers.update');
+        Route::post('/supplier/warehouses/upload-workers', [App\Http\Controllers\WarehouseController::class, 'uploadWorkers'])->name('supplier.warehouses.upload.workers');
+        Route::delete('/supplier/warehouse-workers/bulk-delete', [App\Http\Controllers\WarehouseController::class, 'bulkDeleteWorkers'])->name('supplier.warehouses.workers.bulk.delete');
+        Route::post('/supplier/warehouses/{warehouse}/move-workers', [App\Http\Controllers\WarehouseController::class, 'moveWorkers'])->name('supplier.warehouses.move.workers');
 
+        // Supplier order management routes
+        Route::get('/supplier/orders', [OrderController::class, 'supplierIndex'])->name('orders.supplier.index');
+        Route::get('/supplier/orders/{order}', [OrderController::class, 'supplierShow'])->name('orders.supplier.show');
+        Route::patch('/supplier/orders/{order}/accept', [OrderController::class, 'supplierAccept'])->name('orders.supplier.accept');
+        Route::patch('/supplier/orders/{order}/reject', [OrderController::class, 'supplierReject'])->name('orders.supplier.reject');
+        Route::patch('/supplier/orders/{order}/ship', [OrderController::class, 'supplierMarkShipped'])->name('orders.supplier.ship');
 
     });
 
@@ -282,6 +338,7 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/vendor/orders', [OrderController::class, 'vendorStore'])->name('orders.vendor.store');
         Route::get('/vendor/orders/{order}', [OrderController::class, 'vendorShow'])->name('orders.vendor.show');
         Route::patch('/vendor/orders/{order}/cancel', [OrderController::class, 'vendorCancel'])->name('orders.vendor.cancel');
+        Route::patch('/vendor/orders/{order}/received', [OrderController::class, 'vendorMarkReceived'])->name('orders.vendor.received');
         
         // Debug route to test vendor order store
         Route::post('/debug/vendor/orders', function(Request $request) {
@@ -339,6 +396,18 @@ Route::middleware(['auth'])->group(function () {
         Route::patch('/vendorInventory/{coffeeProduct}', [vendorInventoryController::class, 'update'])->name('vendorInventory.update');
         Route::delete('/vendorInventory/{coffeeProduct}', [vendorInventoryController::class, 'destroy'])->name('vendorInventory.destroy');
 
+        // Vendor warehouse routes
+        Route::get('/vendor/warehouses', [App\Http\Controllers\WarehouseController::class, 'vendorIndex'])->name('vendor.warehouses.index');
+        Route::get('/vendor/warehouses/{warehouse}', [App\Http\Controllers\WarehouseController::class, 'show'])->name('vendor.warehouses.show');
+        Route::post('/vendor/warehouses', [App\Http\Controllers\WarehouseController::class, 'store'])->name('vendor.warehouses.store');
+        Route::patch('/vendor/warehouses/{warehouse}', [App\Http\Controllers\WarehouseController::class, 'update'])->name('vendor.warehouses.update');
+        Route::delete('/vendor/warehouses/{warehouse}', [App\Http\Controllers\WarehouseController::class, 'destroy'])->name('vendor.warehouses.destroy');
+        Route::post('/vendor/warehouses/{warehouse}/workers', [App\Http\Controllers\WarehouseController::class, 'storeWorker'])->name('vendor.warehouses.workers.store');
+        Route::patch('/vendor/warehouse-workers/{worker}', [App\Http\Controllers\WarehouseController::class, 'updateWorker'])->name('vendor.warehouses.workers.update');
+        Route::post('/vendor/warehouses/upload-workers', [App\Http\Controllers\WarehouseController::class, 'uploadWorkers'])->name('vendor.warehouses.upload.workers');
+        Route::delete('/vendor/warehouse-workers/bulk-delete', [App\Http\Controllers\WarehouseController::class, 'bulkDeleteWorkers'])->name('vendor.warehouses.workers.bulk.delete');
+        Route::post('/vendor/warehouses/{warehouse}/move-workers', [App\Http\Controllers\WarehouseController::class, 'moveWorkers'])->name('vendor.warehouses.move.workers');
+
 
 
     });
@@ -348,9 +417,6 @@ Route::middleware(['auth'])->group(function () {
 
 /*Route::view('dashboard', 'dashboard')
 
-Route::get('/SupplyCenters', function () {
-    return view('SupplyCenters.SupplyCenters');
-})->name('SupplyCenters');
 Route::get('/SupplyCenter1', [SupplyCentersController::class,  'shownSupplyCenter1'])->name('show.SupplyCenter1'); 
 Route::get('/SupplyCenter2', [SupplyCentersController::class, 'shownSupplyCenter2'])->name('show.SupplyCenter2'); 
 Route::get('/SupplyCenter3', [SupplyCentersController::class, 'shownSupplyCenter3'])->name('show.SupplyCenter3'); 
@@ -372,17 +438,6 @@ Route::view('dashboard', 'dashboard')
 
 // Route::get('warehouses', SupplyCentersController::class);
 // Route::get('warehouses.staff', WorkerController::class);
-Route::get('/SupplyCenters', [SupplyCentersController::class, 'supplycenters'])->name('supplycenters');
-
-
-
-Route::get('/supplycenters', [SupplyCentersController::class, 'supplycenters'])->name('supplycenters.supplycenters');
-Route::post('/supplycenters', [SupplyCentersController::class, 'store'])->name('supplycenters.store');
-Route::patch('/supplycenters/{supplycenter}', [SupplyCentersController::class, 'update'])->name('supplycenters.update');
-Route::delete('/supplycenters/{supplycenters}', [SupplyCentersController::class, 'destroy'])->name('supplycenters.destroy');
-
-Route::post('/supplycenters/{supplycenter}/worker', [SupplyCentersController::class, 'storeWorker'])->name('worker.store');
-Route::patch('/worker/{worker}', [SupplyCentersController::class, 'updateWorker'])->name('worker.update');
 
 require __DIR__.'/auth.php';
 
