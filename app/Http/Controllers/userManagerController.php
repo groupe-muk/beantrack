@@ -8,6 +8,7 @@ use App\Models\SupplierApplication;
 use App\Models\Supplier;
 use App\Models\Wholesaler;
 use App\Models\SupplyCenter;
+use App\Models\Warehouse;
 use App\Services\VendorValidationService;
 use App\Services\SupplierValidationService;
 use Illuminate\Http\Request;
@@ -554,38 +555,49 @@ class userManagerController extends Controller
             ]);
             
             if ($user->role === 'supplier') {
-                // Get first available supply center for supplier assignment
+                \Log::info('Creating supplier record', [
+                    'user_id' => $user->id
+                ]);
+                
+                // Get the first available supply center to assign supplier to
                 $supplyCenter = SupplyCenter::first();
-                if ($supplyCenter) {
-                    \Log::info('Creating supplier record', [
-                        'user_id' => $user->id,
-                        'supply_center_id' => $supplyCenter->id
-                    ]);
-                    
-                    $supplier = Supplier::create([
-                        'user_id' => $user->id,
-                        'supply_center_id' => $supplyCenter->id,
-                        'name' => $user->name,
-                        'contact_person' => $user->name,
-                        'email' => $user->email,
-                        'phone' => $user->phone ?? '0000000000',
-                        'address' => 'Address to be updated',
-                        'registration_number' => 'REG' . str_pad(rand(1000, 9999), 4, '0', STR_PAD_LEFT) . time(),
-                        'approved_date' => now()
-                    ]);
-                    
-                    \Log::info('Supplier record created successfully', [
-                        'user_id' => $user->id,
-                        'supplier_id' => $supplier->id,
-                        'supply_center_id' => $supplyCenter->id
-                    ]);
-                    
-                    return ['supplyCenter' => $supplyCenter];
-                } else {
+                if (!$supplyCenter) {
                     \Log::error('No supply center found for supplier creation', [
                         'user_id' => $user->id
                     ]);
+                    return null;
                 }
+                
+                $supplier = Supplier::create([
+                    'user_id' => $user->id,
+                    'supply_center_id' => $supplyCenter->id,
+                    'name' => $user->name,
+                    'contact_person' => $user->name,
+                    'email' => $user->email,
+                    'phone' => $user->phone ?? '0000000000',
+                    'address' => 'Address to be updated',
+                    'registration_number' => 'REG' . str_pad(rand(1000, 9999), 4, '0', STR_PAD_LEFT) . time(),
+                    'approved_date' => now()
+                ]);
+                
+                // Create a default warehouse for the supplier
+                $warehouse = Warehouse::create([
+                    'supplier_id' => $supplier->id,
+                    'name' => $user->name . ' Main Warehouse',
+                    'location' => 'Location to be updated',
+                    'capacity' => 1000, // Default capacity
+                    'manager_name' => $user->name,
+                    'manager_phone' => $user->phone ?? '0000000000',
+                    'status' => 'active'
+                ]);
+                
+                \Log::info('Supplier record and warehouse created successfully', [
+                    'user_id' => $user->id,
+                    'supplier_id' => $supplier->id,
+                    'warehouse_id' => $warehouse->id
+                ]);
+                
+                return ['warehouse' => $warehouse];
             } elseif ($user->role === 'vendor') {
                 \Log::info('Creating wholesaler record', [
                     'user_id' => $user->id
@@ -784,29 +796,28 @@ class userManagerController extends Controller
             $oldStatus = $application->status;
             $newStatus = $request->status;
             
-            $application->status = $newStatus;
+            // Update application status and validation message (like vendor applications)
+            $updateData = [
+                'status' => $newStatus,
+                'validation_message' => $this->getStatusUpdateMessage($newStatus)
+            ];
             
+            // Handle rejection reason
             if ($newStatus === 'rejected') {
-                $application->rejection_reason = $request->rejection_reason;
-                $application->rejected_at = now();
-                $application->rejected_by = Auth::id();
-            } else if ($newStatus === 'approved') {
-                $application->approved_at = now();
-                $application->approved_by = Auth::id();
-                $application->rejection_reason = null;
+                $updateData['rejection_reason'] = $request->rejection_reason;
+            } else {
+                $updateData['rejection_reason'] = null;
+            }
+            
+            $application->update($updateData);
                 
+            // Handle status-specific actions
+            if ($newStatus === 'approved' && $oldStatus !== 'approved') {
                 // Automatically add supplier to system when approved
                 if (!$application->created_user_id) {
                     $this->autoAddSupplierToSystem($application);
                 }
-                
-            } else if ($newStatus === 'under_review') {
-                $application->under_review_at = now();
-                $application->under_review_by = Auth::id();
-                $application->rejection_reason = null;
             }
-            
-            $application->save();
 
             return response()->json([
                 'success' => true,
@@ -817,10 +828,15 @@ class userManagerController extends Controller
             ]);
             
         } catch (Exception $e) {
-            Log::error('Error updating supplier application status: ' . $e->getMessage());
+            Log::error('Error updating supplier application status: ' . $e->getMessage(), [
+                'application_id' => $applicationId,
+                'status' => $request->status,
+                'trace' => $e->getTraceAsString()
+            ]);
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to update application status'
+                'message' => 'Failed to update application status: ' . $e->getMessage(),
+                'error_details' => config('app.debug') ? $e->getMessage() : 'Internal server error'
             ], 500);
         }
     }
@@ -964,7 +980,7 @@ class userManagerController extends Controller
             $nextUserId = 'U' . str_pad($nextIdNumber, 5, '0', STR_PAD_LEFT);
 
             // Generate a random password
-            $password = $this->generateRandomPassword();
+            $password = $this->generateSecurePassword();
 
             // Create user account
             $user = User::create([

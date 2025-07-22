@@ -930,6 +930,20 @@
         const status = document.getElementById('status').value;
         const applicationType = form.getAttribute('data-application-type') || 'vendor';
         
+        // Remove rejection_reason from form data if status is not 'rejected'
+        if (status !== 'rejected') {
+            formData.delete('rejection_reason');
+        }
+        
+        // Debug: Log what we're sending
+        console.log('Updating application status:', {
+            applicationId,
+            status,
+            applicationType,
+            hasRejectionReason: formData.has('rejection_reason'),
+            rejectionReason: formData.get('rejection_reason')
+        });
+        
         try {
             let url;
             if (applicationType === 'supplier') {
@@ -941,6 +955,8 @@
                     ? `/admin/vendor-applications/${applicationId}/reject`
                     : `/admin/vendor-applications/${applicationId}/update-status`;
             }
+            
+            console.log('Request URL:', url);
                 
             const response = await fetch(url, {
                 method: 'POST',
@@ -952,7 +968,18 @@
                 }
             });
 
-            const data = await response.json();
+            console.log('Response status:', response.status);
+            
+            let data;
+            try {
+                data = await response.json();
+                console.log('Response data:', data);
+            } catch (e) {
+                console.error('Failed to parse JSON response:', e);
+                const text = await response.text();
+                console.log('Raw response:', text);
+                throw new Error('Invalid JSON response from server');
+            }
 
             if (data.success) {
                 // Close modal
@@ -973,14 +1000,24 @@
                     loadVendorApplications();
                 }
             } else {
+                console.error('Server returned error:', data);
                 showNotification(data.message || 'Failed to update status', 'error');
+                
+                // Show validation errors if available
+                if (data.errors) {
+                    console.error('Validation errors:', data.errors);
+                    const errorMessages = Object.values(data.errors).flat();
+                    showNotification('Validation errors: ' + errorMessages.join(', '), 'error');
+                }
             }
 
         } catch (error) {
             console.error('Error updating status:', error);
-            showNotification('An error occurred while updating the status', 'error');
+            showNotification('An error occurred while updating the status: ' + error.message, 'error');
         }
     }
+
+    
 
     function generateRandomPassword() {
         const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*";
