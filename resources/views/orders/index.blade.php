@@ -134,7 +134,7 @@
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                         @if($order->coffeeProduct)
                                             @php
-                                                $availableStock = \App\Models\Inventory::getAvailableStockByType('coffee_product', $order->coffee_product_id);
+                                                $availableStock = \App\Models\Inventory::getAdminAvailableStockByType('coffee_product', $order->coffee_product_id);
                                                 $isStockSufficient = $availableStock >= $order->quantity;
                                             @endphp
                                             <div class="{{ $isStockSufficient ? 'text-green-600' : 'text-red-600' }}">

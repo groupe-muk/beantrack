@@ -108,7 +108,7 @@
                             <h3 class="text-sm font-medium text-soft-brown mb-2">Available Stock</h3>
                             @if($order->coffeeProduct)
                                 @php
-                                    $availableStock = \App\Models\Inventory::getAvailableStockByType('coffee_product', $order->coffee_product_id);
+                                    $availableStock = \App\Models\Inventory::getAdminAvailableStockByType('coffee_product', $order->coffee_product_id);
                                     $isStockSufficient = $availableStock >= $order->quantity;
                                 @endphp
                                 <p class="text-lg font-semibold {{ $isStockSufficient ? 'text-green-600' : 'text-red-600' }}">
@@ -121,7 +121,7 @@
                                 @endif
                             @elseif($order->rawCoffee)
                                 @php
-                                    $availableStock = \App\Models\Inventory::getAvailableStock($order->raw_coffee_id);
+                                    $availableStock = \App\Models\Inventory::getAdminAvailableStock($order->raw_coffee_id);
                                     $isStockSufficient = $availableStock >= $order->quantity;
                                 @endphp
                                 <p class="text-lg font-semibold {{ $isStockSufficient ? 'text-green-600' : 'text-red-600' }}">

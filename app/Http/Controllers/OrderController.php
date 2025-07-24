@@ -1349,7 +1349,15 @@ class OrderController extends Controller
             ]);
         }
 
-        $availableStock = Inventory::getAvailableStock($order->raw_coffee_id);
+        // For admin users, check only supply center inventory
+        $user = Auth::user();
+        if ($user && $user->isAdmin()) {
+            $availableStock = Inventory::getAdminAvailableStock($order->raw_coffee_id);
+        } else {
+            // For other users, check all available stock
+            $availableStock = Inventory::getAvailableStock($order->raw_coffee_id);
+        }
+        
         $sufficient = $availableStock >= $order->quantity;
 
         return response()->json([

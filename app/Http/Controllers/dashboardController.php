@@ -634,13 +634,17 @@ class dashboardController extends Controller
     private function getInventoryData(): array
     {
         try {
-            // Get current inventory levels for raw coffee and coffee products
+            // Get current inventory levels for raw coffee and coffee products (admin supply centers only)
             $rawCoffeeInventory = Inventory::with(['rawCoffee'])
                 ->whereNotNull('raw_coffee_id')
+                ->whereNotNull('supply_center_id')
+                ->whereNull('warehouse_id')
                 ->get();
 
             $coffeeProductInventory = Inventory::with(['coffeeProduct'])
                 ->whereNotNull('coffee_product_id')
+                ->whereNotNull('supply_center_id')
+                ->whereNull('warehouse_id')
                 ->get();
 
             // Generate categories for the last 7 days
@@ -682,13 +686,25 @@ class dashboardController extends Controller
     private function getInventoryLevelForDate($date, $type): int
     {
         try {
-            // Get current total
+            // Get current total (admin supply centers only)
             if ($type === 'raw_coffee') {
-                $currentTotal = Inventory::whereNotNull('raw_coffee_id')->sum('quantity_in_stock');
-                $inventoryIds = Inventory::whereNotNull('raw_coffee_id')->pluck('id');
+                $currentTotal = Inventory::whereNotNull('raw_coffee_id')
+                    ->whereNotNull('supply_center_id')
+                    ->whereNull('warehouse_id')
+                    ->sum('quantity_in_stock');
+                $inventoryIds = Inventory::whereNotNull('raw_coffee_id')
+                    ->whereNotNull('supply_center_id')
+                    ->whereNull('warehouse_id')
+                    ->pluck('id');
             } else {
-                $currentTotal = Inventory::whereNotNull('coffee_product_id')->sum('quantity_in_stock');
-                $inventoryIds = Inventory::whereNotNull('coffee_product_id')->pluck('id');
+                $currentTotal = Inventory::whereNotNull('coffee_product_id')
+                    ->whereNotNull('supply_center_id')
+                    ->whereNull('warehouse_id')
+                    ->sum('quantity_in_stock');
+                $inventoryIds = Inventory::whereNotNull('coffee_product_id')
+                    ->whereNotNull('supply_center_id')
+                    ->whereNull('warehouse_id')
+                    ->pluck('id');
             }
 
             // Get all updates after the target date
@@ -702,11 +718,17 @@ class dashboardController extends Controller
             return max(0, $historicalLevel);
             
         } catch (\Exception $e) {
-            // Fallback to current total if calculation fails
+            // Fallback to current total if calculation fails (admin supply centers only)
             if ($type === 'raw_coffee') {
-                return Inventory::whereNotNull('raw_coffee_id')->sum('quantity_in_stock') ?? 0;
+                return Inventory::whereNotNull('raw_coffee_id')
+                    ->whereNotNull('supply_center_id')
+                    ->whereNull('warehouse_id')
+                    ->sum('quantity_in_stock') ?? 0;
             } else {
-                return Inventory::whereNotNull('coffee_product_id')->sum('quantity_in_stock') ?? 0;
+                return Inventory::whereNotNull('coffee_product_id')
+                    ->whereNotNull('supply_center_id')
+                    ->whereNull('warehouse_id')
+                    ->sum('quantity_in_stock') ?? 0;
             }
         }
     }
@@ -914,8 +936,9 @@ class dashboardController extends Controller
             // Active Orders (confirmed, shipped, but not delivered or cancelled)
             $activeOrders = Order::whereIn('status', ['confirmed', 'shipped'])->count();
             
-            // Total Inventory Weight across all supply centers
+            // Total Inventory Weight across all supply centers (admin-managed only)
             $totalInventoryWeight = Inventory::whereNotNull('supply_center_id')
+                ->whereNull('warehouse_id')
                 ->sum('quantity_in_stock');
             
             // Pending Shipments (confirmed orders that haven't been shipped yet)
@@ -1131,6 +1154,7 @@ class dashboardController extends Controller
                         ->whereBetween('created_at', [$previousWeekStart, $previousWeekEnd])
                         ->count(),
                     'totalInventory' => Inventory::whereNotNull('supply_center_id')
+                        ->whereNull('warehouse_id')
                         ->whereBetween('last_updated', [$previousWeekStart, $previousWeekEnd])
                         ->sum('quantity_in_stock'),
                     'pendingShipments' => Order::where('status', 'confirmed')
@@ -1390,8 +1414,9 @@ class dashboardController extends Controller
      */
     private function getAdminInventoryItems(): array
     {
-        // Get inventory items from supply centers (admin manages supply centers)
+        // Get inventory items from supply centers only (admin manages supply centers, not warehouses)
         $inventoryItems = Inventory::whereNotNull('supply_center_id')
+            ->whereNull('warehouse_id')
             ->with(['rawCoffee', 'coffeeProduct', 'supplyCenter'])
             ->get();
 

@@ -290,4 +290,30 @@ class Inventory extends Model
 
         return $reductions;
     }
+
+    /**
+     * Get available stock for admin (supply centers only)
+     */
+    public static function getAdminAvailableStockByType($type, $itemId)
+    {
+        $column = $type === 'coffee_product' ? 'coffee_product_id' : 'raw_coffee_id';
+        
+        return self::where($column, $itemId)
+            ->whereNotNull('supply_center_id')
+            ->whereNull('warehouse_id')
+            ->where('quantity_in_stock', '>', 0)
+            ->sum('quantity_in_stock');
+    }
+
+    /**
+     * Get available raw coffee stock for admin (supply centers only)
+     */
+    public static function getAdminAvailableStock($rawCoffeeId)
+    {
+        return self::where('raw_coffee_id', $rawCoffeeId)
+            ->whereNotNull('supply_center_id')
+            ->whereNull('warehouse_id')
+            ->where('quantity_in_stock', '>', 0)
+            ->sum('quantity_in_stock');
+    }
 }
