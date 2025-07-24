@@ -3,17 +3,23 @@ package com.groupe.beantrackserver.service;
 import com.groupe.beantrackserver.models.SupplierApplications;
 import com.groupe.beantrackserver.models.SupplierValidationResponse;
 import com.groupe.beantrackserver.repository.SupplierApplicationsRepository;
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.text.PDFTextStripper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -147,14 +153,16 @@ public class SupplierValidationService {
      */
     private ValidationResult validateDocuments(SupplierApplications application) {
         try {
-            // Validate bank statement
-            if (!validateFile(application.getBankStatementPath(), "bank-statement")) {
-                return new ValidationResult(false, "Bank statement file is invalid or missing");
+            // Validate bank statement with real content analysis
+            String bankValidationResult = validateBankStatementContent(application.getBankStatementPath(), application.getApplicantName());
+            if (!bankValidationResult.equals("valid")) {
+                return new ValidationResult(false, "Bank statement validation failed: " + bankValidationResult);
             }
             
-            // Validate trading license
-            if (!validateFile(application.getTradingLicensePath(), "trading-license")) {
-                return new ValidationResult(false, "Trading license file is invalid or missing");
+            // Validate trading license with real content analysis
+            String licenseValidationResult = validateTradingLicenseContent(application.getTradingLicensePath(), application.getBusinessName());
+            if (!licenseValidationResult.equals("valid")) {
+                return new ValidationResult(false, "Trading license validation failed: " + licenseValidationResult);
             }
             
             return new ValidationResult(true, "Documents validated successfully");
@@ -166,26 +174,31 @@ public class SupplierValidationService {
 
     /**
      * Validate financial status (lighter requirements than vendor)
+     * Supplier requirements: Min balance 2M UGX, Min credits 5M UGX (vs Vendor: 5M balance, 10M credits)
      */
     private ValidationResult validateFinancialStatus(SupplierApplications application) {
         try {
-            // Simulate financial validation with lighter requirements
             System.out.println("Validating financial status for supplier: " + application.getBusinessName());
             
-            // Lighter financial checks for suppliers
-            // - Basic bank statement analysis
-            // - Simplified credit check
-            // - Lower minimum balance requirements
+            // Supplier financial requirements (lighter than vendor)
+            double minBalance = 2000000; // 2M UGX vs 5M for vendors
+            double minCredits = 5000000;  // 5M UGX vs 10M for vendors
             
-            // For demo purposes, we'll approve most applications
-            // In real implementation, this would connect to financial services
+            // Validate financial data from bank statement
+            FinancialValidationResult finResult = validateFinancialStatusFromBankStatement(
+                application.getBankStatementPath(), minBalance, minCredits);
             
-            // Create financial data (lighter than vendor)
+            if (!finResult.isValid()) {
+                return new ValidationResult(false, finResult.getMessage());
+            }
+            
+            // Create financial data with actual values
             Map<String, Object> financialData = new HashMap<>();
             financialData.put("balance_check", "passed");
-            financialData.put("transaction_history", "adequate");
-            financialData.put("credit_score", "acceptable");
-            financialData.put("minimum_balance_met", true);
+            financialData.put("actual_balance", finResult.getBalance());
+            financialData.put("minimum_balance_required", minBalance);
+            financialData.put("total_credits", finResult.getCredits());
+            financialData.put("minimum_credits_required", minCredits);
             financialData.put("validation_type", "supplier_light");
             
             return new ValidationResult(true, "Financial status validation passed (supplier requirements)", financialData);
@@ -196,18 +209,27 @@ public class SupplierValidationService {
     }
 
     /**
-     * Validate business license
+     * Validate business license with real content analysis
      */
     private ValidationResult validateBusinessLicense(SupplierApplications application) {
         try {
-            // Simulate license validation
             System.out.println("Validating business license for: " + application.getBusinessName());
             
-            // Create license data
+            // Validate license content
+            String licenseValidationResult = validateTradingLicenseContent(
+                application.getTradingLicensePath(), application.getBusinessName());
+            
+            if (!licenseValidationResult.equals("valid")) {
+                return new ValidationResult(false, licenseValidationResult);
+            }
+            
+            // Extract license data (this would be from actual PDF parsing)
             Map<String, Object> licenseData = new HashMap<>();
             licenseData.put("license_valid", true);
-            licenseData.put("expiry_date", "2025-12-31");
-            licenseData.put("registration_number", "SUP" + System.currentTimeMillis());
+            licenseData.put("content_validated", true);
+            licenseData.put("business_name_matches", true);
+            licenseData.put("registration_format_valid", true);
+            licenseData.put("not_expired", true);
             licenseData.put("business_type", "supplier");
             
             return new ValidationResult(true, "Business license validated successfully", licenseData);
@@ -311,18 +333,202 @@ public class SupplierValidationService {
     /**
      * Validate individual file
      */
-    private boolean validateFile(String filePath, String expectedType) throws IOException {
-        if (filePath == null || filePath.trim().isEmpty()) {
-            return false;
+    /**
+     * Validate bank statement content with PDF analysis
+     */
+    private String validateBankStatementContent(String path, String expectedName) {
+        if (path == null || path.trim().isEmpty()) {
+            return "bank statement file path is missing";
         }
         
-        Path path = Paths.get(filePath);
-        if (!Files.exists(path)) {
-            return false;
+        if (!path.endsWith(".pdf")) {
+            return "bank statement must be a PDF file";
         }
         
-        String fileName = path.getFileName().toString().toLowerCase();
-        return fileName.contains(expectedType.toLowerCase()) && fileName.endsWith(".pdf");
+        try (PDDocument document = PDDocument.load(new File(path))) {
+            PDFTextStripper stripper = new PDFTextStripper();
+            String text = stripper.getText(document);
+
+            // Check if the expected name appears in the PDF
+            if (!text.toLowerCase().contains(expectedName.toLowerCase())) {
+                return "expected account holder name '" + expectedName + "' not found in bank statement";
+            }
+
+            return "valid";
+           
+        } catch (IOException e) {
+            e.printStackTrace();
+            return "unable to read or process bank statement PDF file";
+        }
+    }
+
+    /**
+     * Validate trading license content with PDF analysis
+     */
+    private String validateTradingLicenseContent(String path, String expectedBusinessName) {
+        if (path == null || path.trim().isEmpty()) {
+            return "trading license file path is missing";
+        }
+        
+        if (!path.endsWith(".pdf")) {
+            return "trading license must be a PDF file";
+        }
+
+        try (PDDocument document = PDDocument.load(new File(path))) {
+            PDFTextStripper stripper = new PDFTextStripper();
+            String text = stripper.getText(document);
+            
+            // Check for registration number (CM followed by 6+ digits)
+            Pattern regPattern = Pattern.compile("CM\\d{6,}", Pattern.CASE_INSENSITIVE);
+            Matcher matcher = regPattern.matcher(text);
+            
+            boolean hasValidRegistration = matcher.find();
+            if (!hasValidRegistration) {
+                return "valid registration number (CM followed by 6+ digits) not found in license";
+            }
+
+            // Check if license is still valid by comparing expiry date with today
+            String dateValidationResult = validateLicenseExpiryDate(text);
+            if (!dateValidationResult.equals("valid")) {
+                return dateValidationResult;
+            }
+
+            // Check if business name matches (optional for suppliers, unlike vendors)
+            if (expectedBusinessName != null && !expectedBusinessName.trim().isEmpty()) {
+                boolean nameMatches = text.toLowerCase().contains(expectedBusinessName.toLowerCase());
+                if (!nameMatches) {
+                    return "business name '" + expectedBusinessName + "' not found in license document";
+                }
+            }
+            
+            return "valid";
+            
+        } catch (IOException e) {
+            System.out.println("VALIDATION LICENSE ERROR");
+            System.out.println(e);
+            e.printStackTrace();
+            return "unable to read or process trading license PDF file";
+        }
+    }
+
+    /**
+     * Validate license expiry date from PDF content
+     */
+    private String validateLicenseExpiryDate(String text) {
+        try {
+            // Look for license expiry date pattern (e.g., "6th October 2022")
+            Pattern expiryPattern = Pattern.compile(
+                "License Expiry Date:\\s*(\\d{1,2})(st|nd|rd|th)\\s+(\\w+)\\s+(\\d{4})", 
+                Pattern.CASE_INSENSITIVE
+            );
+            Matcher expiryMatcher = expiryPattern.matcher(text);
+            
+            if (expiryMatcher.find()) {
+                String day = expiryMatcher.group(1);
+                String month = expiryMatcher.group(3);
+                String year = expiryMatcher.group(4);
+                
+                System.out.println("Found expiry date: " + day + " " + month + " " + year);
+                
+                // Parse the date
+                String dateString = day + " " + month + " " + year;
+                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("d MMMM yyyy");
+                LocalDate expiryDate = LocalDate.parse(dateString, formatter);
+                LocalDate today = LocalDate.now();
+                
+                System.out.println("Expiry date: " + expiryDate);
+                System.out.println("Today's date: " + today);
+                
+                // License is valid if expiry date is after or equal to today
+                if (expiryDate.isBefore(today)) {
+                    return "license expired on " + expiryDate.format(DateTimeFormatter.ofPattern("MMMM d, yyyy"));
+                } else {
+                    return "valid";
+                }
+            } else {
+                return "license expiry date not found in document";
+            }
+        } catch (DateTimeParseException e) {
+            System.out.println("Error parsing license expiry date: " + e.getMessage());
+            return "unable to parse license expiry date format";
+        }
+    }
+
+    /**
+     * Validate financial status from bank statement PDF with lighter requirements for suppliers
+     */
+    private FinancialValidationResult validateFinancialStatusFromBankStatement(String path, double minBalance, double minCredits) {
+        try (PDDocument document = PDDocument.load(new File(path))) {
+            PDFTextStripper stripper = new PDFTextStripper();
+            String text = stripper.getText(document).replaceAll(",", "");
+
+            Pattern balancePattern = Pattern.compile("AVAILABLE BALANCE:\\s+(\\d+(\\.\\d{1,2})?)");
+            Pattern creditsPattern = Pattern.compile("TOTAL CREDITS:\\s+(\\d+(\\.\\d{1,2})?)");
+
+            Matcher balanceMatcher = balancePattern.matcher(text);
+            Matcher creditsMatcher = creditsPattern.matcher(text);
+
+            double balance = 0;
+            double credits = 0;
+
+            if (balanceMatcher.find()) {
+                balance = Double.parseDouble(balanceMatcher.group(1));
+            } else {
+                return new FinancialValidationResult(false, "Available balance not found in bank statement", 0, 0);
+            }
+
+            if (creditsMatcher.find()) {
+                credits = Double.parseDouble(creditsMatcher.group(1));
+            } else {
+                return new FinancialValidationResult(false, "Total credits not found in bank statement", balance, 0);
+            }
+
+            System.out.println("Parsed Balance: " + balance + " (required: " + minBalance + ")");
+            System.out.println("Parsed Credits: " + credits + " (required: " + minCredits + ")");
+
+            if (balance < minBalance) {
+                return new FinancialValidationResult(false, 
+                    String.format("Available balance %.2f is below minimum requirement of %.2f", balance, minBalance), 
+                    balance, credits);
+            }
+
+            if (credits < minCredits) {
+                return new FinancialValidationResult(false, 
+                    String.format("Total credits %.2f is below minimum requirement of %.2f", credits, minCredits), 
+                    balance, credits);
+            }
+
+            return new FinancialValidationResult(true, "Financial requirements met", balance, credits);
+            
+        } catch (IOException e) {
+            e.printStackTrace();
+            return new FinancialValidationResult(false, "Unable to read bank statement file", 0, 0);
+        } catch (NumberFormatException e) {
+            e.printStackTrace();
+            return new FinancialValidationResult(false, "Unable to parse financial amounts from bank statement", 0, 0);
+        }
+    }
+
+    /**
+     * Helper class for financial validation results
+     */
+    private static class FinancialValidationResult {
+        private boolean valid;
+        private String message;
+        private double balance;
+        private double credits;
+
+        public FinancialValidationResult(boolean valid, String message, double balance, double credits) {
+            this.valid = valid;
+            this.message = message;
+            this.balance = balance;
+            this.credits = credits;
+        }
+
+        public boolean isValid() { return valid; }
+        public String getMessage() { return message; }
+        public double getBalance() { return balance; }
+        public double getCredits() { return credits; }
     }
 
     /**

@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supplier Application Status Update</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background-color: #dc3545;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            border-radius: 8px 8px 0 0;
+        }
+        .content {
+            background-color: #f8f9fa;
+            padding: 30px;
+            border-radius: 0 0 8px 8px;
+        }
+        .rejection-reasons {
+            background-color: #f8d7da;
+            border-left: 4px solid #dc3545;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .next-steps {
+            background-color: #d1ecf1;
+            border-left: 4px solid #17a2b8;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .footer {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #dee2e6;
+            font-size: 14px;
+            color: #6c757d;
+        }
+        .btn {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>📋 Application Status Update</h1>
+        <h2>Supplier Application Review Complete</h2>
+    </div>
+    
+    <div class="content">
+        <p>Dear <strong th:text="${applicantName}">Applicant Name</strong>,</p>
+        
+        <p>Thank you for your interest in becoming a supplier partner with BeanTrack. We have completed the review of your application for <strong th:text="${businessName}">Business Name</strong>.</p>
+        
+        <p>After careful review of your submitted documents and application details, we regret to inform you that we are unable to approve your supplier application at this time.</p>
+        
+        <div class="rejection-reasons">
+            <h3>📝 Review Details</h3>
+            <p th:text="${rejectionReason}">Specific reasons for the decision would be listed here...</p>
+        </div>
+        
+        <div class="next-steps">
+            <h3>🔄 What You Can Do Next</h3>
+            <ol>
+                <li><strong>Review the feedback above</strong> and address any identified issues</li>
+                <li><strong>Update your documentation</strong> to meet our supplier requirements</li>
+                <li><strong>Ensure your business license is current</strong> and properly registered</li>
+                <li><strong>Submit a new application</strong> once you have addressed the concerns</li>
+                <li><strong>Contact our supplier onboarding team</strong> if you need clarification</li>
+            </ol>
+        </div>
+        
+        <h3>📞 Need Help?</h3>
+        <p>If you have questions about this decision or need guidance on improving your application, please contact our supplier onboarding team:</p>
+        
+        <ul>
+            <li><strong>Email:</strong> supplier-onboarding@beantrack.com</li>
+            <li><strong>Phone:</strong> +256 700 123456</li>
+            <li><strong>Business Hours:</strong> Monday - Friday, 8:00 AM - 6:00 PM</li>
+        </ul>
+        
+        <h3>📋 Supplier Requirements Checklist</h3>
+        <p>When you're ready to reapply, please ensure you have:</p>
+        <ul>
+            <li>A valid business/trading license (current and not expired)</li>
+            <li>Recent bank statements demonstrating financial stability</li>
+            <li>Business name exactly matching your registration documents</li>
+            <li>High-quality, readable PDF documents</li>
+            <li>Completed application with accurate business information</li>
+            <li>Proof of coffee supply capacity and quality standards</li>
+        </ul>
+        
+        <p><strong>Note:</strong> Supplier applications are reviewed more thoroughly than vendor applications due to the direct supply relationship and quality requirements in our coffee supply chain.</p>
+        
+        <p>We appreciate your interest in partnering with BeanTrack as a coffee supplier and encourage you to reapply once you have addressed the requirements noted above.</p>
+        
+        <p>Best regards,<br>
+        <strong>The BeanTrack Supplier Onboarding Team</strong></p>
+    </div>
+    
+    <div class="footer">
+        <p>This is an automated message from our supplier onboarding system. For questions or support, please contact us using the information provided above.</p>
+        <p>&copy; 2025 BeanTrack. All rights reserved.</p>
+    </div>
+</body>
+</html>

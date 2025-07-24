@@ -428,7 +428,7 @@ public class EmailService {
             context.setVariable("businessName", businessName);
             context.setVariable("rejectionReason", reason != null ? reason : "Application did not meet our requirements.");
 
-            String htmlContent = templateEngine.process("supplier-rejection", context);
+            String htmlContent = templateEngine.process("email/supplier-rejection", context);
 
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");

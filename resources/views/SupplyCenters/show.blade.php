@@ -90,7 +90,7 @@
                     $workersByShift = $supplycenter->workers->groupBy('shift');
                 @endphp
                 
-                @foreach(['Morning', 'Afternoon', 'Night'] as $shift)
+                @foreach(['Morning', 'Afternoon','Evening', 'Night'] as $shift)
                     @if(isset($workersByShift[$shift]) && $workersByShift[$shift]->count() > 0)
                         <div class="mb-6">
                             <h3 class="text-lg font-semibold text-coffee-brown mb-3 border-b border-gray-200 pb-2">
