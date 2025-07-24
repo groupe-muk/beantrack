@@ -19,6 +19,11 @@ class InventoryUpdate extends Model
         'inventory_id', 'quantity_change', 'reason', 'updated_by', 'created_at'
     ];
 
+    protected $casts = [
+        'created_at' => 'datetime',
+        'quantity_change' => 'decimal:2'
+    ];
+
     public function inventory()
     {
         return $this->belongsTo(Inventory::class, 'inventory_id');

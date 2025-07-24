@@ -501,8 +501,8 @@ function updateDynamicFilters(reportType) {
 
     const vendorFilterConfigs = {
         'vendor_purchases': [
-            { label: 'Product Category', type: 'select', options: ['All', 'Coffee Beans', 'Equipment', 'Supplies'] },
-            { label: 'Supplier', type: 'select', options: ['All', 'Primary Suppliers', 'Secondary Suppliers'] }
+            { label: 'Product Category', type: 'select', apiType: 'products' },
+            { label: 'Supplier', type: 'select', apiType: 'suppliers' }
         ],
         'vendor_orders': [
             { label: 'Order Status', type: 'select', options: ['All', 'Pending', 'Confirmed', 'Shipped', 'Delivered'] },
@@ -517,22 +517,60 @@ function updateDynamicFilters(reportType) {
             { label: 'Payment Method', type: 'select', options: ['All', 'Bank Transfer', 'Credit Card', 'Check'] }
         ],
         'vendor_inventory': [
-            { label: 'Product Category', type: 'select', options: ['All', 'Coffee Beans', 'Equipment', 'Supplies'] },
+            { label: 'Product Category', type: 'select', apiType: 'products' },
             { label: 'Stock Status', type: 'select', options: ['All', 'In Stock', 'Low Stock', 'Out of Stock'] }
         ]
     };
 
     const filters = vendorFilterConfigs[reportType] || [];
     
-    filters.forEach(filter => {
+    // Create each filter element
+    filters.forEach(async (filter, index) => {
         const filterDiv = document.createElement('div');
+        
+        // Show loading state first
         filterDiv.innerHTML = `
             <label class="block text-sm font-medium text-gray-700 mb-2">${filter.label}</label>
             <select name="${filter.label.toLowerCase().replace(' ', '_')}" class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-1 focus:ring-light-brown focus:border-light-brown">
-                ${filter.options.map(option => `<option value="${option.toLowerCase()}">${option}</option>`).join('')}
+                <option value="">Loading...</option>
             </select>
         `;
         filtersContainer.appendChild(filterDiv);
+        
+        let options = [];
+        
+        // Fetch options from API if apiType is specified
+        if (filter.apiType) {
+            try {
+                const response = await fetch(`/vendor-reports/dropdown-options?type=${filter.apiType}`, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    options = data.options || ['All'];
+                } else {
+                    console.error('Failed to fetch dropdown options:', response.statusText);
+                    options = ['All']; // Fallback
+                }
+            } catch (error) {
+                console.error('Error fetching dropdown options:', error);
+                options = ['All']; // Fallback
+            }
+        } else {
+            // Use hardcoded options if no apiType
+            options = filter.options || ['All'];
+        }
+        
+        // Update the select with the fetched options
+        const select = filterDiv.querySelector('select');
+        select.innerHTML = options.map(option => 
+            `<option value="${option.toLowerCase()}">${option}</option>`
+        ).join('');
     });
 }
 
