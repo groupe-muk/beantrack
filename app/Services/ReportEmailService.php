@@ -545,18 +545,12 @@ class ReportEmailService
      */
     private function getInventoryMovements(string $fromDate, string $toDate, ?User $user = null): array
     {
-        $query = InventoryUpdate::with(['inventory.coffeeProduct', 'inventory.rawCoffee', 'inventory.supplyCenter'])
+        $query = InventoryUpdate::with(['inventory.coffeeProduct', 'inventory.rawCoffee', 'inventory.supplyCenter', 'user'])
             ->whereBetween('created_at', [$fromDate, $toDate]);
 
-        // Filter by user permissions
+        // Filter by user who made the updates
         if ($user) {
-            if ($user->role === 'supplier') {
-                // Suppliers can only see inventory movements for their supply centers
-                $query->whereHas('inventory.supplyCenter', function($q) use ($user) {
-                    $q->where('supplier_id', $user->id);
-                });
-            }
-            // Admins and wholesalers can see all movements (no additional filter for now)
+            $query->where('updated_by', $user->id);
         }
 
         $movements = $query->orderBy('created_at', 'desc')->get();
@@ -564,14 +558,21 @@ class ReportEmailService
         $data = [];
         foreach ($movements as $movement) {
             $productName = $movement->inventory->coffeeProduct ? $movement->inventory->coffeeProduct->name : 
-                          ($movement->inventory->rawCoffee ? $movement->inventory->rawCoffee->type : 'Unknown Product');
+                          ($movement->inventory->rawCoffee ? $movement->inventory->rawCoffee->coffee_type : 'Unknown Product');
+            
+            // Determine movement type based on quantity change
+            $movementType = $movement->quantity_change > 0 ? 'Inbound' : 'Outbound';
+            $quantityDisplay = $movement->quantity_change > 0 ? 
+                '+' . number_format($movement->quantity_change, 2) : 
+                number_format($movement->quantity_change, 2);
             
             $data[] = [
-                'Date' => $movement->created_at->format('Y-m-d'),
+                'Date' => $movement->created_at ? $movement->created_at->format('Y-m-d H:i:s') : 'Unknown Date',
                 'Product' => $productName,
-                'Movement Type' => $movement->update_type ?? 'Update',
-                'Quantity Change' => $movement->quantity_change ?? 0,
-                'New Stock Level' => $movement->new_quantity ?? 0,
+                'Movement Type' => $movementType,
+                'Quantity Change' => $quantityDisplay . ' kg',
+                'Reason' => $movement->reason ?: 'No reason specified',
+                'Updated By' => $movement->user ? $movement->user->name : 'Unknown User',
                 'Location' => $movement->inventory->supplyCenter ? $movement->inventory->supplyCenter->name : 'N/A'
             ];
         }

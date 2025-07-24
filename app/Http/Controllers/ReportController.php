@@ -11,6 +11,9 @@ use App\Models\Inventory;
 use App\Models\InventoryUpdate;
 use App\Models\CoffeeProduct;
 use App\Models\RawCoffee;
+use App\Models\Warehouse;
+use App\Models\Wholesaler; 
+use App\Models\SupplyCenter;
 use App\Services\ReportEmailService;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Storage;
@@ -547,16 +550,44 @@ class ReportController extends Controller
                 ])
             ]);
 
-            // Here you would typically dispatch a job to generate the report
-            // For now, we'll simulate the process and set realistic file size
-            $fileSizes = ['1.2 MB', '2.3 MB', '856 KB', '3.1 MB', '1.8 MB', '4.2 MB'];
-            $randomSize = $fileSizes[array_rand($fileSizes)];
-            
-            $report->update([
-                'status' => 'completed',
-                'last_sent' => now(),
-                'file_size' => $randomSize
-            ]);
+            // Actually generate the report content
+            try {
+                $reportData = $this->generateReportContent($report);
+                
+                // Calculate a realistic file size based on data
+                $dataRowCount = count($reportData['data'] ?? []);
+                $estimatedSize = max(0.1, $dataRowCount * 0.05); // Rough estimate: 50KB per 1000 rows
+                $fileSizeText = $estimatedSize > 1 ? number_format($estimatedSize, 1) . ' MB' : number_format($estimatedSize * 1024, 0) . ' KB';
+                
+                $report->update([
+                    'status' => 'completed',
+                    'last_sent' => now(),
+                    'file_size' => $fileSizeText
+                ]);
+                
+                \Log::info('Ad-hoc report generated successfully', [
+                    'report_id' => $report->id,
+                    'data_rows' => $dataRowCount,
+                    'file_size' => $fileSizeText
+                ]);
+                
+            } catch (\Exception $e) {
+                \Log::error('Error generating report content for ad-hoc report', [
+                    'report_id' => $report->id,
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString()
+                ]);
+                
+                $report->update([
+                    'status' => 'failed',
+                    'file_size' => '0 KB'
+                ]);
+                
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to generate report content: ' . $e->getMessage()
+                ], 500);
+            }
 
             // Send email if delivery method includes email
             $deliveryMethod = $request->delivery_method ?? 'download';
@@ -1436,38 +1467,41 @@ class ReportController extends Controller
      */
     private function generateInventoryDataFromDB($fromDate, $toDate, ?User $user = null)
     {
-        $query = InventoryUpdate::with(['inventory.coffeeProduct', 'inventory.rawCoffee', 'inventory.supplyCenter'])
+        $query = InventoryUpdate::with(['inventory.coffeeProduct', 'inventory.rawCoffee', 'inventory.supplyCenter', 'user'])
             ->whereBetween('created_at', [$fromDate, $toDate]);
 
-        // Apply user filtering
-        if ($user && $user->role === 'supplier') {
-            $query->whereHas('inventory.supplyCenter', function($q) use ($user) {
-                $q->where('supplier_id', $user->id);
-            });
-        } elseif ($user && $user->role === 'vendor') {
-            // Vendors can only see inventory from their wholesaler
-            $query->whereHas('inventory.supplyCenter', function($q) use ($user) {
-                $q->where('wholesaler_id', $user->wholesaler->id ?? null);
-            });
+        // Apply user filtering - filter by who made the update
+        if ($user) {
+            $query->where('updated_by', $user->id);
         }
 
         $movements = $query->get();
 
         $totalMovements = $movements->count();
-        $inboundCount = $movements->where('update_type', 'inbound')->count();
-        $outboundCount = $movements->where('update_type', 'outbound')->count();
+        $inboundCount = $movements->where('quantity_change', '>', 0)->count();
+        $outboundCount = $movements->where('quantity_change', '<', 0)->count();
+        $totalInboundQuantity = $movements->where('quantity_change', '>', 0)->sum('quantity_change');
+        $totalOutboundQuantity = abs($movements->where('quantity_change', '<', 0)->sum('quantity_change'));
 
-        $data = [['Date', 'Product', 'Movement Type', 'Quantity', 'Location']];
+        $data = [['Date', 'Product', 'Movement Type', 'Quantity Change', 'Location', 'Reason', 'Updated By']];
         foreach ($movements as $movement) {
             $productName = $movement->inventory->coffeeProduct ? $movement->inventory->coffeeProduct->name : 
-                          ($movement->inventory->rawCoffee ? $movement->inventory->rawCoffee->type : 'Unknown Product');
+                          ($movement->inventory->rawCoffee ? $movement->inventory->rawCoffee->coffee_type : 'Unknown Product');
+            
+            // Determine movement type based on quantity change
+            $movementType = $movement->quantity_change > 0 ? 'Inbound' : 'Outbound';
+            $quantityDisplay = $movement->quantity_change > 0 ? 
+                '+' . number_format($movement->quantity_change, 2) : 
+                number_format($movement->quantity_change, 2);
             
             $data[] = [
-                $movement->created_at->format('Y-m-d'),
+                $movement->created_at ? $movement->created_at->format('Y-m-d H:i:s') : 'Unknown Date',
                 $productName,
-                ucfirst($movement->update_type ?? 'Update'),
-                $movement->quantity_change ?? 0,
-                $movement->inventory->supplyCenter ? $movement->inventory->supplyCenter->name : 'N/A'
+                $movementType,
+                $quantityDisplay . ' kg',
+                $movement->inventory->supplyCenter ? $movement->inventory->supplyCenter->name : 'N/A',
+                $movement->reason ?: 'No reason specified',
+                $movement->user ? $movement->user->name : 'Unknown User'
             ];
         }
 
@@ -1476,9 +1510,9 @@ class ReportController extends Controller
             'period' => $fromDate . ' to ' . $toDate,
             'summary' => [
                 'total_movements' => $totalMovements,
-                'inbound_quantity' => $inboundCount . ' movements',
-                'outbound_quantity' => $outboundCount . ' movements',
-                'net_change' => ($inboundCount - $outboundCount) . ' net movements'
+                'inbound_movements' => $inboundCount . ' movements (+' . number_format($totalInboundQuantity, 2) . ' kg)',
+                'outbound_movements' => $outboundCount . ' movements (-' . number_format($totalOutboundQuantity, 2) . ' kg)',
+                'net_change' => number_format($totalInboundQuantity - $totalOutboundQuantity, 2) . ' kg'
             ],
             'data' => $data
         ];
@@ -2836,5 +2870,124 @@ class ReportController extends Controller
                 'message' => 'Failed to delete recipient: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Get dropdown options for report filters
+     */
+    public function getDropdownOptions(Request $request)
+    {
+        $user = Auth::user();
+        $type = $request->query('type');
+        
+        try {
+            switch ($type) {
+                case 'warehouses':
+                    return $this->getWarehouseOptions($user);
+                case 'products':
+                    return $this->getProductOptions($user);
+                case 'suppliers':
+                    return $this->getSupplierOptions($user);
+                case 'vendors':
+                    return $this->getVendorOptions($user);
+                case 'locations':
+                    return $this->getLocationOptions($user);
+                default:
+                    return response()->json(['options' => []]);
+            }
+        } catch (\Exception $e) {
+            \Log::error('Error getting dropdown options', [
+                'type' => $type,
+                'user_id' => $user->id,
+                'error' => $e->getMessage()
+            ]);
+            return response()->json(['options' => []], 500);
+        }
+    }
+
+    private function getWarehouseOptions($user)
+    {
+        $options = ['All'];
+        
+        if ($user->isAdmin()) {
+            // Admin can see all warehouses
+            $warehouses = Warehouse::pluck('name')->toArray();
+            $options = array_merge($options, $warehouses);
+        } elseif ($user->isSupplier()) {
+            // Supplier can only see their own warehouse
+            $supplier = $user->supplier;
+            if ($supplier && $supplier->warehouse) {
+                $options[] = $supplier->warehouse->name;
+            }
+        } elseif ($user->isVendor()) {
+            // Vendor can see their warehouses
+            $wholesaler = $user->wholesaler;
+            if ($wholesaler) {
+                $warehouses = Warehouse::where('wholesaler_id', $wholesaler->id)->pluck('name')->toArray();
+                $options = array_merge($options, $warehouses);
+            }
+        }
+        
+        return response()->json(['options' => $options]);
+    }
+
+    private function getProductOptions($user)
+    {
+        $options = ['All'];
+        
+        // Get coffee products
+        $coffeeProducts = CoffeeProduct::pluck('name')->toArray();
+        $options = array_merge($options, $coffeeProducts);
+        
+        // Get raw coffee types
+        $rawCoffeeTypes = RawCoffee::pluck('coffee_type')->unique()->toArray();
+        $options = array_merge($options, $rawCoffeeTypes);
+        
+        return response()->json(['options' => array_unique($options)]);
+    }
+
+    private function getSupplierOptions($user)
+    {
+        $options = ['All'];
+        
+        if ($user->isAdmin()) {
+            $suppliers = Supplier::with('user')->get()->pluck('user.name')->filter()->toArray();
+            $options = array_merge($options, $suppliers);
+        }
+        
+        return response()->json(['options' => $options]);
+    }
+
+    private function getVendorOptions($user)
+    {
+        $options = ['All'];
+        
+        if ($user->isAdmin()) {
+            $vendors = Wholesaler::with('user')->get()->pluck('user.name')->filter()->toArray();
+            $options = array_merge($options, $vendors);
+        }
+        
+        return response()->json(['options' => $options]);
+    }
+
+    private function getLocationOptions($user)
+    {
+        $options = ['All'];
+        
+        if ($user->isAdmin()) {
+            // Admin sees supply centers only for inventory/location filtering
+            $supplyCenters = SupplyCenter::pluck('name')->toArray();
+            $options = array_merge($options, $supplyCenters);
+        } else {
+            // Non-admin users see warehouses
+            $warehouseResponse = $this->getWarehouseOptions($user);
+            $warehouseData = json_decode($warehouseResponse->getContent(), true);
+            $warehouseOptions = array_filter($warehouseData['options'], function($option) {
+                return $option !== 'All'; // Remove duplicate 'All'
+            });
+            $options = array_merge($options, $warehouseOptions);
+        }
+        
+        return response()->json(['options' => array_unique($options)]);
     }
 }

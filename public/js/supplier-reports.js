@@ -501,8 +501,8 @@ function updateDynamicFilters(reportType) {
 
     const supplierFilterConfigs = {
         'supplier_inventory': [
-            { label: 'Product Category', type: 'select', options: ['All', 'Raw Coffee'] }, // Suppliers only see raw coffee
-            { label: 'Location', type: 'select', options: ['All', 'Main Warehouse', 'Secondary Storage'] }
+            { label: 'Product Category', type: 'select', apiType: 'products' }, // Suppliers see their products
+            { label: 'Location', type: 'select', apiType: 'locations' }
         ],
         'supplier_orders': [
             { label: 'Order Status', type: 'select', options: ['All', 'Pending', 'Confirmed', 'Shipped', 'Delivered'] },
@@ -510,25 +510,63 @@ function updateDynamicFilters(reportType) {
         ],
         'supplier_quality': [
             { label: 'Quality Grade', type: 'select', options: ['All', 'Grade A', 'Grade B', 'Grade C'] },
-            { label: 'Coffee Type', type: 'select', options: ['All', 'Arabica', 'Robusta'] }
+            { label: 'Coffee Type', type: 'select', apiType: 'products' }
         ],
         'supplier_deliveries': [
             { label: 'Delivery Status', type: 'select', options: ['All', 'Scheduled', 'In Transit', 'Delivered'] },
-            { label: 'Destination', type: 'select', options: ['All', 'Local', 'Regional', 'International'] }
+            { label: 'Destination', type: 'select', apiType: 'locations' }
         ]
     };
 
     const filters = supplierFilterConfigs[reportType] || [];
     
-    filters.forEach(filter => {
+    // Create each filter element
+    filters.forEach(async (filter, index) => {
         const filterDiv = document.createElement('div');
+        
+        // Show loading state first
         filterDiv.innerHTML = `
             <label class="block text-sm font-medium text-gray-700 mb-2">${filter.label}</label>
             <select name="${filter.label.toLowerCase().replace(' ', '_')}" class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-1 focus:ring-light-brown focus:border-light-brown">
-                ${filter.options.map(option => `<option value="${option.toLowerCase()}">${option}</option>`).join('')}
+                <option value="">Loading...</option>
             </select>
         `;
         filtersContainer.appendChild(filterDiv);
+        
+        let options = [];
+        
+        // Fetch options from API if apiType is specified
+        if (filter.apiType) {
+            try {
+                const response = await fetch(`/supplier-reports/dropdown-options?type=${filter.apiType}`, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    options = data.options || ['All'];
+                } else {
+                    console.error('Failed to fetch dropdown options:', response.statusText);
+                    options = ['All']; // Fallback
+                }
+            } catch (error) {
+                console.error('Error fetching dropdown options:', error);
+                options = ['All']; // Fallback
+            }
+        } else {
+            // Use hardcoded options if no apiType
+            options = filter.options || ['All'];
+        }
+        
+        // Update the select with the fetched options
+        const select = filterDiv.querySelector('select');
+        select.innerHTML = options.map(option => 
+            `<option value="${option.toLowerCase()}">${option}</option>`
+        ).join('');
     });
 }
 

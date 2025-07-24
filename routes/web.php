@@ -231,6 +231,7 @@ Route::middleware(['auth'])->group(function () {
             Route::get('/historical', [App\Http\Controllers\ReportController::class, 'getHistoricalReports'])->name('reports.historical');
             Route::get('/templates', [App\Http\Controllers\ReportController::class, 'getTemplates'])->name('reports.templates');
             Route::get('/recipients', [App\Http\Controllers\ReportController::class, 'getRecipients'])->name('reports.recipients');
+            Route::get('/dropdown-options', [App\Http\Controllers\ReportController::class, 'getDropdownOptions'])->name('reports.dropdown.options');
             
             // Recipient CRUD operations
             Route::post('/recipients', [App\Http\Controllers\ReportController::class, 'storeRecipient'])->name('reports.recipients.store');
@@ -274,6 +275,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/historical', [App\Http\Controllers\ReportController::class, 'getHistoricalReports'])->name('reports.supplier.historical');
         Route::get('/templates', [App\Http\Controllers\ReportController::class, 'getTemplates'])->name('reports.supplier.templates');
         Route::get('/recipients', [App\Http\Controllers\ReportController::class, 'getRecipients'])->name('reports.supplier.recipients');
+        Route::get('/dropdown-options', [App\Http\Controllers\ReportController::class, 'getDropdownOptions'])->name('reports.supplier.dropdown.options');
         Route::post('/', [App\Http\Controllers\ReportController::class, 'store'])->name('reports.supplier.store');
         Route::post('/adhoc', [App\Http\Controllers\ReportController::class, 'generateAdhocReport'])->name('reports.supplier.adhoc');
         Route::get('/{report}/edit', [App\Http\Controllers\ReportController::class, 'edit'])->name('reports.supplier.edit');
@@ -375,6 +377,7 @@ Route::middleware(['auth'])->group(function () {
             Route::get('/historical', [App\Http\Controllers\ReportController::class, 'getHistoricalReports'])->name('reports.vendor.historical');
             Route::get('/templates', [App\Http\Controllers\ReportController::class, 'getTemplates'])->name('reports.vendor.templates');
             Route::get('/recipients', [App\Http\Controllers\ReportController::class, 'getRecipients'])->name('reports.vendor.recipients');
+            Route::get('/dropdown-options', [App\Http\Controllers\ReportController::class, 'getDropdownOptions'])->name('reports.vendor.dropdown.options');
             Route::post('/', [App\Http\Controllers\ReportController::class, 'store'])->name('reports.vendor.store');
             Route::post('/adhoc', [App\Http\Controllers\ReportController::class, 'generateAdhocReport'])->name('reports.vendor.adhoc');
             Route::get('/{report}/edit', [App\Http\Controllers\ReportController::class, 'edit'])->name('reports.vendor.edit');

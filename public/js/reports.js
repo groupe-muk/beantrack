@@ -482,26 +482,64 @@ function updateDynamicFilters(reportType) {
 
     const filterConfigs = {
         'sales_data': [
-            { label: 'Product Category', type: 'select', options: ['All', 'Arabica', 'Robusta', 'Blends'] },
+            { label: 'Product Category', type: 'select', apiType: 'products' },
             { label: 'Sales Channel', type: 'select', options: ['All', 'Retail', 'Wholesale', 'Online'] }
         ],
         'inventory_movements': [
-            { label: 'Warehouse Location', type: 'select', options: ['All', 'Warehouse A', 'Warehouse B', 'Warehouse C'] },
+            { label: 'Warehouse Location', type: 'select', apiType: 'locations' },
             { label: 'Movement Type', type: 'select', options: ['All', 'Inbound', 'Outbound', 'Transfer'] }
         ]
     };
 
     const filters = filterConfigs[reportType] || [];
     
-    filters.forEach(filter => {
+    // Create each filter element
+    filters.forEach(async (filter, index) => {
         const filterDiv = document.createElement('div');
+        
+        // Show loading state first
         filterDiv.innerHTML = `
             <label class="block text-sm font-medium text-gray-700 mb-1">${filter.label}</label>
             <select class="block w-full border border-gray-300 rounded-md px-3 py-2 bg-white focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500">
-                ${filter.options.map(option => `<option value="${option.toLowerCase()}">${option}</option>`).join('')}
+                <option value="">Loading...</option>
             </select>
         `;
         filtersContainer.appendChild(filterDiv);
+        
+        let options = [];
+        
+        // Fetch options from API if apiType is specified
+        if (filter.apiType) {
+            try {
+                const response = await fetch(`/reports/dropdown-options?type=${filter.apiType}`, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    options = data.options || ['All'];
+                } else {
+                    console.error('Failed to fetch dropdown options:', response.statusText);
+                    options = ['All']; // Fallback
+                }
+            } catch (error) {
+                console.error('Error fetching dropdown options:', error);
+                options = ['All']; // Fallback
+            }
+        } else {
+            // Use hardcoded options if no apiType
+            options = filter.options || ['All'];
+        }
+        
+        // Update the select with the fetched options
+        const select = filterDiv.querySelector('select');
+        select.innerHTML = options.map(option => 
+            `<option value="${option.toLowerCase()}">${option}</option>`
+        ).join('');
     });
 }
 
